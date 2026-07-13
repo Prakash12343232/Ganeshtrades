@@ -1,20 +1,30 @@
 const multer = require('multer');
 const path = require('path');
+const crypto = require('crypto');
+
+const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
+const EXT_BY_MIME = {
+  'image/jpeg': '.jpg',
+  'image/png': '.png',
+  'image/gif': '.gif',
+  'image/webp': '.webp'
+};
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, path.join(__dirname, '../uploads'));
   },
   filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+    const ext = EXT_BY_MIME[file.mimetype];
+    const uniqueSuffix = `${Date.now()}-${crypto.randomBytes(16).toString('hex')}`;
+    cb(null, `${file.fieldname}-${uniqueSuffix}${ext}`);
   }
 });
 
 const fileFilter = (req, file, cb) => {
-  const allowed = /jpeg|jpg|png|gif|webp/;
-  const extname = allowed.test(path.extname(file.originalname).toLowerCase());
-  const mimetype = allowed.test(file.mimetype);
+  const allowedExt = new Set(['.jpeg', '.jpg', '.png', '.gif', '.webp']);
+  const extname = allowedExt.has(path.extname(file.originalname).toLowerCase());
+  const mimetype = ALLOWED_MIME.has(file.mimetype);
 
   if (extname && mimetype) {
     return cb(null, true);

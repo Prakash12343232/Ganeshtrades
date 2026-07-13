@@ -9,9 +9,11 @@ const supplierSchema = new mongoose.Schema({
   contactPerson: String,
   mobile: {
     type: String,
-    required: [true, 'Mobile number is required']
+    required: true,
+    match: [/^[6-9]\d{9}$/, 'Please enter a valid 10-digit mobile number']
   },
   email: String,
+  gstNumber: String,
   address: {
     street: String,
     area: String,
@@ -19,10 +21,9 @@ const supplierSchema = new mongoose.Schema({
     state: String,
     pincode: String
   },
-  gstNumber: String,
   balance: {
     type: Number,
-    default: 0 // Amount we owe to the supplier
+    default: 0 // Amount we owe the supplier
   },
   status: {
     type: String,

@@ -1,7 +1,7 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useState } from 'react';
-import { FiHome, FiPackage, FiShoppingBag, FiUsers, FiDollarSign, FiBarChart2, FiBox, FiLogOut, FiMenu, FiX, FiArrowLeft, FiBell } from 'react-icons/fi';
+import { FiHome, FiPackage, FiShoppingBag, FiUsers, FiDollarSign, FiBarChart2, FiBox, FiLogOut, FiMenu, FiX, FiArrowLeft, FiBell, FiTruck, FiBookOpen, FiFileText, FiDatabase, FiMap } from 'react-icons/fi';
 
 export default function AdminLayout() {
   const { user, logout } = useAuth();
@@ -12,11 +12,17 @@ export default function AdminLayout() {
   const menuItems = [
     { path: '/admin', label: 'Dashboard', icon: <FiHome />, exact: true },
     { path: '/admin/orders', label: 'Orders', icon: <FiShoppingBag /> },
+    { path: '/admin/deliveries', label: 'Deliveries', icon: <FiTruck /> },
     { path: '/admin/products', label: 'Products', icon: <FiPackage /> },
     { path: '/admin/inventory', label: 'Inventory', icon: <FiBox /> },
     { path: '/admin/customers', label: 'Customers', icon: <FiUsers /> },
+    { path: '/admin/credit', label: 'Credit (Khata)', icon: <FiBookOpen /> },
+    { path: '/admin/suppliers', label: 'Suppliers & POs', icon: <FiPackage /> },
+    { path: '/admin/expenses', label: 'Expenses', icon: <FiFileText /> },
     { path: '/admin/payments', label: 'Payments', icon: <FiDollarSign /> },
     { path: '/admin/reports', label: 'Reports', icon: <FiBarChart2 /> },
+    { path: '/admin/coverage', label: 'Delivery Coverage', icon: <FiMap /> },
+    { path: '/admin/backups', label: 'Database Backups', icon: <FiDatabase /> },
   ];
 
   if (user?.role === 'manager') {

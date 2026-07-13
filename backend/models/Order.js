@@ -1,5 +1,15 @@
 const mongoose = require('mongoose');
 
+const TIME_SLOTS = [
+  '8 AM - 10 AM',
+  '10 AM - 12 PM',
+  '12 PM - 2 PM',
+  '2 PM - 4 PM',
+  '4 PM - 6 PM',
+  '6 PM - 8 PM',
+  '8 PM - 10 PM'
+];
+
 const orderItemSchema = new mongoose.Schema({
   product: {
     type: mongoose.Schema.Types.ObjectId,
@@ -36,10 +46,6 @@ const orderSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
-  discountPercentageApplied: {
-    type: Number,
-    default: 0
-  },
   deliveryCharge: {
     type: Number,
     default: 0
@@ -67,8 +73,31 @@ const orderSchema = new mongoose.Schema({
     street: String,
     area: String,
     city: String,
-    pincode: String
+    pincode: String,
+    lat: Number,
+    lng: Number
   },
+  distanceFromShop: {
+    type: Number,
+    default: 0
+  },
+
+  // ─── Scheduled Delivery Fields ───
+  deliveryType: {
+    type: String,
+    enum: ['instant', 'scheduled'],
+    default: 'instant'
+  },
+  scheduledDelivery: {
+    date: { type: Date },
+    timeSlot: { type: String, enum: [...TIME_SLOTS, ''] },
+    scheduledAt: { type: Date },         // Timestamp when customer scheduled it
+    rescheduledAt: { type: Date },       // Timestamp of last reschedule
+    rescheduledBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    originalDate: { type: Date },        // Keeps the first scheduled date for audit
+    originalTimeSlot: { type: String }
+  },
+
   deliveryDate: Date,
   deliveredAt: Date,
   notes: String,
@@ -77,24 +106,51 @@ const orderSchema = new mongoose.Schema({
     status: String,
     timestamp: { type: Date, default: Date.now },
     note: String
-  }],
-  deliveryId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Delivery'
-  }
+  }]
 }, {
   timestamps: true
 });
 
-// Auto-generate order number
+const counterSchema = new mongoose.Schema({
+  _id: { type: String, required: true },
+  seq: { type: Number, default: 0 }
+});
+const Counter = mongoose.models.Counter || mongoose.model('Counter', counterSchema);
+
+// Auto-generate order number securely using an atomic counter
 orderSchema.pre('save', async function(next) {
   if (!this.orderNumber) {
-    const count = await mongoose.model('Order').countDocuments();
-    const date = new Date();
-    const prefix = `GT${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}`;
-    this.orderNumber = `${prefix}${String(count + 1).padStart(5, '0')}`;
+    try {
+      const date = new Date();
+      const prefix = `GT${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}`;
+      
+      const counter = await Counter.findByIdAndUpdate(
+        { _id: prefix },
+        { $inc: { seq: 1 } },
+        { new: true, upsert: true }
+      );
+      
+      this.orderNumber = `${prefix}${String(counter.seq).padStart(5, '0')}`;
+      next();
+    } catch (err) {
+      next(err);
+    }
+  } else {
+    next();
   }
-  next();
 });
+
+// Virtual to check if a scheduled delivery is late
+orderSchema.virtual('isDeliveryLate').get(function() {
+  if (this.deliveryType !== 'scheduled' || !this.scheduledDelivery?.date) return false;
+  if (['delivered', 'cancelled'].includes(this.orderStatus)) return false;
+  return new Date() > new Date(this.scheduledDelivery.date);
+});
+
+orderSchema.set('toJSON', { virtuals: true });
+orderSchema.set('toObject', { virtuals: true });
+
+// Statics
+orderSchema.statics.TIME_SLOTS = TIME_SLOTS;
 
 module.exports = mongoose.model('Order', orderSchema);

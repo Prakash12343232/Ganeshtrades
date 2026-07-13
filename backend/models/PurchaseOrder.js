@@ -1,19 +1,21 @@
 const mongoose = require('mongoose');
 
-const poItemSchema = new mongoose.Schema({
+const purchaseOrderItemSchema = new mongoose.Schema({
   product: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Product',
     required: true
   },
+  name: String,
   quantity: {
     type: Number,
     required: true,
     min: 1
   },
-  purchasePrice: {
+  unitPrice: {
     type: Number,
-    required: true
+    required: true,
+    min: 0
   },
   total: Number
 });
@@ -28,7 +30,7 @@ const purchaseOrderSchema = new mongoose.Schema({
     ref: 'Supplier',
     required: true
   },
-  items: [poItemSchema],
+  items: [purchaseOrderItemSchema],
   totalAmount: {
     type: Number,
     required: true,
@@ -36,20 +38,21 @@ const purchaseOrderSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['draft', 'ordered', 'received', 'cancelled'],
-    default: 'draft'
+    enum: ['pending', 'approved', 'received', 'cancelled'],
+    default: 'pending'
   },
   paymentStatus: {
     type: String,
-    enum: ['pending', 'partial', 'paid'],
-    default: 'pending'
+    enum: ['unpaid', 'partial', 'paid'],
+    default: 'unpaid'
   },
-  expectedDeliveryDate: Date,
-  receivedDate: Date,
+  expectedDelivery: Date,
+  receivedAt: Date,
   notes: String,
-  recordedBy: {
+  createdBy: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
+    ref: 'User',
+    required: true
   }
 }, {
   timestamps: true
@@ -61,7 +64,7 @@ purchaseOrderSchema.pre('save', async function(next) {
     const count = await mongoose.model('PurchaseOrder').countDocuments();
     const date = new Date();
     const prefix = `PO${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}`;
-    this.poNumber = `${prefix}${String(count + 1).padStart(4, '0')}`;
+    this.poNumber = `${prefix}${String(count + 1).padStart(5, '0')}`;
   }
   next();
 });

@@ -5,18 +5,24 @@ const AuthContext = createContext();
 
 export const useAuth = () => useContext(AuthContext);
 
+const clearLegacyAuthStorage = () => {
+  localStorage.removeItem('gt_token');
+  localStorage.removeItem('gt_user');
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('gt_token');
-    const savedUser = localStorage.getItem('gt_user');
+    clearLegacyAuthStorage();
+    const token = sessionStorage.getItem('gt_token');
+    const savedUser = sessionStorage.getItem('gt_user');
     if (token && savedUser) {
       setUser(JSON.parse(savedUser));
       getMe().then(res => {
         setUser(res.data.user);
-        localStorage.setItem('gt_user', JSON.stringify(res.data.user));
+        sessionStorage.setItem('gt_user', JSON.stringify(res.data.user));
       }).catch(() => { logout(); }).finally(() => setLoading(false));
     } else {
       setLoading(false);
@@ -24,19 +30,21 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const loginUser = (userData, token) => {
-    localStorage.setItem('gt_token', token);
-    localStorage.setItem('gt_user', JSON.stringify(userData));
+    clearLegacyAuthStorage();
+    sessionStorage.setItem('gt_token', token);
+    sessionStorage.setItem('gt_user', JSON.stringify(userData));
     setUser(userData);
   };
 
   const logout = () => {
-    localStorage.removeItem('gt_token');
-    localStorage.removeItem('gt_user');
+    sessionStorage.removeItem('gt_token');
+    sessionStorage.removeItem('gt_user');
+    clearLegacyAuthStorage();
     setUser(null);
   };
 
   const updateUser = (userData) => {
-    localStorage.setItem('gt_user', JSON.stringify(userData));
+    sessionStorage.setItem('gt_user', JSON.stringify(userData));
     setUser(userData);
   };
 

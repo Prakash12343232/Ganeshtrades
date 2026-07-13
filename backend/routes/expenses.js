@@ -1,33 +1,61 @@
 const express = require('express');
 const router = express.Router();
 const Expense = require('../models/Expense');
-const { protect, restrictTo } = require('../middleware/auth');
-const logAction = require('../utils/auditLogger');
+const { protect, authorize } = require('../middleware/auth');
+const { createAuditLog } = require('../utils/auditLogger');
+const { pickFields, parsePositiveNumber, parsePagination } = require('../utils/security');
 
-router.use(protect, restrictTo('admin', 'manager'));
+const EXPENSE_FIELDS = ['category', 'amount', 'date', 'description', 'receiptUrl'];
 
-// Get all expenses
-router.get('/', async (req, res) => {
-  try {
-    const expenses = await Expense.find()
-      .populate('recordedBy', 'name')
-      .sort('-date');
-    res.json({ success: true, data: expenses });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
+router.use(protect, authorize('admin', 'manager'));
 
-// Record new expense
+// POST /api/expenses
 router.post('/', async (req, res) => {
   try {
-    req.body.recordedBy = req.user.id;
-    const expense = await Expense.create(req.body);
-    await logAction(req.user.id, 'RECORD_EXPENSE', 'Expense', expense._id, `Recorded ₹${expense.amount} for ${expense.category}`);
+    const expenseData = pickFields(req.body, EXPENSE_FIELDS);
+    expenseData.amount = parsePositiveNumber(expenseData.amount, 'amount');
+    const expense = await Expense.create({
+      ...expenseData,
+      loggedBy: req.user._id
+    });
+    
+    await createAuditLog(req.user._id, 'expense_create', 'expense', expense._id, { amount: expense.amount, category: expense.category }, req);
     res.status(201).json({ success: true, data: expense });
-  } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
-  }
+  } catch (error) { res.status(400).json({ success: false, message: error.message }); }
+});
+
+// GET /api/expenses
+router.get('/', async (req, res) => {
+  try {
+    const { category, startDate, endDate, page = 1, limit = 50 } = req.query;
+    const paging = parsePagination(page, limit, 100);
+    const query = {};
+    
+    if (category) query.category = category;
+    if (startDate && endDate) {
+      query.date = { $gte: new Date(startDate), $lte: new Date(endDate) };
+    }
+
+    const total = await Expense.countDocuments(query);
+    const expenses = await Expense.find(query)
+      .populate('loggedBy', 'name')
+      .sort('-date')
+      .skip(paging.skip)
+      .limit(paging.limit);
+      
+    res.json({ success: true, data: expenses, pagination: { total, page: paging.page, pages: Math.ceil(total / paging.limit) } });
+  } catch (error) { res.status(500).json({ success: false, message: error.message }); }
+});
+
+// DELETE /api/expenses/:id
+router.delete('/:id', authorize('admin'), async (req, res) => {
+  try {
+    const expense = await Expense.findByIdAndDelete(req.params.id);
+    if (!expense) return res.status(404).json({ success: false, message: 'Expense not found' });
+    
+    await createAuditLog(req.user._id, 'expense_delete', 'expense', req.params.id, { amount: expense.amount }, req);
+    res.json({ success: true, message: 'Expense deleted' });
+  } catch (error) { res.status(500).json({ success: false, message: error.message }); }
 });
 
 module.exports = router;

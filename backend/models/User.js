@@ -24,15 +24,18 @@ const userSchema = new mongoose.Schema({
   password: {
     type: String,
     required: [true, 'Password is required'],
-    minlength: 6,
+    minlength: 8,
     select: false
   },
   address: {
     street: String,
     area: String,
     city: { type: String, default: 'Local' },
-    pincode: String
+    pincode: String,
+    lat: Number,
+    lng: Number
   },
+  distanceFromShop: { type: Number, default: 0 },
   customerType: {
     type: String,
     enum: ['public', 'hotel', 'pg_hostel'],
@@ -40,7 +43,7 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['customer', 'admin', 'manager', 'delivery'],
+    enum: ['customer', 'admin', 'manager'],
     default: 'customer'
   },
   isActive: {
@@ -52,11 +55,14 @@ const userSchema = new mongoose.Schema({
   totalSpent: { type: Number, default: 0 },
   pendingAmount: { type: Number, default: 0 },
   creditLimit: { type: Number, default: 0 },
-  creditBalance: { type: Number, default: 0 },
-  discountPercentage: { type: Number, default: 0 }
+  creditBalance: { type: Number, default: 0 }
 }, {
   timestamps: true
 });
+
+userSchema.index({ role: 1, isActive: 1 });
+userSchema.index({ customerType: 1, createdAt: -1 });
+userSchema.index({ pendingAmount: -1 });
 
 // Hash password before saving
 userSchema.pre('save', async function(next) {

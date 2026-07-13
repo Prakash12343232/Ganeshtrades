@@ -130,7 +130,7 @@ export default function CustomerLayout() {
       </main>
 
       {/* WhatsApp Button */}
-      <a href="https://wa.me/919999999999?text=Hi%20Ganesh%20Trades!" target="_blank" rel="noopener noreferrer"
+      <a href="https://wa.me/918010412539?text=Hi%20Ganesh%20Trades!" target="_blank" rel="noopener noreferrer"
         className="fixed bottom-6 right-6 w-14 h-14 bg-green-500 text-white rounded-full flex items-center justify-center shadow-2xl hover:bg-green-600 transition-all hover:scale-110 z-50" id="whatsapp-button">
         <FaWhatsapp className="w-7 h-7" />
       </a>
@@ -154,7 +154,7 @@ export default function CustomerLayout() {
             <div>
               <h4 className="font-semibold mb-3">Contact Us</h4>
               <div className="space-y-2 text-sm text-primary-200">
-                <p>📞 +91 99999 99999</p>
+                <p>📞 +91 80104 12539</p>
                 <p>📧 info@ganeshtrades.com</p>
                 <p>📍 Main Market, Local</p>
               </div>

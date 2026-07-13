@@ -2,6 +2,16 @@ const express = require('express');
 const router = express.Router();
 const Notification = require('../models/Notification');
 const { protect, authorize } = require('../middleware/auth');
+const { pickFields } = require('../utils/security');
+
+const NOTIFICATION_FIELDS = ['title', 'message', 'type', 'recipient', 'recipientRole', 'link', 'metadata'];
+
+function userCanAccessNotification(user, notification) {
+  if (notification.recipient && notification.recipient.toString() === user._id.toString()) return true;
+  if (notification.recipientRole === 'all') return true;
+  if (notification.recipientRole === user.role) return true;
+  return false;
+}
 
 // GET /api/notifications
 router.get('/', protect, async (req, res) => {
@@ -16,7 +26,13 @@ router.get('/', protect, async (req, res) => {
 // PUT /api/notifications/:id/read
 router.put('/:id/read', protect, async (req, res) => {
   try {
-    await Notification.findByIdAndUpdate(req.params.id, { isRead: true });
+    const notification = await Notification.findById(req.params.id);
+    if (!notification) return res.status(404).json({ success: false, message: 'Notification not found' });
+    if (!userCanAccessNotification(req.user, notification)) {
+      return res.status(403).json({ success: false, message: 'Not authorized to access this notification' });
+    }
+    notification.isRead = true;
+    await notification.save();
     res.json({ success: true });
   } catch (error) { res.status(500).json({ success: false, message: error.message }); }
 });
@@ -32,7 +48,8 @@ router.put('/read-all', protect, async (req, res) => {
 // POST /api/notifications - Create (admin)
 router.post('/', protect, authorize('admin', 'manager'), async (req, res) => {
   try {
-    const notification = await Notification.create(req.body);
+    const notificationData = pickFields(req.body, NOTIFICATION_FIELDS);
+    const notification = await Notification.create(notificationData);
     res.status(201).json({ success: true, data: notification });
   } catch (error) { res.status(400).json({ success: false, message: error.message }); }
 });

@@ -4,15 +4,39 @@ require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') }
 
 const User = require('../models/User');
 const Product = require('../models/Product');
+const Settings = require('../models/Settings');
 
 const seedDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGODB_URI);
-    console.log('Connected to MongoDB');
+    console.log('Connecting to MongoDB Atlas...');
+    try {
+      await mongoose.connect(process.env.MONGODB_URI, { serverSelectionTimeoutMS: 5000 });
+      console.log('✅ Connected to MongoDB Atlas');
+    } catch (e) {
+      console.error(`❌ Atlas connection failed: ${e.message}`);
+      console.warn('⚠️ Falling back to in-memory DB for seeding to prevent crash...');
+      const { MongoMemoryServer } = require('mongodb-memory-server');
+      const mongod = await MongoMemoryServer.create();
+      await mongoose.connect(mongod.getUri());
+      console.log('✅ Connected to In-Memory DB');
+    }
 
     // Clear existing data
     await User.deleteMany({});
     await Product.deleteMany({});
+    await Settings.deleteMany({});
+
+    // Create default settings (Ganesh Trades, Pune - Plus Code: HW4C+XJ)
+    await Settings.create({
+      shopName: 'Ganesh Trades',
+      shopAddress: 'HW4C+XJ Pune, Maharashtra, India',
+      shopPlusCode: 'HW4C+XJ',
+      shopLocation: { lat: 18.5574375, lng: 73.9215625 },
+      deliveryRadiusKm: 15,
+      isDeliveryRestrictionActive: true,
+      deliveryFeePerKm: 0,
+      freeDeliveryWithinKm: 5
+    });
 
     // Create admin
     const admin = await User.create({
@@ -31,7 +55,7 @@ const seedDB = async () => {
     const customers = await User.insertMany([
       { name: 'Rahul Kumar', mobile: '7777777777', password: await bcrypt.hash('pass123', 12), customerType: 'public', address: { street: '12 Park Street', area: 'Gandhi Nagar', city: 'Local', pincode: '500002' } },
       { name: 'Hotel Paradise', mobile: '6666666666', password: await bcrypt.hash('pass123', 12), customerType: 'hotel', address: { street: '5 MG Road', area: 'Commercial Area', city: 'Local', pincode: '500003' } },
-      { name: 'PG Comfort Stay', mobile: '9555555555', password: await bcrypt.hash('pass123', 12), customerType: 'pg_hostel', address: { street: '8 College Road', area: 'University Area', city: 'Local', pincode: '500004' } },
+      { name: 'PG Comfort Stay', mobile: '6555555555', password: await bcrypt.hash('pass123', 12), customerType: 'pg_hostel', address: { street: '8 College Road', area: 'University Area', city: 'Local', pincode: '500004' } },
     ]);
 
     // Create products

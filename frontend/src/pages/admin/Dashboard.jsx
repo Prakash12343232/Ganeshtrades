@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { getDashboardStats, getChartData } from '../../services/api';
+import { getDashboardStats, getChartData, getAutoReorder } from '../../services/api';
 import { Link } from 'react-router-dom';
-import { FiShoppingBag, FiClock, FiTruck, FiXCircle, FiDollarSign, FiUsers, FiPackage, FiAlertTriangle, FiArrowRight } from 'react-icons/fi';
+import { FiShoppingBag, FiClock, FiTruck, FiXCircle, FiDollarSign, FiUsers, FiPackage, FiAlertTriangle, FiArrowRight, FiRefreshCw } from 'react-icons/fi';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 const COLORS = ['#7e22ce', '#a855f7', '#c084fc', '#e9d5ff'];
@@ -9,11 +9,16 @@ const COLORS = ['#7e22ce', '#a855f7', '#c084fc', '#e9d5ff'];
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [chartData, setChartData] = useState(null);
+  const [reorderList, setReorderList] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([getDashboardStats(), getChartData()])
-      .then(([sRes, cRes]) => { setStats(sRes.data.data); setChartData(cRes.data.data); })
+    Promise.all([getDashboardStats(), getChartData(), getAutoReorder()])
+      .then(([sRes, cRes, rRes]) => { 
+        setStats(sRes.data.data); 
+        setChartData(cRes.data.data); 
+        setReorderList(rRes.data.data);
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
@@ -39,12 +44,27 @@ export default function Dashboard() {
         <div className="flex gap-8 mt-3">
           <div><p className="text-3xl font-bold">{stats?.todayOrders || 0}</p><p className="text-primary-200 text-sm">Orders Today</p></div>
           <div><p className="text-3xl font-bold">₹{(stats?.todayRevenue || 0).toLocaleString('en-IN')}</p><p className="text-primary-200 text-sm">Revenue Today</p></div>
-          {stats?.lowStockProducts > 0 && (
-            <div className="flex items-center gap-2 bg-white/20 rounded-xl px-4 py-2">
-              <FiAlertTriangle className="text-yellow-300" />
-              <span className="text-sm">{stats.lowStockProducts} low stock items</span>
-            </div>
-          )}
+          
+          <div className="flex gap-3 ml-auto">
+            {stats?.todayScheduled > 0 && (
+              <Link to="/admin/deliveries" className="flex items-center gap-2 bg-indigo-500/30 hover:bg-indigo-500/50 transition-colors rounded-xl px-4 py-2">
+                <FiCalendar className="text-indigo-200" />
+                <div><p className="text-sm font-bold text-white leading-tight">{stats.todayScheduled}</p><p className="text-[10px] text-indigo-100 uppercase tracking-wider">Scheduled Today</p></div>
+              </Link>
+            )}
+            {stats?.lateScheduled > 0 && (
+              <Link to="/admin/deliveries" className="flex items-center gap-2 bg-red-500/40 hover:bg-red-500/60 transition-colors rounded-xl px-4 py-2 border border-red-400/30">
+                <FiAlertTriangle className="text-red-200" />
+                <div><p className="text-sm font-bold text-white leading-tight">{stats.lateScheduled}</p><p className="text-[10px] text-red-100 uppercase tracking-wider">Late Deliveries</p></div>
+              </Link>
+            )}
+            {stats?.lowStockProducts > 0 && (
+              <div className="flex items-center gap-2 bg-white/20 rounded-xl px-4 py-2">
+                <FiAlertTriangle className="text-yellow-300" />
+                <span className="text-sm">{stats.lowStockProducts} low stock items</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -122,26 +142,52 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Top Products */}
-      {chartData?.topProducts?.length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 p-6">
-          <h3 className="font-bold text-gray-800 mb-4">Top Selling Products</h3>
-          <div className="space-y-3">
-            {chartData.topProducts.map((p, i) => (
-              <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                <div className="flex items-center gap-3">
-                  <span className="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center text-primary-600 font-bold text-sm">{i + 1}</span>
-                  <span className="font-medium">{p.name}</span>
+      {/* Top Products & Reorder Suggestions */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {chartData?.topProducts?.length > 0 && (
+          <div className="bg-white rounded-2xl border border-gray-100 p-6">
+            <h3 className="font-bold text-gray-800 mb-4">Top Selling Products</h3>
+            <div className="space-y-3">
+              {chartData.topProducts.map((p, i) => (
+                <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                  <div className="flex items-center gap-3">
+                    <span className="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center text-primary-600 font-bold text-sm">{i + 1}</span>
+                    <span className="font-medium">{p.name}</span>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold text-primary-600">{p.totalSold} sold</p>
+                    <p className="text-xs text-gray-400">₹{p.price}/unit</p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="font-semibold text-primary-600">{p.totalSold} sold</p>
-                  <p className="text-xs text-gray-400">₹{p.price}/unit</p>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+
+        {reorderList.length > 0 && (
+          <div className="bg-white rounded-2xl border border-red-100 p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-red-800 flex items-center gap-2">
+                <FiRefreshCw className="animate-spin-slow" /> Auto-Reorder Suggestions
+              </h3>
+              <Link to="/admin/suppliers" className="text-sm font-medium text-red-600 hover:text-red-700">Create PO →</Link>
+            </div>
+            <div className="space-y-3">
+              {reorderList.slice(0, 5).map((p, i) => (
+                <div key={i} className="flex items-center justify-between p-3 bg-red-50 rounded-xl">
+                  <div>
+                    <span className="font-medium text-red-900">{p.name}</span>
+                    <p className="text-xs text-red-700 mt-1">Stock: {p.stock} (Min: {p.minStock})</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold text-red-800">{p.totalSold > 100 ? '🔥 High Demand' : '📉 Low Stock'}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

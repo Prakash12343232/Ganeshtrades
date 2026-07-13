@@ -1,26 +1,35 @@
 const mongoose = require('mongoose');
+const crypto = require('crypto');
 
 const connectDB = async () => {
+  if (process.env.NODE_ENV === 'test') return;
+  
   try {
-    // Try connecting to the configured MongoDB URI first
-    const conn = await mongoose.connect(process.env.MONGODB_URI);
-    console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
+    console.log('Connecting to MongoDB Atlas...');
+    const conn = await mongoose.connect(process.env.MONGODB_URI, {
+      serverSelectionTimeoutMS: 5000 // fail fast if Atlas is unreachable
+    });
+    console.log(`✅ MongoDB Atlas Connected: ${conn.connection.host}`);
   } catch (error) {
-    console.log(`⚠️  Could not connect to MongoDB at ${process.env.MONGODB_URI}`);
-    console.log('📦 Starting in-memory MongoDB server...');
+    console.error(`❌ MongoDB Atlas Connection Error: ${error.message}`);
+    if (process.env.NODE_ENV === 'production') {
+      console.error('Production database connection failed. Refusing to start with an in-memory fallback.');
+      process.exit(1);
+    }
 
+    console.warn('⚠️ Atlas is unreachable. Falling back to an in-memory database for local development only...');
+    
     try {
       const { MongoMemoryServer } = require('mongodb-memory-server');
       const mongod = await MongoMemoryServer.create();
       const uri = mongod.getUri();
       const conn = await mongoose.connect(uri);
-      console.log(`✅ In-Memory MongoDB Connected: ${conn.connection.host}`);
-      console.log('⚠️  Data will be lost when server restarts. Use a real MongoDB for persistence.');
-
-      // Auto-seed when using in-memory DB
+      console.log(`✅ Automatic Fix Applied: In-Memory MongoDB Connected at ${conn.connection.host}`);
+      
+      // Auto-seed so sandbox works
       await seedInMemory();
     } catch (memError) {
-      console.error(`❌ MongoDB Connection Error: ${memError.message}`);
+      console.error(`❌ Critical Database Failure: ${memError.message}`);
       process.exit(1);
     }
   }
@@ -29,6 +38,7 @@ const connectDB = async () => {
 async function seedInMemory() {
   const User = require('../models/User');
   const Product = require('../models/Product');
+  const Settings = require('../models/Settings');
   const bcrypt = require('bcryptjs');
 
   const userCount = await User.countDocuments();
@@ -36,28 +46,30 @@ async function seedInMemory() {
 
   console.log('🌱 Seeding in-memory database...');
 
-  // Create admin
+  await Settings.create({ shopLocation: { lat: 28.6139, lng: 77.2090 }, deliveryRadiusKm: 15 });
+
+  const demoPassword = process.env.DEMO_ADMIN_PASSWORD && process.env.DEMO_ADMIN_PASSWORD.length >= 8
+    ? process.env.DEMO_ADMIN_PASSWORD
+    : 'admin123';
+
   await User.create({
     name: 'Ganesh Admin', mobile: '9999999999', email: 'admin@ganeshtrades.com',
-    password: 'admin123', role: 'admin', customerType: 'public',
+    password: demoPassword, role: 'admin', customerType: 'public',
     address: { street: 'Main Road', area: 'Market Area', city: 'Local', pincode: '500001' }
   });
 
-  // Create manager
   await User.create({
     name: 'Manager User', mobile: '8888888888', email: 'manager@ganeshtrades.com',
     password: 'manager123', role: 'manager', customerType: 'public'
   });
 
-  // Create sample customers
   await User.insertMany([
     { name: 'Rahul Kumar', mobile: '7777777777', password: await bcrypt.hash('pass123', 12), customerType: 'public', address: { street: '12 Park Street', area: 'Gandhi Nagar', city: 'Local', pincode: '500002' } },
     { name: 'Hotel Paradise', mobile: '6666666666', password: await bcrypt.hash('pass123', 12), customerType: 'hotel', address: { street: '5 MG Road', area: 'Commercial Area', city: 'Local', pincode: '500003' } },
-    { name: 'PG Comfort Stay', mobile: '9555555555', password: await bcrypt.hash('pass123', 12), customerType: 'pg_hostel', address: { street: '8 College Road', area: 'University Area', city: 'Local', pincode: '500004' } },
+    { name: 'PG Comfort Stay', mobile: '6555555555', password: await bcrypt.hash('pass123', 12), customerType: 'pg_hostel', address: { street: '8 College Road', area: 'University Area', city: 'Local', pincode: '500004' } },
   ]);
 
-  // Create products
-  await Product.insertMany([
+  const products = [
     { name: 'Basmati Rice (Premium)', category: 'rice_grains', price: 120, wholesalePrice: 105, stock: 200, minStock: 20, unit: 'kg', description: 'Premium quality aged basmati rice' },
     { name: 'Sona Masoori Rice', category: 'rice_grains', price: 55, wholesalePrice: 48, stock: 300, minStock: 30, unit: 'kg', description: 'Daily use rice, light and fluffy' },
     { name: 'Toor Dal', category: 'dal_pulses', price: 140, wholesalePrice: 125, stock: 150, minStock: 15, unit: 'kg', description: 'Fresh toor dal for daily cooking' },
@@ -78,12 +90,11 @@ async function seedInMemory() {
     { name: 'Surf Excel Powder', category: 'cleaning', price: 180, wholesalePrice: 160, stock: 80, minStock: 8, unit: 'kg', description: 'Washing powder' },
     { name: 'Vim Dishwash Bar', category: 'cleaning', price: 25, wholesalePrice: 22, stock: 200, minStock: 20, unit: 'piece', description: 'Dishwash bar 200g' },
     { name: 'Maggi Noodles', category: 'packaged_food', price: 14, wholesalePrice: 12, stock: 500, minStock: 50, unit: 'packet', description: 'Instant noodles 70g' },
-  ]);
+  ];
+
+  await Product.insertMany(products);
 
   console.log('✅ In-memory database seeded with demo data!');
-  console.log('   Admin: 9999999999 / admin123');
-  console.log('   Manager: 8888888888 / manager123');
-  console.log('   Customer: 7777777777 / pass123');
 }
 
 module.exports = connectDB;

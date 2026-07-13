@@ -93,7 +93,7 @@ const generateInvoicePDF = (order, user) => {
       // Footer
       doc.fontSize(8).font('Helvetica');
       doc.text('Thank you for shopping with Ganesh Trades!', 50, 750, { align: 'center' });
-      doc.text('For any queries, contact us on WhatsApp', 50, 762, { align: 'center' });
+      doc.text('For any queries, contact us on WhatsApp: +91 80104 12539', 50, 762, { align: 'center' });
 
       doc.end();
     } catch (error) {

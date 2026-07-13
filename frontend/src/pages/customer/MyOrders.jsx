@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getOrders } from '../../services/api';
-import { FiEye, FiPackage } from 'react-icons/fi';
+import { FiEye, FiPackage, FiCalendar, FiZap, FiClock } from 'react-icons/fi';
 
 const STATUS_COLORS = {
   pending: 'bg-yellow-100 text-yellow-700', confirmed: 'bg-blue-100 text-blue-700',
@@ -13,12 +13,14 @@ export default function MyOrders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('');
+  const [deliveryFilter, setDeliveryFilter] = useState('');
 
   useEffect(() => {
     const params = {};
     if (filter) params.status = filter;
+    if (deliveryFilter) params.deliveryType = deliveryFilter;
     getOrders(params).then(res => setOrders(res.data.data)).catch(() => {}).finally(() => setLoading(false));
-  }, [filter]);
+  }, [filter, deliveryFilter]);
 
   if (loading) return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary-500"></div></div>;
 
@@ -26,13 +28,24 @@ export default function MyOrders() {
     <div className="animate-fadeIn">
       <h1 className="text-2xl font-bold text-gray-800 mb-6">My Orders</h1>
 
-      <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-        {['', 'pending', 'confirmed', 'processing', 'out_for_delivery', 'delivered', 'cancelled'].map(s => (
-          <button key={s} onClick={() => setFilter(s)}
-            className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all capitalize ${filter === s ? 'bg-primary-600 text-white' : 'bg-white text-gray-600 border border-gray-200'}`}>
-            {s || 'All'}
-          </button>
-        ))}
+      {/* Filters */}
+      <div className="space-y-3 mb-6">
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          {['', 'pending', 'confirmed', 'processing', 'out_for_delivery', 'delivered', 'cancelled'].map(s => (
+            <button key={s} onClick={() => setFilter(s)}
+              className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all capitalize ${filter === s ? 'bg-primary-600 text-white' : 'bg-white text-gray-600 border border-gray-200'}`}>
+              {s || 'All'}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          {[{ v: '', l: 'All Types', icon: null }, { v: 'instant', l: 'Instant', icon: <FiZap className="w-3 h-3" /> }, { v: 'scheduled', l: 'Scheduled', icon: <FiCalendar className="w-3 h-3" /> }].map(dt => (
+            <button key={dt.v} onClick={() => setDeliveryFilter(dt.v)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${deliveryFilter === dt.v ? 'bg-primary-100 text-primary-700 border border-primary-200' : 'bg-white text-gray-500 border border-gray-200'}`}>
+              {dt.icon} {dt.l}
+            </button>
+          ))}
+        </div>
       </div>
 
       {orders.length === 0 ? (
@@ -53,6 +66,11 @@ export default function MyOrders() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
+                  {order.deliveryType === 'scheduled' && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary-50 text-primary-600 text-xs font-medium rounded-full">
+                      <FiCalendar className="w-3 h-3" /> Scheduled
+                    </span>
+                  )}
                   <span className={`px-3 py-1 rounded-full text-xs font-semibold capitalize ${STATUS_COLORS[order.orderStatus]}`}>
                     {order.orderStatus?.replace(/_/g, ' ')}
                   </span>
@@ -65,6 +83,12 @@ export default function MyOrders() {
                 <span className={`capitalize ${order.paymentStatus === 'paid' ? 'text-green-600' : 'text-orange-500'}`}>
                   Payment: {order.paymentStatus}
                 </span>
+                {order.deliveryType === 'scheduled' && order.scheduledDelivery?.date && (
+                  <span className="flex items-center gap-1 text-primary-600 font-medium">
+                    <FiClock className="w-3 h-3" />
+                    {new Date(order.scheduledDelivery.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} • {order.scheduledDelivery.timeSlot}
+                  </span>
+                )}
               </div>
             </Link>
           ))}

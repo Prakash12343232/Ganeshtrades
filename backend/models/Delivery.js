@@ -5,24 +5,39 @@ const deliverySchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Order',
     required: true,
-    unique: true // One delivery record per order
+    unique: true
   },
-  deliveryPerson: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
+  deliveryPersonName: {
+    type: String,
+    required: true
+  },
+  deliveryPersonMobile: {
+    type: String,
+    required: true,
+    match: [/^[6-9]\d{9}$/, 'Please enter a valid 10-digit mobile number']
   },
   status: {
     type: String,
-    enum: ['unassigned', 'assigned', 'out_for_delivery', 'delivered', 'failed'],
-    default: 'unassigned'
+    enum: ['assigned', 'picked_up', 'on_the_way', 'delivered', 'failed'],
+    default: 'assigned'
+  },
+  location: {
+    type: String
   },
   notes: String,
-  assignedAt: Date,
-  outForDeliveryAt: Date,
-  deliveredAt: Date,
-  failedAt: Date,
-  failureReason: String,
-  proofOfDeliveryUrl: String
+  history: [{
+    status: {
+      type: String,
+      enum: ['assigned', 'picked_up', 'on_the_way', 'delivered', 'failed']
+    },
+    timestamp: { type: Date, default: Date.now },
+    note: String
+  }],
+  assignedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  }
 }, {
   timestamps: true
 });

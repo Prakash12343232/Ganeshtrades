@@ -26,6 +26,12 @@ import AdminCustomers from './pages/admin/AdminCustomers';
 import AdminPayments from './pages/admin/AdminPayments';
 import AdminReports from './pages/admin/AdminReports';
 import AdminInventory from './pages/admin/AdminInventory';
+import AdminCredit from './pages/admin/AdminCredit';
+import AdminSuppliers from './pages/admin/AdminSuppliers';
+import AdminExpenses from './pages/admin/AdminExpenses';
+import AdminDeliveries from './pages/admin/AdminDeliveries';
+import AdminBackups from './pages/admin/AdminBackups';
+import AdminCoverage from './pages/admin/AdminCoverage';
 
 // Manager Pages
 import ManagerDashboard from './pages/manager/ManagerDashboard';
@@ -41,6 +47,12 @@ const AdminRoute = ({ children }) => {
   const { user, loading } = useAuth();
   if (loading) return <div className="flex items-center justify-center h-screen"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary-500"></div></div>;
   return user && (user.role === 'admin' || user.role === 'manager') ? children : <Navigate to="/" />;
+};
+
+const AdminOnlyRoute = ({ children }) => {
+  const { user, loading } = useAuth();
+  if (loading) return <div className="flex items-center justify-center h-screen"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary-500"></div></div>;
+  return user?.role === 'admin' ? children : <Navigate to="/admin" />;
 };
 
 function App() {
@@ -70,6 +82,12 @@ function App() {
         <Route path="payments" element={<AdminPayments />} />
         <Route path="reports" element={<AdminReports />} />
         <Route path="inventory" element={<AdminInventory />} />
+        <Route path="credit" element={<AdminCredit />} />
+        <Route path="suppliers" element={<AdminSuppliers />} />
+        <Route path="expenses" element={<AdminExpenses />} />
+        <Route path="deliveries" element={<AdminDeliveries />} />
+        <Route path="backups" element={<AdminOnlyRoute><AdminBackups /></AdminOnlyRoute>} />
+        <Route path="coverage" element={<AdminCoverage />} />
       </Route>
 
       {/* Manager Routes */}

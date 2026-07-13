@@ -2,8 +2,17 @@ import axios from 'axios';
 
 const API = axios.create({ baseURL: '/api' });
 
+const getStoredToken = () => {
+  const token = sessionStorage.getItem('gt_token');
+  if (localStorage.getItem('gt_token')) {
+    localStorage.removeItem('gt_token');
+    localStorage.removeItem('gt_user');
+  }
+  return token;
+};
+
 API.interceptors.request.use((config) => {
-  const token = localStorage.getItem('gt_token');
+  const token = getStoredToken();
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
@@ -12,6 +21,8 @@ API.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
+      sessionStorage.removeItem('gt_token');
+      sessionStorage.removeItem('gt_user');
       localStorage.removeItem('gt_token');
       localStorage.removeItem('gt_user');
       if (window.location.pathname !== '/login') window.location.href = '/login';
@@ -43,12 +54,16 @@ export const getOrders = (params) => API.get('/orders', { params });
 export const getOrder = (id) => API.get(`/orders/${id}`);
 export const updateOrderStatus = (id, data) => API.put(`/orders/${id}/status`, data);
 export const cancelOrder = (id, data) => API.put(`/orders/${id}/cancel`, data);
+export const rescheduleOrder = (id, data) => API.put(`/orders/${id}/reschedule`, data);
 export const downloadInvoice = (id) => API.get(`/orders/${id}/invoice`, { responseType: 'blob' });
+export const getTimeSlots = () => API.get('/orders/time-slots');
+export const getUpcomingScheduled = () => API.get('/orders/scheduled/upcoming');
 
-// Payments
+// Payments & Khata
 export const createPayment = (data) => API.post('/payments', data);
 export const getPayments = (params) => API.get('/payments', { params });
 export const getPendingPayments = () => API.get('/payments/pending');
+export const createSettlement = (data) => API.post('/payments/settlement', data);
 
 // Reviews
 export const createReview = (data) => API.post('/reviews', data);
@@ -65,9 +80,23 @@ export const createNotification = (data) => API.post('/notifications', data);
 // Dashboard
 export const getDashboardStats = () => API.get('/dashboard/stats');
 export const getChartData = () => API.get('/dashboard/chart-data');
+export const getAutoReorder = () => API.get('/dashboard/auto-reorder');
+
+// Backups
+export const getBackups = () => API.get('/backups');
+export const triggerBackup = () => API.post('/backups/trigger');
+export const restoreBackup = (filename) => API.post(`/backups/restore/${filename}`);
+export const downloadBackup = (filename) => API.get(`/backups/download/${filename}`, { responseType: 'blob' });
+
+// Settings
+export const getSettings = () => API.get('/settings');
+export const updateSettings = (data) => API.put('/settings', data);
+export const checkServiceability = (lat, lng) => API.post('/settings/check-serviceability', { lat, lng });
+export const getCoverageStats = () => API.get('/settings/coverage-stats');
 
 // Reports
 export const getSalesReport = (params) => API.get('/reports/sales', { params });
+export const getProfitLoss = (params) => API.get('/reports/profit-loss', { params });
 export const exportOrders = () => API.get('/reports/export/orders', { responseType: 'blob' });
 export const exportProducts = () => API.get('/reports/export/products', { responseType: 'blob' });
 
@@ -80,31 +109,23 @@ export const deleteUser = (id) => API.delete(`/users/${id}`);
 // Audit
 export const getAuditLogs = (params) => API.get('/audit', { params });
 
-// ERP: Credit/Khata
-export const getCustomerBalances = () => API.get('/credit/balances');
-export const getCustomerLedger = (userId) => API.get(`/credit/ledger/${userId}`);
-export const settleCredit = (data) => API.post('/credit/settle', data);
-export const updateCreditLimit = (userId, data) => API.put(`/credit/limit/${userId}`, data);
-
-// ERP: Suppliers
-export const getSuppliers = () => API.get('/suppliers');
+// Suppliers
 export const createSupplier = (data) => API.post('/suppliers', data);
-export const updateSupplier = (id, data) => API.put(`/suppliers/${id}`, data);
-export const deleteSupplier = (id) => API.delete(`/suppliers/${id}`);
+export const getSuppliers = () => API.get('/suppliers');
+export const createPurchaseOrder = (data) => API.post('/suppliers/po', data);
+export const getPurchaseOrders = () => API.get('/suppliers/po');
+export const receivePurchaseOrder = (id) => API.put(`/suppliers/po/${id}/receive`);
+export const createSupplierPayment = (data) => API.post('/suppliers/payment', data);
 
-// ERP: Purchases
-export const getPurchases = () => API.get('/purchases');
-export const createPurchase = (data) => API.post('/purchases', data);
-export const receivePurchase = (id) => API.put(`/purchases/${id}/receive`);
-
-// ERP: Expenses
-export const getExpenses = () => API.get('/expenses');
+// Expenses
 export const createExpense = (data) => API.post('/expenses', data);
+export const getExpenses = (params) => API.get('/expenses', { params });
+export const deleteExpense = (id) => API.delete(`/expenses/${id}`);
 
-// ERP: Deliveries
-export const getDeliveries = () => API.get('/delivery');
-export const getMyDeliveries = () => API.get('/delivery/my-deliveries');
-export const assignDelivery = (data) => API.post('/delivery/assign', data);
-export const updateDeliveryStatus = (id, data) => API.put(`/delivery/${id}/status`, data);
+// Deliveries
+export const assignDelivery = (data) => API.post('/deliveries', data);
+export const getDeliveries = (params) => API.get('/deliveries', { params });
+export const updateDeliveryStatus = (id, data) => API.put(`/deliveries/${id}/status`, data);
+export const getTodayPriority = () => API.get('/deliveries/today-priority');
 
 export default API;

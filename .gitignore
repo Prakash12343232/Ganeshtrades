@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# Backups (contain PII)
+backend/backups/*.json
+
+# Uploads
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# Test coverage
+backend/coverage/
+
+# Build output
+frontend/dist/
+dist/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json

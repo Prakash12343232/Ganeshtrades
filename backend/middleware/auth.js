@@ -13,8 +13,17 @@ const protect = async (req, res, next) => {
       return res.status(401).json({ success: false, message: 'Not authorized, no token' });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = await User.findById(decoded.id);
+    const jwtSecret = process.env.JWT_SECRET || (process.env.NODE_ENV === 'test' ? 'testsecret' : undefined);
+    if (!jwtSecret) {
+      return res.status(500).json({ success: false, message: 'Authentication is not configured' });
+    }
+
+    const decoded = jwt.verify(token, jwtSecret, { algorithms: ['HS256'] });
+    if (!decoded?.id) {
+      return res.status(401).json({ success: false, message: 'Not authorized, token invalid' });
+    }
+
+    req.user = await User.findById(decoded.id).select('-password');
 
     if (!req.user) {
       return res.status(401).json({ success: false, message: 'User not found' });

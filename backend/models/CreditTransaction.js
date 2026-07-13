@@ -8,30 +8,28 @@ const creditTransactionSchema = new mongoose.Schema({
   },
   amount: {
     type: Number,
-    required: true
+    required: true,
+    min: 1
   },
   type: {
     type: String,
-    enum: ['charge', 'payment'], // charge = bought on credit, payment = paid khata
+    enum: ['credit', 'debit'], // debit = customer owes more, credit = customer balance reduced
     required: true
   },
-  referenceType: {
-    type: String,
-    enum: ['order', 'manual_settlement'],
-    default: 'manual_settlement'
-  },
-  referenceId: {
+  referenceOrder: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Order' // Populated if referenceType is 'order'
+    ref: 'Order'
   },
-  balanceAfter: {
-    type: Number,
-    required: true
-  },
-  notes: String,
-  recordedBy: {
+  referenceSettlement: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User' // Admin or Manager who recorded the payment
+    ref: 'Settlement'
+  },
+  description: {
+    type: String
+  },
+  loggedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
   }
 }, {
   timestamps: true

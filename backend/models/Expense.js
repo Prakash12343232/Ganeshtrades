@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const expenseSchema = new mongoose.Schema({
   category: {
     type: String,
-    enum: ['electricity', 'salary', 'transport', 'maintenance', 'supplies', 'misc'],
+    enum: ['electricity', 'salary', 'transport', 'maintenance', 'miscellaneous', 'supplies'],
     required: true
   },
   amount: {
@@ -11,17 +11,16 @@ const expenseSchema = new mongoose.Schema({
     required: true,
     min: 0
   },
+  date: {
+    type: Date,
+    default: Date.now
+  },
   description: {
     type: String,
     required: true
   },
-  date: {
-    type: Date,
-    default: Date.now,
-    required: true
-  },
   receiptUrl: String,
-  recordedBy: {
+  loggedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true

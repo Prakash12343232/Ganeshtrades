@@ -41,12 +41,32 @@ router.get('/stats', protect, authorize('admin', 'manager'), async (req, res) =>
       { $group: { _id: null, total: { $sum: '$finalAmount' } } }
     ]);
 
+    // Scheduled delivery stats
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const todayScheduled = await Order.countDocuments({
+      deliveryType: 'scheduled',
+      'scheduledDelivery.date': { $gte: today, $lt: tomorrow },
+      orderStatus: { $nin: ['delivered', 'cancelled'] }
+    });
+    const upcomingScheduled = await Order.countDocuments({
+      deliveryType: 'scheduled',
+      'scheduledDelivery.date': { $gte: tomorrow },
+      orderStatus: { $nin: ['delivered', 'cancelled'] }
+    });
+    const lateScheduled = await Order.countDocuments({
+      deliveryType: 'scheduled',
+      'scheduledDelivery.date': { $lt: today },
+      orderStatus: { $nin: ['delivered', 'cancelled'] }
+    });
+
     res.json({
       success: true,
       data: {
         totalOrders, pendingOrders, deliveredOrders, cancelledOrders,
         totalRevenue, totalPending, totalCustomers, totalProducts, lowStockProducts,
         todayOrders, todayRevenue: todayRevenue[0]?.total || 0,
+        todayScheduled, upcomingScheduled, lateScheduled,
         recentOrders
       }
     });
@@ -85,6 +105,22 @@ router.get('/chart-data', protect, authorize('admin', 'manager'), async (req, re
     const topProducts = await Product.find({ status: 'active' }).sort('-totalSold').limit(5).select('name totalSold price');
 
     res.json({ success: true, data: { last7Days, customerTypes, topProducts } });
+  } catch (error) { res.status(500).json({ success: false, message: error.message }); }
+});
+
+// GET /api/dashboard/auto-reorder
+router.get('/auto-reorder', protect, authorize('admin', 'manager'), async (req, res) => {
+  try {
+    // Products where stock is less than minStock OR high sales velocity (totalSold > 100 & stock < 50)
+    const suggestions = await Product.find({
+      $or: [
+        { $expr: { $lte: ['$stock', '$minStock'] } },
+        { totalSold: { $gt: 100 }, stock: { $lt: 50 } }
+      ],
+      status: { $ne: 'inactive' }
+    }).select('name stock minStock price totalSold expiryDate');
+
+    res.json({ success: true, data: suggestions });
   } catch (error) { res.status(500).json({ success: false, message: error.message }); }
 });
 

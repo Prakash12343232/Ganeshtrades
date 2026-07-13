@@ -30,10 +30,6 @@ const productSchema = new mongoose.Schema({
     required: [true, 'Price is required'],
     min: 0
   },
-  purchasePrice: {
-    type: Number,
-    min: 0
-  },
   wholesalePrice: {
     type: Number,
     min: 0
@@ -53,10 +49,6 @@ const productSchema = new mongoose.Schema({
     type: Number,
     default: 10
   },
-  reorderQuantity: {
-    type: Number,
-    default: 50
-  },
   status: {
     type: String,
     enum: ['active', 'inactive', 'out_of_stock'],
@@ -71,11 +63,7 @@ const productSchema = new mongoose.Schema({
   totalSold: { type: Number, default: 0 },
   avgRating: { type: Number, default: 0 },
   reviewCount: { type: Number, default: 0 },
-  supplier: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Supplier'
-  },
-  expiryDate: Date
+  expiryDate: { type: Date }
 }, {
   timestamps: true
 });
