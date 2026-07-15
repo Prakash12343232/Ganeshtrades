@@ -118,6 +118,11 @@ router.post('/login', authLimiter, async (req, res) => {
       return res.status(403).json({ success: false, message: 'Account is deactivated. Contact admin.' });
     }
 
+    if (!user.password) {
+      console.log('Login failed: User has no password hash stored:', mobile);
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    }
+
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       console.log('Login failed: Password mismatch for mobile:', mobile);

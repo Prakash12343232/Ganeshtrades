@@ -89,6 +89,14 @@ if (process.env.FRONTEND_URL) {
   });
 }
 
+// Render automatically sets RENDER_EXTERNAL_URL — add it as an allowed origin
+if (process.env.RENDER_EXTERNAL_URL) {
+  const renderUrl = process.env.RENDER_EXTERNAL_URL.trim().replace(/\/+$/, '');
+  if (renderUrl && !allowedOrigins.includes(renderUrl)) {
+    allowedOrigins.push(renderUrl);
+  }
+}
+
 // Always allow localhost for development
 ['http://localhost:5173', 'http://localhost:5000', 'http://127.0.0.1:5173', 'http://127.0.0.1:5000'].forEach(url => {
   if (!allowedOrigins.includes(url)) allowedOrigins.push(url);
@@ -100,7 +108,10 @@ app.use(cors({
   origin(origin, callback) {
     // Allow requests with no origin (same-origin GET, server-to-server, curl, mobile apps)
     if (!origin) return callback(null, true);
+    // Check explicit allowlist
     if (allowedOrigins.includes(origin)) return callback(null, true);
+    // In production, also allow *.onrender.com as a safety net
+    if (process.env.NODE_ENV === 'production' && origin.endsWith('.onrender.com')) return callback(null, true);
     console.warn(`⛔ CORS rejected origin: ${origin}`);
     return callback(new Error('CORS origin not allowed'));
   },
