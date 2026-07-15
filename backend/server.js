@@ -78,16 +78,30 @@ if (process.env.NODE_ENV !== 'test') {
   app.use('/api/', limiter);
 }
 
-// CORS
-const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173')
-  .split(',')
-  .map(origin => origin.trim())
-  .filter(Boolean);
+// CORS — Build allowed origins list
+const allowedOrigins = [];
+
+// Add configured frontend URL(s) — supports comma-separated list
+if (process.env.FRONTEND_URL) {
+  process.env.FRONTEND_URL.split(',').forEach(url => {
+    const trimmed = url.trim().replace(/\/+$/, ''); // remove trailing slashes
+    if (trimmed) allowedOrigins.push(trimmed);
+  });
+}
+
+// Always allow localhost for development
+['http://localhost:5173', 'http://localhost:5000', 'http://127.0.0.1:5173', 'http://127.0.0.1:5000'].forEach(url => {
+  if (!allowedOrigins.includes(url)) allowedOrigins.push(url);
+});
+
+console.log('🔒 CORS allowed origins:', allowedOrigins);
 
 app.use(cors({
   origin(origin, callback) {
-    // Allow requests with no origin (same-origin, server-to-server, mobile apps)
-    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    // Allow requests with no origin (same-origin GET, server-to-server, curl, mobile apps)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    console.warn(`⛔ CORS rejected origin: ${origin}`);
     return callback(new Error('CORS origin not allowed'));
   },
   credentials: true
