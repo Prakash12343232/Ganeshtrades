@@ -24,71 +24,13 @@ const generateToken = (id) => {
 };
 
 // @route   POST /api/auth/register
-// @desc    Register a new user
-// @access  Public
+// @desc    Register a new user (Disabled)
+// @access  Public (Closed)
 router.post('/register', authLimiter, async (req, res) => {
-  try {
-    const { name, mobile, email, password, address, customerType } = req.body;
-
-    let distanceFromShop = 0;
-
-    // Validate delivery radius for customers
-    if (address && address.lat != null && address.lng != null) {
-      const serviceCheck = await checkServiceability(address.lat, address.lng);
-      distanceFromShop = serviceCheck.distance;
-
-      if (!serviceCheck.serviceable) {
-        return res.status(400).json({
-          success: false,
-          message: serviceCheck.message,
-          serviceability: {
-            serviceable: false,
-            distance: serviceCheck.distance,
-            radius: serviceCheck.radius,
-            shopLocation: serviceCheck.shopLocation
-          }
-        });
-      }
-    } else {
-      return res.status(400).json({
-        success: false,
-        message: 'Please allow location access to verify delivery serviceability.'
-      });
-    }
-
-    // Check if user exists
-    const existingUser = await User.findOne({ mobile });
-    if (existingUser) {
-      return res.status(400).json({ success: false, message: 'Mobile number already registered' });
-    }
-
-    const userData = pickFields({ name, mobile, email, password, customerType, address, distanceFromShop }, [
-      'name', 'mobile', 'email', 'password', 'customerType', 'address', 'distanceFromShop'
-    ]);
-    const user = await User.create(userData);
-
-    await createAuditLog(user._id, 'user_register', 'user', user._id, { name, mobile, customerType, distanceFromShop }, req);
-
-    const token = generateToken(user._id);
-
-    res.status(201).json({
-      success: true,
-      message: 'Registration successful',
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        mobile: user.mobile,
-        email: user.email,
-        customerType: user.customerType,
-        role: user.role,
-        address: user.address,
-        distanceFromShop: user.distanceFromShop
-      }
-    });
-  } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
-  }
+  return res.status(403).json({
+    success: false,
+    message: 'Public registration is currently disabled. Please contact the administrator to create an account.'
+  });
 });
 
 // @route   POST /api/auth/login

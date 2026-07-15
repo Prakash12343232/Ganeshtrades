@@ -71,16 +71,6 @@ export default function Login() {
             Don't have an account? <Link to="/register" className="text-white font-semibold hover:underline">Register</Link>
           </p>
         </form>
-
-        {/* Demo Credentials */}
-        <div className="mt-6 bg-white/5 rounded-xl p-4 border border-white/10">
-          <p className="text-xs text-primary-300 font-semibold mb-2 text-center">Demo Credentials</p>
-          <div className="space-y-1 text-xs text-primary-200">
-            <p>👤 Admin: 9999999999 / admin123</p>
-            <p>👤 Manager: 8888888888 / manager123</p>
-            <p>👤 Customer: 7777777777 / pass123</p>
-          </div>
-        </div>
       </div>
     </div>
   );

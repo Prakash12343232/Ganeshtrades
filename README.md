@@ -57,14 +57,6 @@ npm run dev
 ### 6. Open App
 Visit `http://localhost:5173`
 
-## 🔑 Demo Credentials
-
-| Role | Mobile | Password |
-|------|--------|----------|
-| Admin | 9999999999 | admin123 |
-| Manager | 8888888888 | manager123 |
-| Customer | 7777777777 | pass123 |
-
 ## 📁 Project Structure
 
 ```

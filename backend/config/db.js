@@ -48,26 +48,29 @@ async function seedInMemory() {
 
   await Settings.create({ shopLocation: { lat: 28.6139, lng: 77.2090 }, deliveryRadiusKm: 15 });
 
-  const demoPassword = process.env.DEMO_ADMIN_PASSWORD && process.env.DEMO_ADMIN_PASSWORD.length >= 8
-    ? process.env.DEMO_ADMIN_PASSWORD
-    : 'admin123';
+  const adminPassword = process.env.ADMIN_PASSWORD || 'SecureAdmin@123';
 
+  // Create Founder Admin
   await User.create({
-    name: 'Ganesh Admin', mobile: '9999999999', email: 'admin@ganeshtrades.com',
-    password: demoPassword, role: 'admin', customerType: 'public',
+    name: 'Founder', 
+    mobile: '8010412539', 
+    email: 'founder@ganeshtrades.com',
+    password: adminPassword, 
+    role: 'admin', 
+    customerType: 'public',
     address: { street: 'Main Road', area: 'Market Area', city: 'Local', pincode: '500001' }
   });
 
+  // Create Shop Owner Admin
   await User.create({
-    name: 'Manager User', mobile: '8888888888', email: 'manager@ganeshtrades.com',
-    password: 'manager123', role: 'manager', customerType: 'public'
+    name: 'Shop Owner', 
+    mobile: '8898289887', 
+    email: 'owner@ganeshtrades.com',
+    password: adminPassword, 
+    role: 'admin', 
+    customerType: 'public',
+    address: { street: 'Main Road', area: 'Market Area', city: 'Local', pincode: '500001' }
   });
-
-  await User.insertMany([
-    { name: 'Rahul Kumar', mobile: '7777777777', password: await bcrypt.hash('pass123', 12), customerType: 'public', address: { street: '12 Park Street', area: 'Gandhi Nagar', city: 'Local', pincode: '500002' } },
-    { name: 'Hotel Paradise', mobile: '6666666666', password: await bcrypt.hash('pass123', 12), customerType: 'hotel', address: { street: '5 MG Road', area: 'Commercial Area', city: 'Local', pincode: '500003' } },
-    { name: 'PG Comfort Stay', mobile: '6555555555', password: await bcrypt.hash('pass123', 12), customerType: 'pg_hostel', address: { street: '8 College Road', area: 'University Area', city: 'Local', pincode: '500004' } },
-  ]);
 
   const products = [
     { name: 'Basmati Rice (Premium)', category: 'rice_grains', price: 120, wholesalePrice: 105, stock: 200, minStock: 20, unit: 'kg', description: 'Premium quality aged basmati rice' },

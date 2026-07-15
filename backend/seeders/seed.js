@@ -38,25 +38,29 @@ const seedDB = async () => {
       freeDeliveryWithinKm: 5
     });
 
-    // Create admin
-    const admin = await User.create({
-      name: 'Ganesh Admin', mobile: '9999999999', email: 'admin@ganeshtrades.com',
-      password: 'admin123', role: 'admin', customerType: 'public',
+    const adminPassword = process.env.ADMIN_PASSWORD || 'SecureAdmin@123';
+
+    // Create Founder Admin
+    await User.create({
+      name: 'Founder', 
+      mobile: '8010412539', 
+      email: 'founder@ganeshtrades.com',
+      password: adminPassword, 
+      role: 'admin', 
+      customerType: 'public',
       address: { street: 'Main Road', area: 'Market Area', city: 'Local', pincode: '500001' }
     });
 
-    // Create manager
-    const manager = await User.create({
-      name: 'Manager User', mobile: '8888888888', email: 'manager@ganeshtrades.com',
-      password: 'manager123', role: 'manager', customerType: 'public'
+    // Create Shop Owner Admin
+    await User.create({
+      name: 'Shop Owner', 
+      mobile: '8898289887', 
+      email: 'owner@ganeshtrades.com',
+      password: adminPassword, 
+      role: 'admin', 
+      customerType: 'public',
+      address: { street: 'Main Road', area: 'Market Area', city: 'Local', pincode: '500001' }
     });
-
-    // Create sample customers
-    const customers = await User.insertMany([
-      { name: 'Rahul Kumar', mobile: '7777777777', password: await bcrypt.hash('pass123', 12), customerType: 'public', address: { street: '12 Park Street', area: 'Gandhi Nagar', city: 'Local', pincode: '500002' } },
-      { name: 'Hotel Paradise', mobile: '6666666666', password: await bcrypt.hash('pass123', 12), customerType: 'hotel', address: { street: '5 MG Road', area: 'Commercial Area', city: 'Local', pincode: '500003' } },
-      { name: 'PG Comfort Stay', mobile: '6555555555', password: await bcrypt.hash('pass123', 12), customerType: 'pg_hostel', address: { street: '8 College Road', area: 'University Area', city: 'Local', pincode: '500004' } },
-    ]);
 
     // Create products
     const products = [
@@ -85,9 +89,9 @@ const seedDB = async () => {
     await Product.insertMany(products);
 
     console.log('✅ Database seeded successfully!');
-    console.log('Admin Login: 9999999999 / admin123');
-    console.log('Manager Login: 8888888888 / manager123');
-    console.log('Customer Login: 7777777777 / pass123');
+    console.log(`Admin accounts created for 8010412539 and 8898289887.`);
+    console.log(`Default Password: ${adminPassword}`);
+    console.log(`Please change passwords after first login!`);
     process.exit(0);
   } catch (error) {
     console.error('❌ Seed error:', error.message);
