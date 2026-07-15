@@ -123,6 +123,33 @@ function safeSpreadsheetCell(value) {
   return value;
 }
 
+/**
+ * Normalizes an Indian mobile number to a standard 10-digit format.
+ * Strips out +91, 0 prefixes, spaces, and dashes.
+ */
+function normalizeMobile(mobile) {
+  if (!mobile) return null;
+  let cleaned = String(mobile).replace(/\D/g, ''); // Remove all non-digits
+  
+  if (cleaned.length === 12 && cleaned.startsWith('91')) {
+    cleaned = cleaned.substring(2);
+  } else if (cleaned.length === 11 && cleaned.startsWith('0')) {
+    cleaned = cleaned.substring(1);
+  }
+  
+  if (/^[6-9]\d{9}$/.test(cleaned)) {
+    return cleaned;
+  }
+  return null; // Invalid Indian mobile number
+}
+
+/**
+ * Generates a random 6-digit numeric OTP
+ */
+function generateOTP() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
 module.exports = {
   escapeRegex,
   sanitizeSort,
@@ -135,5 +162,7 @@ module.exports = {
   parseNonNegativeNumber,
   parsePagination,
   safeSpreadsheetCell,
+  normalizeMobile,
+  generateOTP,
   DEFAULT_SORT_FIELDS
 };

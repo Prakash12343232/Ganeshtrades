@@ -55,7 +55,9 @@ const userSchema = new mongoose.Schema({
   totalSpent: { type: Number, default: 0 },
   pendingAmount: { type: Number, default: 0 },
   creditLimit: { type: Number, default: 0 },
-  creditBalance: { type: Number, default: 0 }
+  creditBalance: { type: Number, default: 0 },
+  loginAttempts: { type: Number, default: 0 },
+  lockUntil: { type: Date }
 }, {
   timestamps: true
 });
