@@ -45,13 +45,30 @@ if (process.env.NODE_ENV !== 'test') {
   initCronJobs();
 }
 
+// ──────────────────────────────────────────────────────────────────────
+// CRITICAL: Serve frontend static assets BEFORE any other middleware.
+// Vite adds `crossorigin` to <script> and <link> tags in the built HTML.
+// This causes the browser to send an Origin header even for same-origin
+// requests. If CORS middleware runs first, it rejects these requests
+// (returns 500 JSON), and the browser refuses to load the JS/CSS assets.
+// By serving static files first, they bypass CORS/Helmet/etc entirely.
+// ──────────────────────────────────────────────────────────────────────
+if (process.env.NODE_ENV === 'production') {
+  const frontendDist = path.join(__dirname, '../frontend/dist');
+  app.use(express.static(frontendDist, {
+    maxAge: '1y',
+    immutable: true,
+    index: false  // Don't serve index.html for '/' here; the SPA fallback handles it
+  }));
+}
+
 // Security middleware
 app.use(helmet({
-  crossOriginResourcePolicy: { policy: 'same-origin' },
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
   contentSecurityPolicy: false
 }));
 
-// Rate limiting
+// Rate limiting (API routes only)
 if (process.env.NODE_ENV !== 'test') {
   const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
@@ -69,6 +86,7 @@ const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173')
 
 app.use(cors({
   origin(origin, callback) {
+    // Allow requests with no origin (same-origin, server-to-server, mobile apps)
     if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
     return callback(new Error('CORS origin not allowed'));
   },
@@ -96,7 +114,7 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
 
-// Static files
+// Static files (uploads)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
   dotfiles: 'deny',
   index: false,
@@ -129,12 +147,8 @@ app.get('/api/health', (req, res) => {
   res.json({ success: true, message: 'Ganesh Trades API is running', timestamp: new Date() });
 });
 
-// Serve React Frontend in Production
+// SPA Fallback: Any non-API route serves index.html for React Router
 if (process.env.NODE_ENV === 'production') {
-  // Set static folder up to serve the frontend dist folder
-  app.use(express.static(path.join(__dirname, '../frontend/dist')));
-
-  // Any route that is not an API route will be redirected to index.html (React Router)
   app.get('*', (req, res) => {
     res.sendFile(path.resolve(__dirname, '../frontend', 'dist', 'index.html'));
   });
