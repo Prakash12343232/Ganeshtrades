@@ -185,6 +185,24 @@ export default function Register() {
                 <input type="password" value={form.password} onChange={e => updateField('password', e.target.value)} disabled={otpSent}
                   className="w-full pl-9 pr-3 py-2.5 bg-white/10 border border-white/20 rounded-lg text-white placeholder-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-400 text-sm disabled:opacity-50" placeholder="Min 8 chars" required minLength={8} />
               </div>
+              {form.password && (
+                <div className="mt-1.5 space-y-1">
+                  <div className="flex gap-1">
+                    {[
+                      form.password.length >= 8,
+                      /[A-Z]/.test(form.password),
+                      /[a-z]/.test(form.password),
+                      /[0-9]/.test(form.password),
+                      /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(form.password)
+                    ].map((passed, idx) => (
+                      <div key={idx} className={`h-1 flex-1 rounded-full transition-all ${passed ? 'bg-green-400' : 'bg-white/20'}`} />
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-primary-200">
+                    Use 8+ chars with uppercase, lowercase, number & special symbol
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 

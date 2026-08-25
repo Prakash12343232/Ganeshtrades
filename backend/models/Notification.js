@@ -11,8 +11,13 @@ const notificationSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['order', 'payment', 'stock', 'general', 'system'],
+    enum: ['order', 'payment', 'stock', 'general', 'system', 'promotion', 'delivery', 'new_product', 'payment_reminder'],
     default: 'general'
+  },
+  priority: {
+    type: String,
+    enum: ['low', 'normal', 'high'],
+    default: 'normal'
   },
   recipient: {
     type: mongoose.Schema.Types.ObjectId,

@@ -119,4 +119,115 @@ router.post('/settlement', protect, authorize('admin', 'manager'), async (req, r
   } catch (error) { res.status(400).json({ success: false, message: error.message }); }
 });
 
+// ─── Online Payment Gateway (Simulated) ─────────────────────
+// POST /api/payments/create-order - Customer initiates online payment
+router.post('/create-order', protect, async (req, res) => {
+  try {
+    const { orderId, paymentMode } = req.body;
+    const validModes = ['upi', 'debit_card', 'credit_card', 'net_banking'];
+    if (!validModes.includes(paymentMode)) {
+      return res.status(400).json({ success: false, message: `Invalid payment mode. Use: ${validModes.join(', ')}` });
+    }
+
+    const order = await Order.findById(orderId);
+    if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+    if (order.user.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: 'Unauthorized' });
+    }
+    if (order.paymentStatus === 'paid') {
+      return res.status(400).json({ success: false, message: 'Order is already paid' });
+    }
+
+    // Generate simulated gateway order ID
+    const crypto = require('crypto');
+    const gatewayOrderId = 'order_' + crypto.randomBytes(12).toString('hex');
+
+    // Create pending payment record
+    const payment = await Payment.create({
+      user: req.user._id,
+      order: orderId,
+      amount: order.finalAmount,
+      paymentMethod: paymentMode === 'upi' ? 'upi' : paymentMode === 'net_banking' ? 'bank_transfer' : 'card',
+      paymentMode,
+      paymentStatus: 'pending',
+      gatewayOrderId
+    });
+
+    res.json({
+      success: true,
+      data: {
+        gatewayOrderId,
+        paymentId: payment._id,
+        amount: order.finalAmount,
+        currency: 'INR',
+        orderNumber: order.orderNumber,
+        prefill: {
+          name: req.user.name,
+          mobile: req.user.mobile,
+          email: req.user.email || ''
+        }
+      }
+    });
+  } catch (error) { res.status(400).json({ success: false, message: error.message }); }
+});
+
+// POST /api/payments/verify - Verify online payment
+router.post('/verify', protect, async (req, res) => {
+  try {
+    const { gatewayOrderId, gatewayPaymentId, gatewaySignature } = req.body;
+
+    if (!gatewayOrderId || !gatewayPaymentId) {
+      return res.status(400).json({ success: false, message: 'Missing payment verification data' });
+    }
+
+    const payment = await Payment.findOne({ gatewayOrderId, user: req.user._id });
+    if (!payment) return res.status(404).json({ success: false, message: 'Payment not found' });
+    if (payment.paymentStatus === 'completed') {
+      return res.status(400).json({ success: false, message: 'Payment already verified' });
+    }
+
+    // Simulated verification — in production, verify signature with Razorpay SDK
+    // const crypto = require('crypto');
+    // const expectedSig = crypto.createHmac('sha256', process.env.RAZORPAY_SECRET).update(gatewayOrderId + '|' + gatewayPaymentId).digest('hex');
+    // if (expectedSig !== gatewaySignature) return res.status(400).json(...);
+
+    // Mark payment as completed
+    payment.paymentStatus = 'completed';
+    payment.gatewayPaymentId = gatewayPaymentId;
+    payment.gatewaySignature = gatewaySignature || 'simulated';
+    await payment.save();
+
+    // Update order payment status
+    const order = await Order.findById(payment.order);
+    if (order) {
+      const paidAgg = await Payment.aggregate([
+        { $match: { order: order._id, paymentStatus: 'completed' } },
+        { $group: { _id: null, total: { $sum: '$amount' } } }
+      ]);
+      const totalPaid = paidAgg[0]?.total || 0;
+      order.paymentStatus = totalPaid >= order.finalAmount ? 'paid' : 'partial';
+      await order.save();
+
+      // Update user pending amount
+      const user = await User.findById(req.user._id);
+      if (user) {
+        user.pendingAmount = Math.max(0, user.pendingAmount - payment.amount);
+        await user.save();
+      }
+    }
+
+    const Notification = require('../models/Notification');
+    await Notification.create({
+      title: '💳 Payment Successful',
+      message: `Your payment of ₹${payment.amount.toFixed(2)} for order #${order?.orderNumber || 'N/A'} has been confirmed.`,
+      type: 'payment',
+      recipient: req.user._id,
+      link: `/orders/${payment.order}`,
+      priority: 'high'
+    });
+
+    res.json({ success: true, message: 'Payment verified successfully', data: payment });
+  } catch (error) { res.status(400).json({ success: false, message: error.message }); }
+});
+
 module.exports = router;

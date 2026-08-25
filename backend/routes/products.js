@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Product = require('../models/Product');
+const Notification = require('../models/Notification');
 const { protect, authorize } = require('../middleware/auth');
 const upload = require('../middleware/upload');
 const { createAuditLog } = require('../utils/auditLogger');
@@ -16,19 +17,32 @@ const {
 
 const PRODUCT_FIELDS = [
   'name', 'description', 'category', 'price', 'wholesalePrice', 'unit',
-  'stock', 'minStock', 'status', 'brand', 'sku', 'expiryDate'
+  'stock', 'minStock', 'status', 'brand', 'sku', 'expiryDate', 'isFeatured'
 ];
 
 // @route   GET /api/products
-// @desc    Get all products
+// @desc    Get all products (with filters + sorting)
 // @access  Public
 router.get('/', async (req, res) => {
   try {
-    const { category, search, minPrice, maxPrice, sort = '-createdAt', page = 1, limit = 20 } = req.query;
+    const { category, search, minPrice, maxPrice, minRating, availability, sort = '-createdAt', page = 1, limit = 20 } = req.query;
     const query = {};
 
     if (category) query.category = category;
     query.status = { $ne: 'inactive' };
+
+    // Availability filter
+    if (availability === 'in_stock') {
+      query.stock = { $gt: 0 };
+    }
+
+    // Rating filter
+    if (minRating) {
+      const rating = parseFloat(minRating);
+      if (!isNaN(rating) && rating >= 1 && rating <= 5) {
+        query.avgRating = { $gte: rating };
+      }
+    }
 
     if (search) {
       const safeSearch = escapeRegex(search);
@@ -62,6 +76,20 @@ router.get('/', async (req, res) => {
         pages: Math.ceil(total / paging.limit)
       }
     });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// @route   GET /api/products/featured
+// @desc    Get featured products
+// @access  Public
+router.get('/featured', async (req, res) => {
+  try {
+    const products = await Product.find({ isFeatured: true, status: 'active' })
+      .sort('-createdAt')
+      .limit(12);
+    res.json({ success: true, data: products });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -117,20 +145,37 @@ router.get('/:id', async (req, res) => {
 // @route   POST /api/products
 // @desc    Create product
 // @access  Private/Admin
-router.post('/', protect, authorize('admin', 'manager'), upload.single('image'), async (req, res) => {
+router.post('/', protect, authorize('admin', 'manager'), upload.array('images', 5), async (req, res) => {
   try {
     const productData = pickFields(req.body, PRODUCT_FIELDS);
     if (productData.price !== undefined) productData.price = parseNonNegativeNumber(productData.price, 'price');
     if (productData.wholesalePrice !== undefined) productData.wholesalePrice = parseNonNegativeNumber(productData.wholesalePrice, 'wholesalePrice');
     if (productData.stock !== undefined) productData.stock = parseNonNegativeInt(productData.stock, 'stock');
     if (productData.minStock !== undefined) productData.minStock = parseNonNegativeInt(productData.minStock, 'minStock');
-    if (req.file) {
+
+    // Handle image uploads
+    if (req.files && req.files.length > 0) {
+      const imagePaths = req.files.map(f => `/uploads/${f.filename}`);
+      productData.image = imagePaths[0]; // primary image
+      productData.images = imagePaths;
+    } else if (req.file) {
       productData.image = `/uploads/${req.file.filename}`;
+      productData.images = [productData.image];
     }
 
     const product = await Product.create(productData);
 
     await createAuditLog(req.user._id, 'product_create', 'product', product._id, { name: product.name }, req);
+
+    // Send new product notification to all customers
+    await Notification.create({
+      title: '🆕 New Product',
+      message: `${product.name} is now available! Check it out.`,
+      type: 'new_product',
+      recipientRole: 'customer',
+      link: `/products/${product._id}`,
+      metadata: { productId: product._id }
+    });
 
     res.status(201).json({ success: true, message: 'Product created', data: product });
   } catch (error) {
@@ -141,15 +186,18 @@ router.post('/', protect, authorize('admin', 'manager'), upload.single('image'),
 // @route   PUT /api/products/:id
 // @desc    Update product
 // @access  Private/Admin
-router.put('/:id', protect, authorize('admin', 'manager'), upload.single('image'), async (req, res) => {
+router.put('/:id', protect, authorize('admin', 'manager'), upload.array('images', 5), async (req, res) => {
   try {
     const updateData = pickFields(req.body, PRODUCT_FIELDS);
     if (updateData.price !== undefined) updateData.price = parseNonNegativeNumber(updateData.price, 'price');
     if (updateData.wholesalePrice !== undefined) updateData.wholesalePrice = parseNonNegativeNumber(updateData.wholesalePrice, 'wholesalePrice');
     if (updateData.stock !== undefined) updateData.stock = parseNonNegativeInt(updateData.stock, 'stock');
     if (updateData.minStock !== undefined) updateData.minStock = parseNonNegativeInt(updateData.minStock, 'minStock');
-    if (req.file) {
-      updateData.image = `/uploads/${req.file.filename}`;
+
+    if (req.files && req.files.length > 0) {
+      const imagePaths = req.files.map(f => `/uploads/${f.filename}`);
+      updateData.image = imagePaths[0];
+      updateData.images = imagePaths;
     }
 
     const product = await Product.findByIdAndUpdate(

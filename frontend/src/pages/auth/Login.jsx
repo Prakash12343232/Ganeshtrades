@@ -146,6 +146,11 @@ export default function Login() {
                   {showPass ? <FiEyeOff /> : <FiEye />}
                 </button>
               </div>
+              <div className="text-right mt-1.5">
+                <Link to="/forgot-password" className="text-xs font-medium text-primary-300 hover:text-white transition-colors">
+                  Forgot Password?
+                </Link>
+              </div>
             </div>
           )}
 

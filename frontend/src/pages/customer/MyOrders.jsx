@@ -9,6 +9,12 @@ const STATUS_COLORS = {
   delivered: 'bg-green-100 text-green-700', cancelled: 'bg-red-100 text-red-700'
 };
 
+const STATUS_LABELS = {
+  pending: 'Order Received', confirmed: 'Order Confirmed',
+  processing: 'Preparing', out_for_delivery: 'Out for Delivery',
+  delivered: 'Delivered', cancelled: 'Cancelled'
+};
+
 export default function MyOrders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -33,8 +39,8 @@ export default function MyOrders() {
         <div className="flex gap-2 overflow-x-auto pb-2">
           {['', 'pending', 'confirmed', 'processing', 'out_for_delivery', 'delivered', 'cancelled'].map(s => (
             <button key={s} onClick={() => setFilter(s)}
-              className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all capitalize ${filter === s ? 'bg-primary-600 text-white' : 'bg-white text-gray-600 border border-gray-200'}`}>
-              {s || 'All'}
+              className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all ${filter === s ? 'bg-primary-600 text-white shadow-md' : 'bg-white text-gray-600 border border-gray-200'}`}>
+              {STATUS_LABELS[s] || 'All'}
             </button>
           ))}
         </div>
@@ -49,44 +55,46 @@ export default function MyOrders() {
       </div>
 
       {orders.length === 0 ? (
-        <div className="text-center py-16"><span className="text-5xl mb-4 block">📦</span><p className="text-gray-500">No orders found</p>
-          <Link to="/products" className="inline-block mt-4 px-6 py-3 bg-primary-600 text-white rounded-xl font-semibold hover:bg-primary-700">Shop Now</Link>
+        <div className="text-center py-16 bg-white rounded-2xl border border-gray-100"><span className="text-5xl mb-4 block">📦</span><p className="text-gray-500">No orders found</p>
+          <Link to="/products" className="inline-block mt-4 px-6 py-3 bg-primary-600 text-white rounded-xl font-semibold hover:bg-primary-700 shadow-md">Shop Now</Link>
         </div>
       ) : (
         <div className="space-y-4">
           {orders.map(order => (
             <Link key={order._id} to={`/orders/${order._id}`}
-              className="block bg-white rounded-xl border border-gray-100 p-4 hover:shadow-md hover:border-primary-200 transition-all">
+              className="block bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-md hover:border-primary-200 transition-all">
               <div className="flex items-center justify-between flex-wrap gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-primary-50 rounded-xl flex items-center justify-center"><FiPackage className="text-primary-600" /></div>
+                  <div className="w-10 h-10 bg-primary-50 rounded-xl flex items-center justify-center text-primary-600"><FiPackage className="w-5 h-5" /></div>
                   <div>
-                    <p className="font-semibold text-gray-800">#{order.orderNumber}</p>
-                    <p className="text-xs text-gray-400">{new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                    <p className="font-semibold text-gray-800">Order #{order.orderNumber}</p>
+                    <p className="text-xs text-gray-400">{new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   {order.deliveryType === 'scheduled' && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary-50 text-primary-600 text-xs font-medium rounded-full">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-primary-50 text-primary-600 text-xs font-medium rounded-full">
                       <FiCalendar className="w-3 h-3" /> Scheduled
                     </span>
                   )}
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold capitalize ${STATUS_COLORS[order.orderStatus]}`}>
-                    {order.orderStatus?.replace(/_/g, ' ')}
+                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${STATUS_COLORS[order.orderStatus]}`}>
+                    {STATUS_LABELS[order.orderStatus] || order.orderStatus}
                   </span>
                   <span className="font-bold text-primary-600">₹{order.finalAmount?.toFixed(2)}</span>
                   <FiEye className="text-gray-400" />
                 </div>
               </div>
-              <div className="mt-3 flex items-center gap-4 text-xs text-gray-500">
-                <span>{order.items?.length} items</span>
-                <span className={`capitalize ${order.paymentStatus === 'paid' ? 'text-green-600' : 'text-orange-500'}`}>
-                  Payment: {order.paymentStatus}
-                </span>
-                {order.deliveryType === 'scheduled' && order.scheduledDelivery?.date && (
-                  <span className="flex items-center gap-1 text-primary-600 font-medium">
+              <div className="mt-3 flex items-center justify-between flex-wrap gap-2 text-xs text-gray-500 pt-3 border-t border-gray-50">
+                <div className="flex items-center gap-3">
+                  <span>{order.items?.length} item(s)</span>
+                  <span className={`font-semibold capitalize ${order.paymentStatus === 'paid' ? 'text-green-600' : 'text-orange-500'}`}>
+                    Payment: {order.paymentStatus}
+                  </span>
+                </div>
+                {order.estimatedDeliveryTime && order.orderStatus !== 'cancelled' && order.orderStatus !== 'delivered' && (
+                  <span className="flex items-center gap-1 text-primary-700 font-semibold bg-primary-50 px-2.5 py-1 rounded-md">
                     <FiClock className="w-3 h-3" />
-                    {new Date(order.scheduledDelivery.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} • {order.scheduledDelivery.timeSlot}
+                    ETA: {new Date(order.estimatedDeliveryTime).toLocaleString('en-IN', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}
                   </span>
                 )}
               </div>

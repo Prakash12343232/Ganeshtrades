@@ -150,6 +150,29 @@ function generateOTP() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
+/**
+ * Validates password strength.
+ * Returns { valid: boolean, errors: string[], strength: 'weak'|'medium'|'strong' }
+ */
+function validatePasswordStrength(password) {
+  const errors = [];
+  if (!password || typeof password !== 'string') {
+    return { valid: false, errors: ['Password is required'], strength: 'weak' };
+  }
+  if (password.length < 8) errors.push('At least 8 characters');
+  if (!/[A-Z]/.test(password)) errors.push('At least one uppercase letter');
+  if (!/[a-z]/.test(password)) errors.push('At least one lowercase letter');
+  if (!/[0-9]/.test(password)) errors.push('At least one number');
+  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(password)) errors.push('At least one special character');
+
+  let strength = 'weak';
+  const passed = 5 - errors.length;
+  if (passed >= 5) strength = 'strong';
+  else if (passed >= 3) strength = 'medium';
+
+  return { valid: errors.length === 0, errors, strength };
+}
+
 module.exports = {
   escapeRegex,
   sanitizeSort,
@@ -164,5 +187,6 @@ module.exports = {
   safeSpreadsheetCell,
   normalizeMobile,
   generateOTP,
+  validatePasswordStrength,
   DEFAULT_SORT_FIELDS
 };

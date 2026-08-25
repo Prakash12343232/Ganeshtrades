@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getProducts, getCategories } from '../../services/api';
+import { getFeaturedProducts, getProducts, getCategories } from '../../services/api';
 import { useCart } from '../../context/CartContext';
-import { FiShoppingCart, FiSearch, FiStar, FiArrowRight, FiTruck, FiShield, FiClock } from 'react-icons/fi';
+import { FiShoppingCart, FiSearch, FiStar, FiArrowRight, FiTruck, FiShield, FiClock, FiAward } from 'react-icons/fi';
 
 const CATEGORY_LABELS = {
   rice_grains: '🍚 Rice & Grains', dal_pulses: '🫘 Dal & Pulses', spices: '🌶️ Spices',
@@ -18,7 +18,14 @@ export default function Home() {
   const { addToCart } = useCart();
 
   useEffect(() => {
-    getProducts({ limit: 8, sort: '-totalSold' }).then(res => setFeaturedProducts(res.data.data)).catch(() => {});
+    getFeaturedProducts()
+      .then(res => {
+        if (res.data.data && res.data.data.length > 0) setFeaturedProducts(res.data.data);
+        else getProducts({ limit: 8, sort: '-totalSold' }).then(r => setFeaturedProducts(r.data.data)).catch(() => {});
+      })
+      .catch(() => {
+        getProducts({ limit: 8, sort: '-totalSold' }).then(r => setFeaturedProducts(r.data.data)).catch(() => {});
+      });
     getCategories().then(res => setCategories(res.data.data)).catch(() => {});
   }, []);
 
@@ -85,37 +92,62 @@ export default function Home() {
       {featuredProducts.length > 0 && (
         <section>
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-800">Popular Products</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-2xl font-bold text-gray-800">Featured Products</h2>
+              <span className="px-2.5 py-0.5 bg-amber-100 text-amber-700 text-xs font-semibold rounded-full flex items-center gap-1">
+                <FiAward /> Handpicked
+              </span>
+            </div>
             <Link to="/products" className="text-primary-600 hover:text-primary-700 font-medium text-sm flex items-center gap-1">See All <FiArrowRight /></Link>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {featuredProducts.map(product => (
-              <div key={product._id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-xl hover:border-primary-200 transition-all group">
+              <div key={product._id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-xl hover:border-primary-200 transition-all group relative flex flex-col justify-between">
+                {product.isFeatured && (
+                  <span className="absolute top-2 left-2 z-10 px-2 py-0.5 bg-amber-500 text-white text-[10px] font-bold rounded-full shadow-md">
+                    Featured
+                  </span>
+                )}
                 <Link to={`/products/${product._id}`}>
-                  <div className="h-40 bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center p-4">
-                    <span className="text-5xl">{CATEGORY_LABELS[product.category]?.split(' ')[0] || '📦'}</span>
+                  <div className="h-44 bg-gray-50 flex items-center justify-center p-2 relative overflow-hidden">
+                    {product.image && !product.image.includes('default-product') ? (
+                      <img src={product.image} alt={product.name} className="h-full w-full object-contain group-hover:scale-105 transition-transform duration-300" />
+                    ) : (
+                      <span className="text-5xl">{CATEGORY_LABELS[product.category]?.split(' ')[0] || '📦'}</span>
+                    )}
                   </div>
                 </Link>
-                <div className="p-4">
-                  <Link to={`/products/${product._id}`}>
-                    <h3 className="font-semibold text-gray-800 text-sm line-clamp-1 group-hover:text-primary-600 transition-colors">{product.name}</h3>
-                  </Link>
-                  <p className="text-xs text-gray-400 mt-1 capitalize">{product.category?.replace(/_/g, ' ')}</p>
-                  <div className="flex items-center justify-between mt-3">
-                    <div>
-                      <span className="text-lg font-bold text-primary-600">₹{product.price}</span>
-                      <span className="text-xs text-gray-400 ml-1">/{product.unit}</span>
+                <div className="p-4 flex-1 flex flex-col justify-between">
+                  <div>
+                    <Link to={`/products/${product._id}`}>
+                      <h3 className="font-semibold text-gray-800 text-sm line-clamp-1 group-hover:text-primary-600 transition-colors">{product.name}</h3>
+                    </Link>
+                    <div className="flex items-center justify-between mt-1">
+                      <p className="text-xs text-gray-400 capitalize">{product.category?.replace(/_/g, ' ')}</p>
+                      {product.avgRating > 0 && (
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-500">
+                          <FiStar className="fill-amber-400 w-3 h-3" /> {product.avgRating}
+                        </span>
+                      )}
                     </div>
-                    <button onClick={() => addToCart(product)}
-                      className="p-2 bg-primary-100 text-primary-600 rounded-lg hover:bg-primary-600 hover:text-white transition-all"
-                      disabled={product.stock === 0}>
-                      <FiShoppingCart className="w-4 h-4" />
-                    </button>
                   </div>
-                  {product.stock <= product.minStock && product.stock > 0 && (
-                    <p className="text-xs text-orange-500 mt-2">⚠️ Low stock</p>
-                  )}
-                  {product.stock === 0 && <p className="text-xs text-red-500 mt-2">Out of stock</p>}
+                  <div className="mt-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-lg font-bold text-primary-600">₹{product.price}</span>
+                        <span className="text-xs text-gray-400 ml-1">/{product.unit}</span>
+                      </div>
+                      <button onClick={() => addToCart(product)}
+                        className="p-2 bg-primary-100 text-primary-600 rounded-lg hover:bg-primary-600 hover:text-white transition-all disabled:opacity-50"
+                        disabled={product.stock === 0}>
+                        <FiShoppingCart className="w-4 h-4" />
+                      </button>
+                    </div>
+                    {product.stock <= product.minStock && product.stock > 0 && (
+                      <p className="text-xs text-orange-500 mt-2">⚠️ Low stock ({product.stock} left)</p>
+                    )}
+                    {product.stock === 0 && <p className="text-xs text-red-500 mt-2">Out of stock</p>}
+                  </div>
                 </div>
               </div>
             ))}
@@ -125,3 +157,4 @@ export default function Home() {
     </div>
   );
 }
+

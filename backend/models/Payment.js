@@ -27,6 +27,14 @@ const paymentSchema = new mongoose.Schema({
     default: 'pending'
   },
   transactionId: String,
+  gatewayOrderId: String,
+  gatewayPaymentId: String,
+  gatewaySignature: String,
+  paymentMode: {
+    type: String,
+    enum: ['upi', 'debit_card', 'credit_card', 'net_banking', 'cash', 'credit', 'wallet'],
+    default: 'cash'
+  },
   notes: String,
   receivedBy: {
     type: mongoose.Schema.Types.ObjectId,

@@ -85,7 +85,53 @@ const initCronJobs = () => {
     }
   });
 
-  console.log('⏱️ Cron jobs initialized (backups + delivery reminders)');
+  // ─── Payment Reminder — Daily at 9 AM ───
+  cron.schedule('0 9 * * *', async () => {
+    try {
+      const User = require('../models/User');
+      const Notification = require('../models/Notification');
+
+      const usersWithPending = await User.find({
+        $or: [
+          { pendingAmount: { $gt: 0 } },
+          { creditBalance: { $gt: 0 } }
+        ],
+        isActive: true,
+        role: 'customer'
+      }).select('_id name pendingAmount creditBalance');
+
+      let reminderCount = 0;
+      for (const u of usersWithPending) {
+        const totalDue = (u.pendingAmount || 0) + (u.creditBalance || 0);
+        if (totalDue <= 0) continue;
+
+        await Notification.create({
+          title: '💰 Payment Reminder',
+          message: `You have a pending balance of ₹${totalDue.toFixed(2)}. Please clear your dues at the earliest.`,
+          type: 'payment_reminder',
+          priority: totalDue > 5000 ? 'high' : 'normal',
+          recipient: u._id,
+          link: '/orders'
+        });
+        reminderCount++;
+      }
+
+      if (reminderCount > 0) {
+        await Notification.create({
+          title: '📊 Daily Payment Summary',
+          message: `${reminderCount} customer(s) have pending payments. Total outstanding to review.`,
+          type: 'payment_reminder',
+          recipientRole: 'admin',
+          priority: 'normal'
+        });
+        console.log(`💰 Sent ${reminderCount} payment reminders`);
+      }
+    } catch (err) {
+      console.error('Payment reminder cron error:', err.message);
+    }
+  });
+
+  console.log('⏱️ Cron jobs initialized (backups + delivery reminders + payment reminders)');
 };
 
 module.exports = { initCronJobs };

@@ -1,16 +1,58 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
-import { useState } from 'react';
-import { FiShoppingCart, FiUser, FiMenu, FiX, FiHome, FiPackage, FiLogOut, FiLogIn, FiClipboard } from 'react-icons/fi';
+import { useState, useEffect } from 'react';
+import { getNotifications, markRead, markAllRead } from '../services/api';
+import { FiShoppingCart, FiUser, FiMenu, FiX, FiHome, FiPackage, FiLogOut, FiLogIn, FiClipboard, FiBell, FiCheck } from 'react-icons/fi';
 import { FaWhatsapp } from 'react-icons/fa';
 
 export default function CustomerLayout() {
   const { user, logout } = useAuth();
   const { totalItems } = useCart();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+
   const location = useLocation();
   const navigate = useNavigate();
+
+  const fetchNotifs = () => {
+    if (user) {
+      getNotifications({ limit: 10 })
+        .then(res => {
+          setNotifications(res.data.data || []);
+          setUnreadCount(res.data.unreadCount || 0);
+        })
+        .catch(() => {});
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifs();
+    const interval = setInterval(fetchNotifs, 30000); // refresh every 30s
+    return () => clearInterval(interval);
+  }, [user]);
+
+  const handleMarkRead = async (n) => {
+    try {
+      if (!n.isRead) {
+        await markRead(n._id);
+        fetchNotifs();
+      }
+      if (n.link) {
+        navigate(n.link);
+        setNotifOpen(false);
+      }
+    } catch {}
+  };
+
+  const handleMarkAllRead = async () => {
+    try {
+      await markAllRead();
+      fetchNotifs();
+    } catch {}
+  };
 
   const isActive = (path) => location.pathname === path;
 
@@ -54,6 +96,66 @@ export default function CustomerLayout() {
 
             {/* Actions */}
             <div className="flex items-center gap-3">
+              {/* Notification Bell */}
+              {user && (
+                <div className="relative">
+                  <button
+                    onClick={() => setNotifOpen(!notifOpen)}
+                    className="p-2 text-gray-600 hover:text-primary-600 transition-colors relative"
+                    id="notif-bell-btn"
+                  >
+                    <FiBell className="w-5 h-5" />
+                    {unreadCount > 0 && (
+                      <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                      </span>
+                    )}
+                  </button>
+
+                  {/* Notification Dropdown */}
+                  {notifOpen && (
+                    <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50 animate-fadeIn">
+                      <div className="p-4 bg-gradient-to-r from-primary-700 to-primary-800 text-white flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <FiBell />
+                          <h3 className="font-bold text-sm">Notifications</h3>
+                        </div>
+                        {unreadCount > 0 && (
+                          <button onClick={handleMarkAllRead} className="text-xs text-primary-200 hover:text-white flex items-center gap-1">
+                            <FiCheck /> Mark all read
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="max-h-80 overflow-y-auto divide-y divide-gray-100">
+                        {notifications.length === 0 ? (
+                          <div className="p-6 text-center text-gray-400 text-sm">No notifications</div>
+                        ) : (
+                          notifications.map(n => (
+                            <div
+                              key={n._id}
+                              onClick={() => handleMarkRead(n)}
+                              className={`p-3.5 hover:bg-gray-50 transition-colors cursor-pointer flex items-start gap-3 ${!n.isRead ? 'bg-primary-50/40' : ''}`}
+                            >
+                              <span className="text-lg flex-shrink-0 mt-0.5">
+                                {{ order: '📦', delivery: '🚚', payment: '💳', promotion: '🎉', new_product: '🆕', payment_reminder: '💰' }[n.type] || '📢'}
+                              </span>
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-xs font-semibold ${!n.isRead ? 'text-primary-900' : 'text-gray-800'}`}>{n.title}</p>
+                                <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{n.message}</p>
+                                <span className="text-[10px] text-gray-400 mt-1 block">{new Date(n.createdAt).toLocaleDateString('en-IN', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}</span>
+                              </div>
+                              {!n.isRead && <span className="w-2 h-2 bg-primary-600 rounded-full flex-shrink-0 mt-1.5" />}
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Cart Button */}
               <Link to="/cart" className="relative p-2 text-gray-600 hover:text-primary-600 transition-colors" id="cart-button">
                 <FiShoppingCart className="w-5 h-5" />
                 {totalItems > 0 && (

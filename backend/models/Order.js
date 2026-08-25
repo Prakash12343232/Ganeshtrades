@@ -98,6 +98,7 @@ const orderSchema = new mongoose.Schema({
     originalTimeSlot: { type: String }
   },
 
+  estimatedDeliveryTime: { type: Date },
   deliveryDate: Date,
   deliveredAt: Date,
   notes: String,

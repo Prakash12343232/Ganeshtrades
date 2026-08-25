@@ -57,7 +57,12 @@ const userSchema = new mongoose.Schema({
   creditLimit: { type: Number, default: 0 },
   creditBalance: { type: Number, default: 0 },
   loginAttempts: { type: Number, default: 0 },
-  lockUntil: { type: Date }
+  lockUntil: { type: Date },
+  isEmailVerified: { type: Boolean, default: false },
+  emailVerificationToken: String,
+  emailVerificationExpires: Date,
+  passwordResetToken: String,
+  passwordResetExpires: Date
 }, {
   timestamps: true
 });

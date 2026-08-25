@@ -5,6 +5,13 @@ import toast from 'react-hot-toast';
 import { FiDownload, FiX, FiCheck, FiClock, FiTruck, FiPackage, FiCalendar, FiZap, FiEdit3 } from 'react-icons/fi';
 
 const STATUS_STEPS = ['pending', 'confirmed', 'processing', 'out_for_delivery', 'delivered'];
+const STEP_LABELS = {
+  pending: 'Order Received',
+  confirmed: 'Order Confirmed',
+  processing: 'Preparing',
+  out_for_delivery: 'Out for Delivery',
+  delivered: 'Delivered'
+};
 const STEP_ICONS = { pending: <FiClock />, confirmed: <FiCheck />, processing: <FiPackage />, out_for_delivery: <FiTruck />, delivered: <FiCheck /> };
 
 const TIME_SLOTS = [
@@ -145,16 +152,44 @@ export default function OrderDetail() {
           </div>
         )}
 
+        {/* Estimated Delivery Time Banner */}
+        {order.orderStatus !== 'cancelled' && (
+          <div className="mt-6 p-4 bg-gradient-to-r from-primary-500 to-primary-600 rounded-2xl text-white flex items-center justify-between flex-wrap gap-3 shadow-md">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center text-xl backdrop-blur-sm">
+                <FiClock />
+              </div>
+              <div>
+                <p className="text-xs text-primary-100 font-medium">Estimated Delivery Time</p>
+                <p className="text-lg font-bold">
+                  {order.estimatedDeliveryTime
+                    ? new Date(order.estimatedDeliveryTime).toLocaleString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+                    : order.scheduledDelivery
+                      ? `${new Date(order.scheduledDelivery.date).toLocaleDateString('en-IN')} (${order.scheduledDelivery.timeSlot})`
+                      : 'Calculating...'}
+                </p>
+              </div>
+            </div>
+            {order.scheduledDelivery?.timeSlot && (
+              <span className="px-3 py-1 bg-white/20 rounded-full text-xs font-semibold backdrop-blur-sm">
+                Slot: {order.scheduledDelivery.timeSlot}
+              </span>
+            )}
+          </div>
+        )}
+
         {/* Status Tracker */}
         {order.orderStatus !== 'cancelled' && (
           <div className="mt-8">
             <div className="flex items-center justify-between">
               {STATUS_STEPS.map((step, i) => (
                 <div key={step} className="flex flex-col items-center flex-1">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all ${i <= currentStep ? 'bg-primary-600 text-white shadow-lg' : 'bg-gray-200 text-gray-400'}`}>
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all ${i <= currentStep ? 'bg-primary-600 text-white shadow-lg ring-4 ring-primary-100' : 'bg-gray-200 text-gray-400'}`}>
                     {STEP_ICONS[step]}
                   </div>
-                  <span className={`text-xs mt-2 capitalize ${i <= currentStep ? 'text-primary-600 font-medium' : 'text-gray-400'}`}>{step.replace(/_/g, ' ')}</span>
+                  <span className={`text-xs mt-2 text-center font-semibold ${i <= currentStep ? 'text-primary-700' : 'text-gray-400'}`}>
+                    {STEP_LABELS[step]}
+                  </span>
                   {i < STATUS_STEPS.length - 1 && (
                     <div className={`h-0.5 w-full mt-[-22px] mb-[22px] ${i < currentStep ? 'bg-primary-600' : 'bg-gray-200'}`} style={{ position: 'absolute' }} />
                   )}

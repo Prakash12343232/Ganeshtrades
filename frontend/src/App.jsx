@@ -8,6 +8,7 @@ import AdminLayout from './layouts/AdminLayout';
 // Auth Pages
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
+import ForgotPassword from './pages/auth/ForgotPassword';
 
 // Customer Pages
 import Home from './pages/customer/Home';
@@ -32,6 +33,8 @@ import AdminExpenses from './pages/admin/AdminExpenses';
 import AdminDeliveries from './pages/admin/AdminDeliveries';
 import AdminBackups from './pages/admin/AdminBackups';
 import AdminCoverage from './pages/admin/AdminCoverage';
+import AdminReviews from './pages/admin/AdminReviews';
+import AdminNotifications from './pages/admin/AdminNotifications';
 
 // Manager Pages
 import ManagerDashboard from './pages/manager/ManagerDashboard';
@@ -61,6 +64,7 @@ function App() {
       {/* Auth Routes */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
 
       {/* Customer Routes */}
       <Route path="/" element={<CustomerLayout />}>
@@ -86,6 +90,8 @@ function App() {
         <Route path="suppliers" element={<AdminSuppliers />} />
         <Route path="expenses" element={<AdminExpenses />} />
         <Route path="deliveries" element={<AdminDeliveries />} />
+        <Route path="reviews" element={<AdminReviews />} />
+        <Route path="notifications" element={<AdminNotifications />} />
         <Route path="backups" element={<AdminOnlyRoute><AdminBackups /></AdminOnlyRoute>} />
         <Route path="coverage" element={<AdminCoverage />} />
       </Route>

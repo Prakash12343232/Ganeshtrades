@@ -25,6 +25,13 @@ const productSchema = new mongoose.Schema({
     type: String,
     default: '/uploads/default-product.png'
   },
+  images: [{
+    type: String
+  }],
+  isFeatured: {
+    type: Boolean,
+    default: false
+  },
   price: {
     type: Number,
     required: [true, 'Price is required'],

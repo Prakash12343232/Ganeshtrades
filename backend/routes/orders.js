@@ -135,6 +135,21 @@ router.post('/', protect, async (req, res) => {
       }
     }
 
+    // Calculate estimated delivery time
+    let estimatedDeliveryTime;
+    if (deliveryType === 'scheduled' && scheduledDate && timeSlot) {
+      const [sYear, sMonth, sDay] = scheduledDate.split('-');
+      const slotMatch = timeSlot.match(/^(\d+)\s*(AM|PM)/i);
+      let slotHour = slotMatch ? parseInt(slotMatch[1]) : 12;
+      const slotPeriod = slotMatch ? slotMatch[2].toUpperCase() : 'PM';
+      if (slotPeriod === 'PM' && slotHour !== 12) slotHour += 12;
+      if (slotPeriod === 'AM' && slotHour === 12) slotHour = 0;
+      estimatedDeliveryTime = new Date(sYear, sMonth - 1, sDay, slotHour, 0, 0);
+    } else {
+      // Instant: estimate 2 hours from now
+      estimatedDeliveryTime = new Date(Date.now() + 2 * 60 * 60 * 1000);
+    }
+
     // Build order data
     const orderData = {
       user: req.user._id, items: orderItems, totalAmount, discount: 0, deliveryCharge: 0, finalAmount: totalAmount,
@@ -142,6 +157,7 @@ router.post('/', protect, async (req, res) => {
       deliveryAddress: { street: addressToUse.street, area: addressToUse.area, city: addressToUse.city, pincode: addressToUse.pincode, lat: addressToUse.lat, lng: addressToUse.lng },
       distanceFromShop: serviceCheck.distance,
       deliveryType: deliveryType || 'instant',
+      estimatedDeliveryTime,
       notes,
       statusHistory: [{ status: 'pending', note: deliveryType === 'scheduled' ? `Order placed — Scheduled for ${new Date(scheduledDate).toLocaleDateString('en-IN')} (${timeSlot})` : 'Order placed' }]
     };
@@ -205,7 +221,10 @@ router.post('/', protect, async (req, res) => {
 
     // Notifications
     const scheduleLabel = deliveryType === 'scheduled' ? ` 📅 Scheduled: ${new Date(scheduledDate).toLocaleDateString('en-IN')} ${timeSlot}` : ' ⚡ Instant';
-    await Notification.create({ title: 'New Order', message: `Order #${order.orderNumber} from ${req.user.name} — ₹${totalAmount} (${serviceCheck.distance} KM)${scheduleLabel}`, type: 'order', recipientRole: 'admin' });
+    await Notification.create({ title: 'New Order', message: `Order #${order.orderNumber} from ${req.user.name} — ₹${totalAmount} (${serviceCheck.distance} KM)${scheduleLabel}`, type: 'order', recipientRole: 'admin', link: `/admin/orders`, metadata: { orderId: order._id } });
+
+    // Notify customer
+    await Notification.create({ title: '✅ Order Received', message: `Your order #${order.orderNumber} has been received! Estimated delivery: ${estimatedDeliveryTime.toLocaleString('en-IN')}.`, type: 'order', recipient: req.user._id, link: `/orders/${order._id}`, metadata: { orderId: order._id } });
 
     if (deliveryType === 'scheduled') {
       await Notification.create({
@@ -401,17 +420,29 @@ router.put('/:id/status', protect, authorize('admin', 'manager'), async (req, re
     order.statusHistory.push({ status: orderStatus, note: note || '' });
     if (orderStatus === 'delivered') order.deliveredAt = new Date();
 
+    // Update estimated delivery time based on status
+    if (orderStatus === 'out_for_delivery') {
+      order.estimatedDeliveryTime = new Date(Date.now() + 30 * 60 * 1000); // 30 min ETA
+    } else if (orderStatus === 'confirmed') {
+      order.estimatedDeliveryTime = new Date(Date.now() + 90 * 60 * 1000); // 1.5 hour ETA
+    } else if (orderStatus === 'processing') {
+      order.estimatedDeliveryTime = new Date(Date.now() + 60 * 60 * 1000); // 1 hour ETA
+    }
+
     // When dispatching a scheduled order, notify customer
-    if (orderStatus === 'out_for_delivery' && order.deliveryType === 'scheduled') {
+    if (orderStatus === 'out_for_delivery') {
       await Notification.create({
-        title: '🚚 Delivery Dispatched',
-        message: `Your scheduled order #${order.orderNumber} has been dispatched and is on its way!`,
-        type: 'order', recipient: order.user
+        title: '🚚 Out for Delivery',
+        message: `Your order #${order.orderNumber} is on its way! Expected in about 30 minutes.`,
+        type: 'delivery', recipient: order.user, link: `/orders/${order._id}`, priority: 'high'
       });
     }
 
     await order.save();
-    await Notification.create({ title: 'Order Update', message: `Order #${order.orderNumber} is ${orderStatus}`, type: 'order', recipient: order.user });
+
+    // Status-specific notification labels
+    const statusLabels = { pending: 'Order Received', confirmed: 'Order Confirmed', processing: 'Preparing Your Order', out_for_delivery: 'Out for Delivery', delivered: 'Delivered Successfully', cancelled: 'Order Cancelled' };
+    await Notification.create({ title: '📦 Order Update', message: `Order #${order.orderNumber}: ${statusLabels[orderStatus] || orderStatus}`, type: 'order', recipient: order.user, link: `/orders/${order._id}` });
     res.json({ success: true, message: 'Status updated', data: order });
   } catch (error) { res.status(400).json({ success: false, message: error.message }); }
 });

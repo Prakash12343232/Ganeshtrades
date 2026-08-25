@@ -39,6 +39,9 @@ export const verifyOtp = (data) => API.post('/auth/verify-otp', data);
 export const getMe = () => API.get('/auth/me');
 export const updateProfile = (data) => API.put('/auth/profile', data);
 export const changePassword = (data) => API.put('/auth/password', data);
+export const forgotPassword = (data) => API.post('/auth/forgot-password', data);
+export const resetPassword = (data) => API.post('/auth/reset-password', data);
+export const validatePassword = (data) => API.post('/auth/validate-password', data);
 
 // Products
 export const getProducts = (params) => API.get('/products', { params });
@@ -49,6 +52,7 @@ export const updateProduct = (id, data) => API.put(`/products/${id}`, data);
 export const updateStock = (id, data) => API.put(`/products/${id}/stock`, data);
 export const deleteProduct = (id) => API.delete(`/products/${id}`);
 export const getLowStock = () => API.get('/products/low-stock');
+export const getFeaturedProducts = () => API.get('/products/featured');
 
 // Orders
 export const createOrder = (data) => API.post('/orders', data);
@@ -66,18 +70,25 @@ export const createPayment = (data) => API.post('/payments', data);
 export const getPayments = (params) => API.get('/payments', { params });
 export const getPendingPayments = () => API.get('/payments/pending');
 export const createSettlement = (data) => API.post('/payments/settlement', data);
+export const createPaymentOrder = (data) => API.post('/payments/create-order', data);
+export const verifyPayment = (data) => API.post('/payments/verify', data);
 
 // Reviews
 export const createReview = (data) => API.post('/reviews', data);
-export const getProductReviews = (productId) => API.get(`/reviews/product/${productId}`);
-export const getAllReviews = () => API.get('/reviews');
+export const getProductReviews = (productId, params) => API.get(`/reviews/product/${productId}`, { params });
+export const getAllReviews = (params) => API.get('/reviews', { params });
 export const deleteReview = (id) => API.delete(`/reviews/${id}`);
+export const updateReview = (id, data) => API.put(`/reviews/${id}`, data);
+export const moderateReview = (id, data) => API.put(`/reviews/${id}/moderate`, data);
+export const markReviewHelpful = (id) => API.put(`/reviews/${id}/helpful`);
 
 // Notifications
-export const getNotifications = () => API.get('/notifications');
+export const getNotifications = (params) => API.get('/notifications', { params });
 export const markRead = (id) => API.put(`/notifications/${id}/read`);
 export const markAllRead = () => API.put('/notifications/read-all');
 export const createNotification = (data) => API.post('/notifications', data);
+export const deleteNotification = (id) => API.delete(`/notifications/${id}`);
+export const clearReadNotifications = () => API.delete('/notifications/clear-read');
 
 // Dashboard
 export const getDashboardStats = () => API.get('/dashboard/stats');
