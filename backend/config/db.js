@@ -3,6 +3,7 @@ const crypto = require('crypto');
 
 const connectDB = async () => {
   if (process.env.NODE_ENV === 'test') return;
+  if (mongoose.connection.readyState === 1) return;
   
   try {
     console.log('Connecting to MongoDB Atlas...');

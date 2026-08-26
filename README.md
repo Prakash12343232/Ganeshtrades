@@ -142,28 +142,31 @@ ganesh-trades/
 
 ## 🚢 Deployment
 
-### Deploy Backend to Render
-1. Push code to GitHub
-2. Create new Web Service on Render
-3. Set build command: `npm install`
-4. Set start command: `node server.js`
-5. Add environment variables from `.env`
-6. Use MongoDB Atlas for database
+### Option A: Vercel Full-Stack Deployment (Frontend + Serverless Express API)
+1. Push code to GitHub repository `main` branch.
+2. Import repository in Vercel.
+3. Keep Root Directory as `./` (Root).
+4. Add the following **Environment Variables** in Vercel Project Settings:
+   - `MONGODB_URI`: Your MongoDB Atlas connection string
+   - `JWT_SECRET`: A strong secret key (at least 32 characters)
+   - `NODE_ENV`: `production`
+   - *(Optional for real SMS)* `FAST2SMS_API_KEY` or `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`
+5. Deploy! Vercel will build the frontend (`frontend/dist`) and serve the Express backend via Serverless Functions (`api/index.js`).
 
-### Deploy Frontend to Vercel
-1. Push code to GitHub
-2. Import project on Vercel
-3. Set root directory: `frontend`
-4. Build command: `npm run build`
-5. Output directory: `dist`
-6. Add env variable: `VITE_API_URL=https://your-render-url.onrender.com/api`
+### Option B: Separate Backend (Render) + Frontend (Vercel)
+1. Backend (Render):
+   - Create Web Service, Root Directory: `backend`
+   - Build command: `npm install`
+   - Start command: `node server.js`
+   - Env variables: `MONGODB_URI`, `JWT_SECRET`, `FRONTEND_URL`
+2. Frontend (Vercel):
+   - Env variable: `VITE_API_URL=https://your-backend.onrender.com/api`
 
 ### MongoDB Atlas Setup
 1. Create free cluster at mongodb.com
 2. Create database user
-3. Add IP whitelist (0.0.0.0/0 for Render)
-4. Get connection string
-5. Update `MONGODB_URI` in environment variables
+3. Add IP whitelist (`0.0.0.0/0` for cloud deployment)
+4. Get connection string and set `MONGODB_URI` in Vercel / Render environment variables.
 
 ## 📋 Features
 

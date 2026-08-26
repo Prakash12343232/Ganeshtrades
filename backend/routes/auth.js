@@ -86,13 +86,50 @@ router.post('/send-otp', otpLimiter, async (req, res) => {
       expiresAt: new Date(Date.now() + 5 * 60000) // 5 minutes
     });
 
-    // TODO: Integrate actual SMS gateway here.
-    // For now, we simulate sending:
-    console.log(`[SMS MOCK] OTP for ${normMobile} (${purpose}): ${otpCode}`);
+    // Dispatch SMS via configured provider or fallback to server logs
+    let smsSent = false;
+
+    if (process.env.FAST2SMS_API_KEY) {
+      try {
+        const axios = require('axios');
+        await axios.post('https://www.fast2sms.com/dev/bulkV2', {
+          route: 'otp',
+          variables_values: otpCode,
+          numbers: normMobile
+        }, {
+          headers: { 'authorization': process.env.FAST2SMS_API_KEY }
+        });
+        smsSent = true;
+        console.log(`[SMS FAST2SMS] OTP dispatched to ${normMobile}`);
+      } catch (err) {
+        console.error(`[SMS FAST2SMS ERROR] Failed to send OTP to ${normMobile}:`, err.response?.data || err.message);
+      }
+    } else if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER) {
+      try {
+        const client = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+        await client.messages.create({
+          body: `Your Ganesh Trades OTP code is ${otpCode}. Valid for 5 minutes.`,
+          from: process.env.TWILIO_PHONE_NUMBER,
+          to: `+91${normMobile}`
+        });
+        smsSent = true;
+        console.log(`[SMS TWILIO] OTP dispatched to ${normMobile}`);
+      } catch (err) {
+        console.error(`[SMS TWILIO ERROR] Failed to send OTP to ${normMobile}:`, err.message);
+      }
+    } else {
+      console.log(`[SMS LOG] OTP for ${normMobile} (${purpose}): ${otpCode}`);
+      smsSent = true;
+    }
+
+    if (!smsSent && (process.env.FAST2SMS_API_KEY || process.env.TWILIO_ACCOUNT_SID)) {
+      return res.status(500).json({ success: false, message: 'Failed to send OTP via SMS provider. Please check provider configuration.' });
+    }
 
     res.json({ success: true, message: 'OTP sent successfully' });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('❌ send-otp route error:', error);
+    res.status(500).json({ success: false, message: 'An error occurred while sending OTP. Please try again.' });
   }
 });
 

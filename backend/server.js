@@ -97,8 +97,15 @@ if (process.env.RENDER_EXTERNAL_URL) {
   }
 }
 
+// Vercel automatically sets VERCEL_URL — add it as an allowed origin
+if (process.env.VERCEL_URL) {
+  const vercelUrl = process.env.VERCEL_URL.trim().replace(/\/+$/, '');
+  const formattedUrl = vercelUrl.startsWith('http') ? vercelUrl : `https://${vercelUrl}`;
+  if (!allowedOrigins.includes(formattedUrl)) allowedOrigins.push(formattedUrl);
+}
+
 // Always allow localhost for development
-['http://localhost:5173', 'http://localhost:5000', 'http://127.0.0.1:5173', 'http://127.0.0.1:5000'].forEach(url => {
+['http://localhost:5173', 'http://localhost:5000', 'http://127.0.0.1:5173', 'http://127.0.0.1:5000', 'http://localhost:3000'].forEach(url => {
   if (!allowedOrigins.includes(url)) allowedOrigins.push(url);
 });
 
@@ -110,8 +117,8 @@ app.use(cors({
     if (!origin) return callback(null, true);
     // Check explicit allowlist
     if (allowedOrigins.includes(origin)) return callback(null, true);
-    // In production, also allow *.onrender.com as a safety net
-    if (process.env.NODE_ENV === 'production' && origin.endsWith('.onrender.com')) return callback(null, true);
+    // In production, also allow *.onrender.com and *.vercel.app as a safety net
+    if (process.env.NODE_ENV === 'production' && (origin.endsWith('.onrender.com') || origin.endsWith('.vercel.app'))) return callback(null, true);
     console.warn(`⛔ CORS rejected origin: ${origin}`);
     return callback(new Error('CORS origin not allowed'));
   },
@@ -188,7 +195,7 @@ if (process.env.NODE_ENV === 'production') {
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
-if (process.env.NODE_ENV !== 'test') {
+if (process.env.NODE_ENV !== 'test' && require.main === module) {
   app.listen(PORT, () => {
     console.log(`🚀 Ganesh Trades API running on port ${PORT} in ${process.env.NODE_ENV} mode`);
   });
