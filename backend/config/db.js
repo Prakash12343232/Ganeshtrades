@@ -1,5 +1,13 @@
 const mongoose = require('mongoose');
 const crypto = require('crypto');
+const dns = require('dns');
+
+// Fix Windows DNS SRV resolution issues for MongoDB Atlas
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1']);
+} catch (e) {
+  // Ignore if custom DNS cannot be set
+}
 
 const connectDB = async () => {
   if (process.env.NODE_ENV === 'test') return;
