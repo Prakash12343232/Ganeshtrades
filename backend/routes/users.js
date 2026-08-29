@@ -4,7 +4,7 @@ const User = require('../models/User');
 const { protect, authorize } = require('../middleware/auth');
 const { createAuditLog } = require('../utils/auditLogger');
 const { checkServiceability } = require('../utils/distance');
-const { escapeRegex, sanitizeSort, pickFields } = require('../utils/security');
+const { escapeRegex, sanitizeSort, pickFields, parsePagination } = require('../utils/security');
 
 // @route   GET /api/users
 // @desc    Get all users (admin/manager)
@@ -25,20 +25,22 @@ router.get('/', protect, authorize('admin', 'manager'), async (req, res) => {
       ];
     }
 
+    // BUG-07 fix: use parsePagination to cap limit (prevents limit=100000 full-scan)
+    const paging = parsePagination(page, limit, 200);
     const safeSort = sanitizeSort(sort, '-createdAt', ['createdAt', 'name', 'mobile', 'totalSpent', 'pendingAmount', 'creditBalance']);
     const total = await User.countDocuments(query);
     const users = await User.find(query)
       .sort(safeSort)
-      .skip((page - 1) * limit)
-      .limit(parseInt(limit));
+      .skip(paging.skip)
+      .limit(paging.limit);
 
     res.json({
       success: true,
       data: users,
       pagination: {
         total,
-        page: parseInt(page),
-        pages: Math.ceil(total / limit)
+        page: paging.page,
+        pages: Math.ceil(total / paging.limit)
       }
     });
   } catch (error) {

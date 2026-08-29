@@ -16,8 +16,17 @@ router.get('/sales', protect, authorize('admin', 'manager'), async (req, res) =>
     const { period = 'daily', startDate, endDate } = req.query;
     let start, end = new Date();
 
-    if (startDate && endDate) { start = new Date(startDate); end = new Date(endDate); }
-    else if (period === 'daily') { start = new Date(); start.setHours(0, 0, 0, 0); }
+    if (startDate && endDate) {
+      // BUG-08 fix: validate date inputs before passing to MongoDB
+      start = new Date(startDate);
+      end = new Date(endDate);
+      if (!isFinite(start) || !isFinite(end)) {
+        return res.status(400).json({ success: false, message: 'Invalid date format. Use YYYY-MM-DD.' });
+      }
+      if (start > end) {
+        return res.status(400).json({ success: false, message: 'startDate must be before endDate' });
+      }
+    } else if (period === 'daily') { start = new Date(); start.setHours(0, 0, 0, 0); }
     else if (period === 'weekly') { start = new Date(); start.setDate(start.getDate() - 7); }
     else { start = new Date(); start.setMonth(start.getMonth() - 1); }
 
@@ -34,9 +43,17 @@ router.get('/sales', protect, authorize('admin', 'manager'), async (req, res) =>
 // GET /api/reports/profit-loss
 router.get('/profit-loss', protect, authorize('admin', 'manager'), async (req, res) => {
   try {
-    const { startDate, endDate } = req.query;
-    let start = new Date(startDate || new Date(new Date().setMonth(new Date().getMonth() - 1)));
-    let end = new Date(endDate || new Date());
+    // BUG-08 fix: validate date inputs
+    const startRaw = req.query.startDate || new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString();
+    const endRaw = req.query.endDate || new Date().toISOString();
+    const start = new Date(startRaw);
+    const end = new Date(endRaw);
+    if (!isFinite(start) || !isFinite(end)) {
+      return res.status(400).json({ success: false, message: 'Invalid date format. Use YYYY-MM-DD.' });
+    }
+    if (start > end) {
+      return res.status(400).json({ success: false, message: 'startDate must be before endDate' });
+    }
 
     // 1. Revenue from completed orders
     const orders = await Order.find({ createdAt: { $gte: start, $lte: end }, orderStatus: 'delivered' });

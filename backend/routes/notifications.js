@@ -46,7 +46,11 @@ router.put('/:id/read', protect, async (req, res) => {
 // PUT /api/notifications/read-all
 router.put('/read-all', protect, async (req, res) => {
   try {
-    await Notification.updateMany({ $or: [{ recipient: req.user._id }, { recipientRole: req.user.role }] }, { isRead: true });
+    // BUG-06 fix: also mark broadcast notifications (recipientRole:'all') as read
+    await Notification.updateMany(
+      { $or: [{ recipient: req.user._id }, { recipientRole: req.user.role }, { recipientRole: 'all' }] },
+      { isRead: true }
+    );
     res.json({ success: true, message: 'All marked read' });
   } catch (error) { res.status(500).json({ success: false, message: error.message }); }
 });
@@ -60,6 +64,19 @@ router.post('/', protect, authorize('admin', 'manager'), async (req, res) => {
   } catch (error) { res.status(400).json({ success: false, message: error.message }); }
 });
 
+// BUG-04 fix: DELETE /clear-read MUST be registered before DELETE /:id
+// otherwise Express matches 'clear-read' as the :id param
+// DELETE /api/notifications/clear-read - Clear all read notifications for user
+router.delete('/clear-read', protect, async (req, res) => {
+  try {
+    const result = await Notification.deleteMany({
+      $or: [{ recipient: req.user._id }, { recipientRole: req.user.role }, { recipientRole: 'all' }],
+      isRead: true
+    });
+    res.json({ success: true, message: `${result.deletedCount} read notifications cleared` });
+  } catch (error) { res.status(500).json({ success: false, message: error.message }); }
+});
+
 // DELETE /api/notifications/:id - Delete single notification
 router.delete('/:id', protect, async (req, res) => {
   try {
@@ -70,17 +87,6 @@ router.delete('/:id', protect, async (req, res) => {
     }
     await Notification.findByIdAndDelete(req.params.id);
     res.json({ success: true, message: 'Notification deleted' });
-  } catch (error) { res.status(500).json({ success: false, message: error.message }); }
-});
-
-// DELETE /api/notifications/clear-read - Clear all read notifications for user
-router.delete('/clear-read', protect, async (req, res) => {
-  try {
-    const result = await Notification.deleteMany({
-      $or: [{ recipient: req.user._id }, { recipientRole: req.user.role }],
-      isRead: true
-    });
-    res.json({ success: true, message: `${result.deletedCount} read notifications cleared` });
   } catch (error) { res.status(500).json({ success: false, message: error.message }); }
 });
 

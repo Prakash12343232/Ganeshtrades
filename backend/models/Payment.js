@@ -44,4 +44,8 @@ const paymentSchema = new mongoose.Schema({
   timestamps: true
 });
 
+// PERF-02: indexes for most common payment queries
+paymentSchema.index({ order: 1, paymentStatus: 1 });  // payment reconciliation per order
+paymentSchema.index({ user: 1, createdAt: -1 });       // customer payment history
+
 module.exports = mongoose.model('Payment', paymentSchema);

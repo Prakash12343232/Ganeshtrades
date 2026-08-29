@@ -37,4 +37,8 @@ const notificationSchema = new mongoose.Schema({
   timestamps: true
 });
 
+// PERF-02: Notification queries run every 30s from frontend — indexes are critical
+notificationSchema.index({ recipient: 1, isRead: 1, createdAt: -1 });  // user notification feed
+notificationSchema.index({ recipientRole: 1, isRead: 1 });              // role-based broadcasts
+
 module.exports = mongoose.model('Notification', notificationSchema);

@@ -94,8 +94,14 @@ router.post('/settlement', protect, authorize('admin', 'manager'), async (req, r
     const amount = parsePositiveNumber(req.body.amount, 'amount');
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-    if (amount > user.creditBalance && amount > user.pendingAmount) {
-      return res.status(400).json({ success: false, message: 'Settlement exceeds customer balance' });
+    // BUG-05 fix: reject if amount exceeds whichever balance is larger
+    // (old: amount > creditBalance && amount > pendingAmount — allowed over-settlement)
+    const maxBalance = Math.max(user.creditBalance, user.pendingAmount);
+    if (maxBalance <= 0) {
+      return res.status(400).json({ success: false, message: 'Customer has no outstanding balance' });
+    }
+    if (amount > maxBalance) {
+      return res.status(400).json({ success: false, message: `Settlement of ₹${amount} exceeds outstanding balance of ₹${maxBalance}` });
     }
 
     const settlement = await Settlement.create({

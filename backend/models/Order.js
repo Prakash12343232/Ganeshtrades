@@ -154,4 +154,12 @@ orderSchema.set('toObject', { virtuals: true });
 // Statics
 orderSchema.statics.TIME_SLOTS = TIME_SLOTS;
 
+// PERF-02: Compound indexes for most common query patterns
+// Prevents full collection scans at production scale
+orderSchema.index({ user: 1, createdAt: -1 });                         // customer order history
+orderSchema.index({ orderStatus: 1, createdAt: -1 });                  // admin order management
+orderSchema.index({ paymentStatus: 1 });                               // payment reconciliation
+orderSchema.index({ deliveryType: 1, 'scheduledDelivery.date': 1, orderStatus: 1 }); // scheduled delivery dashboard
+orderSchema.index({ createdAt: -1 });                                  // general sort
+
 module.exports = mongoose.model('Order', orderSchema);

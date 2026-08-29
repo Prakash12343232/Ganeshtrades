@@ -76,24 +76,49 @@ router.get('/stats', protect, authorize('admin', 'manager'), async (req, res) =>
 // GET /api/dashboard/chart-data
 router.get('/chart-data', protect, authorize('admin', 'manager'), async (req, res) => {
   try {
+    // PERF-01 fix: replaced 14 individual queries (7 days × 2) with a single aggregation
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+    sevenDaysAgo.setHours(0, 0, 0, 0);
+
+    const dailyAgg = await Order.aggregate([
+      { $match: { createdAt: { $gte: sevenDaysAgo } } },
+      {
+        $group: {
+          _id: {
+            year: { $year: '$createdAt' },
+            month: { $month: '$createdAt' },
+            day: { $dayOfMonth: '$createdAt' }
+          },
+          orders: { $sum: 1 },
+          revenue: {
+            $sum: {
+              $cond: [{ $ne: ['$orderStatus', 'cancelled'] }, '$finalAmount', 0]
+            }
+          }
+        }
+      },
+      { $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1 } }
+    ]);
+
+    // Build a map for O(1) lookup, then fill all 7 days
+    const aggMap = {};
+    dailyAgg.forEach(d => {
+      const key = `${d._id.year}-${String(d._id.month).padStart(2,'0')}-${String(d._id.day).padStart(2,'0')}`;
+      aggMap[key] = d;
+    });
+
     const last7Days = [];
     for (let i = 6; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
       date.setHours(0, 0, 0, 0);
-      const nextDay = new Date(date);
-      nextDay.setDate(nextDay.getDate() + 1);
-
-      const dayOrders = await Order.countDocuments({ createdAt: { $gte: date, $lt: nextDay } });
-      const dayRevenue = await Order.aggregate([
-        { $match: { createdAt: { $gte: date, $lt: nextDay }, orderStatus: { $ne: 'cancelled' } } },
-        { $group: { _id: null, total: { $sum: '$finalAmount' } } }
-      ]);
-
+      const key = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+      const found = aggMap[key];
       last7Days.push({
         date: date.toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' }),
-        orders: dayOrders,
-        revenue: dayRevenue[0]?.total || 0
+        orders: found?.orders || 0,
+        revenue: found?.revenue || 0
       });
     }
 

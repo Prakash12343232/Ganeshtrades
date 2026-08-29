@@ -63,16 +63,30 @@ router.get('/', async (req, res) => {
     const query = {};
     if (status) query.status = status;
 
+    // BUG-03 fix: when schedule sub-filters are present, fetch all matching docs
+    // then paginate in-memory to keep accurate counts.
+    // These fields live on the nested order document so can't be filtered at DB level
+    // without an aggregation. This approach is safe given expected delivery volumes (<10k).
+    const hasSubFilter = !!(deliveryType || scheduledDate || timeSlot);
+
     const total = await Delivery.countDocuments(query);
-    let deliveries = await Delivery.find(query)
+
+    let deliveriesQuery = Delivery.find(query)
       .populate({
         path: 'order',
         select: 'orderNumber finalAmount deliveryAddress user deliveryType scheduledDelivery distanceFromShop',
         populate: { path: 'user', select: 'name mobile' }
       })
-      .sort('-createdAt')
-      .skip(paging.skip)
-      .limit(paging.limit);
+      .sort('-createdAt');
+
+    // If sub-filters requested, fetch all for accurate filtering then paginate
+    if (hasSubFilter) {
+      deliveriesQuery = deliveriesQuery; // no skip/limit yet
+    } else {
+      deliveriesQuery = deliveriesQuery.skip(paging.skip).limit(paging.limit);
+    }
+
+    let deliveries = await deliveriesQuery;
 
     // Post-filter by order delivery type / schedule if needed
     if (deliveryType) {
@@ -92,7 +106,22 @@ router.get('/', async (req, res) => {
       deliveries = deliveries.filter(d => d.order?.scheduledDelivery?.timeSlot === timeSlot);
     }
 
-    res.json({ success: true, data: deliveries, pagination: { total, page: paging.page, pages: Math.ceil(total / paging.limit) } });
+    const filteredTotal = hasSubFilter ? deliveries.length : total;
+
+    // Paginate filtered results in-memory if sub-filters were applied
+    if (hasSubFilter) {
+      deliveries = deliveries.slice(paging.skip, paging.skip + paging.limit);
+    }
+
+    res.json({
+      success: true,
+      data: deliveries,
+      pagination: {
+        total: filteredTotal,
+        page: paging.page,
+        pages: Math.ceil(filteredTotal / paging.limit)
+      }
+    });
   } catch (error) { res.status(500).json({ success: false, message: error.message }); }
 });
 
