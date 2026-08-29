@@ -195,9 +195,86 @@ if (process.env.NODE_ENV === 'production') {
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
+let server;
+
+function gracefulShutdown(signal) {
+  console.log(`\n🛑 ${signal} received. Closing Ganesh Trades API server...`);
+  if (server && server.listening) {
+    server.close(() => {
+      console.log('✅ HTTP server closed.');
+      const mongoose = require('mongoose');
+      if (mongoose.connection.readyState !== 0) {
+        mongoose.connection.close(false).then(() => {
+          console.log('✅ Database connection closed.');
+          process.exit(0);
+        }).catch(() => process.exit(0));
+      } else {
+        process.exit(0);
+      }
+    });
+  } else {
+    process.exit(0);
+  }
+}
+
 if (process.env.NODE_ENV !== 'test' && require.main === module) {
-  app.listen(PORT, () => {
+  server = app.listen(PORT, () => {
     console.log(`🚀 Ganesh Trades API running on port ${PORT} in ${process.env.NODE_ENV} mode`);
+  });
+
+  server.on('error', async (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.warn(`⚠️ Port ${PORT} is already in use.`);
+      try {
+        const http = require('http');
+        const req = http.get(`http://localhost:${PORT}/api/health`, (res) => {
+          let body = '';
+          res.on('data', chunk => body += chunk);
+          res.on('end', () => {
+            try {
+              const data = JSON.parse(body);
+              if (data && data.success && data.message && data.message.includes('Ganesh Trades')) {
+                console.log(`✅ Existing active Ganesh Trades API detected on port ${PORT}. Reusing existing backend.`);
+                process.exit(0);
+              } else {
+                console.error(`❌ Port ${PORT} is occupied by an unrelated service.`);
+                process.exit(1);
+              }
+            } catch (e) {
+              console.error(`❌ Port ${PORT} is occupied by an unresponsive service.`);
+              process.exit(1);
+            }
+          });
+        });
+        req.on('error', () => {
+          console.error(`❌ Port ${PORT} is occupied by a non-HTTP service.`);
+          process.exit(1);
+        });
+        req.setTimeout(2000, () => {
+          req.destroy();
+          console.error(`❌ Health check timed out on port ${PORT}.`);
+          process.exit(1);
+        });
+      } catch (checkErr) {
+        console.error(`❌ Failed to check port ${PORT}:`, checkErr.message);
+        process.exit(1);
+      }
+    } else {
+      console.error('❌ Server startup error:', err);
+      process.exit(1);
+    }
+  });
+
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.once('SIGUSR2', () => {
+    if (server && server.listening) {
+      server.close(() => {
+        process.kill(process.pid, 'SIGUSR2');
+      });
+    } else {
+      process.kill(process.pid, 'SIGUSR2');
+    }
   });
 }
 
