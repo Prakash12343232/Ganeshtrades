@@ -8,6 +8,9 @@
     "build-frontend": "npm run build --prefix frontend",
     "build": "npm run install-all && npm run build-frontend",
     "start": "npm start --prefix backend",
-    "dev": "npm run dev --prefix backend & npm run dev --prefix frontend"
+    "dev": "concurrently --kill-others-on-fail -n \"backend,frontend\" -c \"yellow,blue\" \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\""
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.5"
   }
 }
