@@ -13,7 +13,7 @@ describe('Orders and Stock Deduction', () => {
       mobile: '9000000000',
       password: 'password123',
       role: 'customer',
-      address: { street: 'Test', city: 'Pune', lat: 18.5574375, lng: 73.9215625 }
+      address: { street: 'Test', city: 'Pune', lat: 18.557473097373734, lng: 73.92156518195121 }
     });
     token = generateTestToken(customer._id);
     product = await Product.create({ name: 'Rice', category: 'rice_grains', price: 100, stock: 50 });

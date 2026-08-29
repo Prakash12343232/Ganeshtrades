@@ -88,7 +88,7 @@ async function checkServiceability(customerLat, customerLng) {
       distance: roundedDistance,
       radius: settings.deliveryRadiusKm,
       shopLocation: settings.shopLocation,
-      message: `Sorry, Ganesh Trades currently delivers only within ${settings.deliveryRadiusKm} KM of our shop location. You are ${roundedDistance} KM away.`
+      message: 'Sorry, Ganesh Trades currently delivers only within 15 KM of our shop.'
     };
   }
 

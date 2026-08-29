@@ -33,7 +33,7 @@ const seedDB = async () => {
       shopName: 'Ganesh Trades',
       shopAddress: 'HW4C+XJ Pune, Maharashtra, India',
       shopPlusCode: 'HW4C+XJ',
-      shopLocation: { lat: 18.5574375, lng: 73.9215625 },
+      shopLocation: { lat: 18.557473097373734, lng: 73.92156518195121 },
       deliveryRadiusKm: 15,
       isDeliveryRestrictionActive: true,
       deliveryFeePerKm: 0,

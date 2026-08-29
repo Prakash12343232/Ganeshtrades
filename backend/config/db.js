@@ -55,7 +55,7 @@ async function seedInMemory() {
 
   console.log('🌱 Seeding in-memory database...');
 
-  await Settings.create({ shopLocation: { lat: 28.6139, lng: 77.2090 }, deliveryRadiusKm: 15 });
+  await Settings.create({ shopLocation: { lat: 18.557473097373734, lng: 73.92156518195121 }, deliveryRadiusKm: 15 });
 
   const adminPassword = process.env.ADMIN_PASSWORD || 'SecureAdmin@123';
 

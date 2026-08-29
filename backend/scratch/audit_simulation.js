@@ -43,8 +43,8 @@ async function runAudit() {
       address: {
         street: 'Main St',
         area: 'Pune',
-        lat: 18.5574375, // Same as shop for 0 KM distance
-        lng: 73.9215625
+        lat: 18.557473097373734, // Same as shop for 0 KM distance
+        lng: 73.92156518195121
       }
     });
     users.push(user);
@@ -66,7 +66,7 @@ async function runAudit() {
     shopName: 'Ganesh Trades',
     deliveryRadiusKm: 15,
     isDeliveryRestrictionActive: true,
-    shopLocation: { type: 'Point', coordinates: [73.9215625, 18.5574375] }
+    shopLocation: { lat: 18.557473097373734, lng: 73.92156518195121 }
   });
 
   const products = [];

@@ -17,7 +17,7 @@ describe('Khata (Credit) Workflow', () => {
       role: 'customer',
       creditLimit: 1000,
       creditBalance: 0,
-      address: { street: 'Test', city: 'Pune', lat: 18.5574375, lng: 73.9215625 }
+      address: { street: 'Test', city: 'Pune', lat: 18.557473097373734, lng: 73.92156518195121 }
     });
     customerToken = generateTestToken(customer._id);
     product = await Product.create({ name: 'Dal', category: 'dal_pulses', price: 200, stock: 100 });

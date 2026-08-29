@@ -14,8 +14,8 @@ const settingsSchema = new mongoose.Schema({
     default: 'HW4C+XJ'
   },
   shopLocation: {
-    lat: { type: Number, required: true, default: 18.5574375 },  // HW4C+XJ Pune, Maharashtra
-    lng: { type: Number, required: true, default: 73.9215625 }   // HW4C+XJ Pune, Maharashtra
+    lat: { type: Number, required: true, default: 18.557473097373734 },  // HW4C+XJ Pune, Maharashtra
+    lng: { type: Number, required: true, default: 73.92156518195121 }   // HW4C+XJ Pune, Maharashtra
   },
   deliveryRadiusKm: {
     type: Number,

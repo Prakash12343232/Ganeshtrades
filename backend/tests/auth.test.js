@@ -11,7 +11,7 @@ describe('Auth Endpoints', () => {
         mobile: '9876543210',
         password: 'password123',
         customerType: 'public',
-        address: { street: 'Test', city: 'Pune', lat: 18.5574375, lng: 73.9215625 }
+        address: { street: 'Test', city: 'Pune', lat: 18.557473097373734, lng: 73.92156518195121 }
       });
     expect(res.statusCode).toEqual(201);
     expect(res.body.success).toBe(true);
