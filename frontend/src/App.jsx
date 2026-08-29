@@ -1,3 +1,4 @@
+import { lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 
@@ -19,25 +20,25 @@ import MyOrders from './pages/customer/MyOrders';
 import OrderDetail from './pages/customer/OrderDetail';
 import Profile from './pages/customer/Profile';
 
-// Admin Pages
-import Dashboard from './pages/admin/Dashboard';
-import AdminOrders from './pages/admin/AdminOrders';
-import AdminProducts from './pages/admin/AdminProducts';
-import AdminCustomers from './pages/admin/AdminCustomers';
-import AdminPayments from './pages/admin/AdminPayments';
-import AdminReports from './pages/admin/AdminReports';
-import AdminInventory from './pages/admin/AdminInventory';
-import AdminCredit from './pages/admin/AdminCredit';
-import AdminSuppliers from './pages/admin/AdminSuppliers';
-import AdminExpenses from './pages/admin/AdminExpenses';
-import AdminDeliveries from './pages/admin/AdminDeliveries';
-import AdminBackups from './pages/admin/AdminBackups';
-import AdminCoverage from './pages/admin/AdminCoverage';
-import AdminReviews from './pages/admin/AdminReviews';
-import AdminNotifications from './pages/admin/AdminNotifications';
+// Lazy Loaded Admin Pages
+const Dashboard = lazy(() => import('./pages/admin/Dashboard'));
+const AdminOrders = lazy(() => import('./pages/admin/AdminOrders'));
+const AdminProducts = lazy(() => import('./pages/admin/AdminProducts'));
+const AdminCustomers = lazy(() => import('./pages/admin/AdminCustomers'));
+const AdminPayments = lazy(() => import('./pages/admin/AdminPayments'));
+const AdminReports = lazy(() => import('./pages/admin/AdminReports'));
+const AdminInventory = lazy(() => import('./pages/admin/AdminInventory'));
+const AdminCredit = lazy(() => import('./pages/admin/AdminCredit'));
+const AdminSuppliers = lazy(() => import('./pages/admin/AdminSuppliers'));
+const AdminExpenses = lazy(() => import('./pages/admin/AdminExpenses'));
+const AdminDeliveries = lazy(() => import('./pages/admin/AdminDeliveries'));
+const AdminBackups = lazy(() => import('./pages/admin/AdminBackups'));
+const AdminCoverage = lazy(() => import('./pages/admin/AdminCoverage'));
+const AdminReviews = lazy(() => import('./pages/admin/AdminReviews'));
+const AdminNotifications = lazy(() => import('./pages/admin/AdminNotifications'));
 
-// Manager Pages
-import ManagerDashboard from './pages/manager/ManagerDashboard';
+// Lazy Loaded Manager Pages
+const ManagerDashboard = lazy(() => import('./pages/manager/ManagerDashboard'));
 
 // Guards
 const PrivateRoute = ({ children }) => {

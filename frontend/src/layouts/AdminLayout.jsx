@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { getNotifications } from '../services/api';
 import { FiHome, FiPackage, FiShoppingBag, FiUsers, FiDollarSign, FiBarChart2, FiBox, FiLogOut, FiMenu, FiX, FiArrowLeft, FiBell, FiTruck, FiBookOpen, FiFileText, FiDatabase, FiMap, FiStar } from 'react-icons/fi';
 
@@ -107,7 +107,13 @@ export default function AdminLayout() {
         </header>
 
         <main className="flex-1 p-4 sm:p-6">
-          <Outlet />
+          <Suspense fallback={
+            <div className="flex items-center justify-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary-500"></div>
+            </div>
+          }>
+            <Outlet />
+          </Suspense>
         </main>
       </div>
     </div>

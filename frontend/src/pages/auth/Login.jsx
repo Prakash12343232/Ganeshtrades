@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { login, sendOtp } from '../../services/api';
+import { login, sendOtp, verifyOtp } from '../../services/api';
 import toast from 'react-hot-toast';
 import { FiPhone, FiLock, FiEye, FiEyeOff, FiKey, FiArrowRight } from 'react-icons/fi';
 
@@ -75,7 +75,6 @@ export default function Login() {
       // This means OTP must be verified BEFORE calling /login!
       
       if (loginMethod === 'otp') {
-        const { verifyOtp } = await import('../../services/api');
         await verifyOtp({ mobile: form.mobile, otp: form.otp, purpose: 'login' });
         // After successful verification, call login to get the token
       }
