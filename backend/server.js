@@ -104,10 +104,12 @@ if (process.env.VERCEL_URL) {
   if (!allowedOrigins.includes(formattedUrl)) allowedOrigins.push(formattedUrl);
 }
 
-// Always allow localhost for development
-['http://localhost:5173', 'http://localhost:5000', 'http://127.0.0.1:5173', 'http://127.0.0.1:5000', 'http://localhost:3000'].forEach(url => {
-  if (!allowedOrigins.includes(url)) allowedOrigins.push(url);
-});
+// Allow localhost origins only in development
+if (process.env.NODE_ENV !== 'production') {
+  ['http://localhost:5173', 'http://localhost:5000', 'http://127.0.0.1:5173', 'http://127.0.0.1:5000', 'http://localhost:3000'].forEach(url => {
+    if (!allowedOrigins.includes(url)) allowedOrigins.push(url);
+  });
+}
 
 console.log('🔒 CORS allowed origins:', allowedOrigins);
 
@@ -218,8 +220,8 @@ function gracefulShutdown(signal) {
 }
 
 if (process.env.NODE_ENV !== 'test' && require.main === module) {
-  server = app.listen(PORT, () => {
-    console.log(`🚀 Ganesh Trades API running on port ${PORT} in ${process.env.NODE_ENV} mode`);
+  server = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Ganesh Trades API running on 0.0.0.0:${PORT} in ${process.env.NODE_ENV} mode`);
   });
 
   server.on('error', async (err) => {
