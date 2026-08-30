@@ -62,22 +62,6 @@ if (process.env.NODE_ENV === 'production') {
   }));
 }
 
-// Security middleware
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: 'cross-origin' },
-  contentSecurityPolicy: false
-}));
-
-// Rate limiting (API routes only)
-if (process.env.NODE_ENV !== 'test') {
-  const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 200,
-    message: { success: false, message: 'Too many requests, please try again later.' }
-  });
-  app.use('/api/', limiter);
-}
-
 // CORS — Build allowed origins list
 const allowedOrigins = [];
 
@@ -113,6 +97,7 @@ if (process.env.NODE_ENV !== 'production') {
 
 console.log('🔒 CORS allowed origins:', allowedOrigins);
 
+// CORS middleware - must run before security and rate-limiting middleware to handle preflights correctly
 app.use(cors({
   origin(origin, callback) {
     // Allow requests with no origin (same-origin GET, server-to-server, curl, mobile apps)
@@ -122,10 +107,29 @@ app.use(cors({
     // In production, also allow *.onrender.com and *.vercel.app as a safety net
     if (process.env.NODE_ENV === 'production' && (origin.endsWith('.onrender.com') || origin.endsWith('.vercel.app'))) return callback(null, true);
     console.warn(`⛔ CORS rejected origin: ${origin}`);
-    return callback(new Error('CORS origin not allowed'));
+    return callback(null, false); // Reject cleanly without raising a 500 error in the backend
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 204
 }));
+
+// Security middleware
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  contentSecurityPolicy: false
+}));
+
+// Rate limiting (API routes only)
+if (process.env.NODE_ENV !== 'test') {
+  const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 200,
+    message: { success: false, message: 'Too many requests, please try again later.' }
+  });
+  app.use('/api/', limiter);
+}
 
 // Body parser
 app.use(express.json({ limit: '10mb' }));
