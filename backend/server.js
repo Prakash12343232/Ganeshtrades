@@ -8,7 +8,13 @@ const mongoSanitize = require('express-mongo-sanitize');
 const xss = require('xss-clean');
 const hpp = require('hpp');
 const path = require('path');
-require('dotenv').config();
+require('dotenv').config({ override: false });
+
+// Safe startup diagnostics (no secrets printed)
+console.log(`🔧 NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
+console.log(`🔧 MONGODB_URI: ${process.env.MONGODB_URI ? 'set (' + process.env.MONGODB_URI.length + ' chars)' : '❌ NOT SET'}`);
+console.log(`🔧 JWT_SECRET: ${process.env.JWT_SECRET ? 'set (' + process.env.JWT_SECRET.length + ' chars)' : '❌ NOT SET'}`);
+console.log(`🔧 FRONTEND_URL: ${process.env.FRONTEND_URL || '❌ NOT SET'}`);
 
 const connectDB = require('./config/db');
 const { initCronJobs } = require('./config/cron');
@@ -182,7 +188,16 @@ app.use('/api/settings', settingsRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ success: true, message: 'Ganesh Trades API is running', timestamp: new Date() });
+  const mongoose = require('mongoose');
+  const dbState = mongoose.connection.readyState;
+  const dbStatus = { 0: 'disconnected', 1: 'connected', 2: 'connecting', 3: 'disconnecting' };
+  res.json({
+    success: true,
+    message: 'Ganesh Trades API is running',
+    environment: process.env.NODE_ENV || 'not set',
+    database: dbStatus[dbState] || 'unknown',
+    timestamp: new Date()
+  });
 });
 
 // SPA Fallback: Any non-API route serves index.html for React Router
