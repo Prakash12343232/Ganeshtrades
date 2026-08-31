@@ -2,13 +2,18 @@ name: Ganesh Trades CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   validate:
     runs-on: ubuntu-latest
+
+    env:
+      NODE_ENV: test
+      JWT_SECRET: ci-test-secret-minimum-32-characters-long
+      JWT_EXPIRE: 7d
 
     steps:
       - name: Checkout repository
@@ -18,18 +23,22 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
 
-      - name: Install root dependencies
-        run: npm ci || npm install
+      # ── Backend Validation ──
 
       - name: Install backend dependencies
         working-directory: ./backend
         run: npm ci || npm install
 
+      - name: Validate backend syntax
+        working-directory: ./backend
+        run: node --check server.js
+
       - name: Run backend tests
         working-directory: ./backend
         run: npm test
+
+      # ── Frontend Validation ──
 
       - name: Install frontend dependencies
         working-directory: ./frontend
@@ -37,8 +46,11 @@ jobs:
 
       - name: Lint frontend
         working-directory: ./frontend
-        run: npm run lint || echo "Lint warning/failures allowed"
+        continue-on-error: true
+        run: npm run lint
 
       - name: Build frontend
         working-directory: ./frontend
+        env:
+          VITE_API_URL: https://ganeshtrades1.onrender.com/api
         run: npm run build
