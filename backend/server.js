@@ -69,13 +69,15 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // CORS — Build allowed origins list
-const allowedOrigins = [];
+const allowedOrigins = [
+  'https://ganeshtrades.vercel.app' // Explicitly allow production Vercel frontend
+];
 
 // Add configured frontend URL(s) — supports comma-separated list
 if (process.env.FRONTEND_URL) {
   process.env.FRONTEND_URL.split(',').forEach(url => {
     const trimmed = url.trim().replace(/\/+$/, ''); // remove trailing slashes
-    if (trimmed) allowedOrigins.push(trimmed);
+    if (trimmed && !allowedOrigins.includes(trimmed)) allowedOrigins.push(trimmed);
   });
 }
 
