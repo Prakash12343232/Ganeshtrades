@@ -19,14 +19,6 @@ const authLimiter = rateLimit({
   message: { success: false, message: 'Too many authentication attempts. Please try again later.' }
 });
 
-const otpLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 500, // Generous limit for production testing
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { success: false, message: 'Too many OTP requests. Please try again later.' }
-});
-
 // Generate JWT
 const generateToken = (id) => {
   const jwtSecret = process.env.JWT_SECRET || (process.env.NODE_ENV === 'test' ? 'testsecret' : undefined);
