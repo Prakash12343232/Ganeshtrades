@@ -130,19 +130,24 @@ router.post('/send-otp', otpLimiter, async (req, res) => {
         const querystring = require('querystring');
         console.log(`[SMS TWILIO] Initiating OTP dispatch to ${maskedMobile}`);
         
-        const smsBody = process.env.TWILIO_TEMPLATE_NAME || `Your Ganesh Trades OTP code is ${otpCode}. Valid for 5 minutes.`;
+        const twilioAccountSid = process.env.TWILIO_ACCOUNT_SID.trim();
+        const twilioAuthToken = process.env.TWILIO_AUTH_TOKEN.trim();
+        const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER.trim();
+        const twilioTemplate = (process.env.TWILIO_TEMPLATE_NAME || '').trim();
+
+        const smsBody = twilioTemplate || `Your Ganesh Trades OTP code is ${otpCode}. Valid for 5 minutes.`;
         const postData = querystring.stringify({
           To: `+91${normMobile}`,
-          From: process.env.TWILIO_PHONE_NUMBER,
+          From: twilioPhoneNumber,
           Body: smsBody
         });
 
-        const authHeader = 'Basic ' + Buffer.from(`${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`).toString('base64');
+        const authHeader = 'Basic ' + Buffer.from(`${twilioAccountSid}:${twilioAuthToken}`).toString('base64');
         
         await new Promise((resolve, reject) => {
           const req = https.request({
             hostname: 'api.twilio.com',
-            path: `/2010-04-01/Accounts/${process.env.TWILIO_ACCOUNT_SID}/Messages.json`,
+            path: `/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`,
             method: 'POST',
             headers: {
               'Authorization': authHeader,
