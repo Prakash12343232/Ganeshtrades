@@ -45,7 +45,7 @@ const checkLock = async (user) => {
 // @route   POST /api/auth/send-otp
 // @desc    Send OTP for registration or login
 // @access  Public
-router.post('/send-otp', otpLimiter, async (req, res) => {
+router.post('/send-otp', async (req, res) => {
   try {
     const { mobile, purpose } = req.body;
     const normMobile = normalizeMobile(mobile);
