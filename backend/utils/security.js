@@ -129,12 +129,14 @@ function safeSpreadsheetCell(value) {
  */
 function normalizeMobile(mobile) {
   if (!mobile) return null;
-  let cleaned = String(mobile).replace(/\D/g, ''); // Remove all non-digits
+  let cleaned = String(mobile).trim().replace(/\D/g, ''); // Remove all non-digits
   
   if (cleaned.length === 12 && cleaned.startsWith('91')) {
     cleaned = cleaned.substring(2);
   } else if (cleaned.length === 11 && cleaned.startsWith('0')) {
     cleaned = cleaned.substring(1);
+  } else if (cleaned.length === 13 && cleaned.startsWith('910')) {
+    cleaned = cleaned.substring(3);
   }
   
   if (/^[6-9]\d{9}$/.test(cleaned)) {

@@ -1,7 +1,5 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
-const dns = require('dns');
-try { dns.setServers(['8.8.8.8', '1.1.1.1']); } catch (e) {}
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 
 const User = require('../models/User');
@@ -11,12 +9,17 @@ const Settings = require('../models/Settings');
 const seedDB = async () => {
   try {
     console.log('Connecting to MongoDB Atlas...');
+    const isProduction = process.env.NODE_ENV === 'production';
     try {
-      await mongoose.connect(process.env.MONGODB_URI, { serverSelectionTimeoutMS: 5000 });
+      await mongoose.connect(process.env.MONGODB_URI, { serverSelectionTimeoutMS: 10000 });
       console.log('✅ Connected to MongoDB Atlas');
     } catch (e) {
       console.error(`❌ Atlas connection failed: ${e.message}`);
-      console.warn('⚠️ Falling back to in-memory DB for seeding to prevent crash...');
+      if (isProduction) {
+        console.error('❌ CRITICAL: Cannot seed database in production when MongoDB Atlas connection fails.');
+        process.exit(1);
+      }
+      console.warn('⚠️ Falling back to in-memory DB for local development seeding...');
       const { MongoMemoryServer } = require('mongodb-memory-server');
       const mongod = await MongoMemoryServer.create();
       await mongoose.connect(mongod.getUri());

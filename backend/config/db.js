@@ -1,28 +1,28 @@
 const mongoose = require('mongoose');
-const crypto = require('crypto');
-const dns = require('dns');
-
-// Fix Windows DNS SRV resolution issues for MongoDB Atlas
-try {
-  dns.setServers(['8.8.8.8', '1.1.1.1']);
-} catch (e) {
-  // Ignore if custom DNS cannot be set
-}
 
 const connectDB = async () => {
   if (process.env.NODE_ENV === 'test') return;
   if (mongoose.connection.readyState === 1) return;
+
+  const isProduction = process.env.NODE_ENV === 'production';
   
+  if (isProduction && !process.env.MONGODB_URI) {
+    console.error('❌ CRITICAL DATABASE ERROR: MONGODB_URI environment variable is not defined in production.');
+    process.exit(1);
+  }
+
   try {
     console.log('Connecting to MongoDB Atlas...');
     const conn = await mongoose.connect(process.env.MONGODB_URI, {
-      serverSelectionTimeoutMS: 5000
+      serverSelectionTimeoutMS: 10000
     });
     console.log(`✅ MongoDB Atlas Connected: ${conn.connection.host}`);
   } catch (error) {
     console.error(`❌ MongoDB Atlas Connection Error: ${error.message}`);
-    if (process.env.NODE_ENV === 'production') {
-      console.error('CRITICAL: Production database connection failed. Refusing to start with an in-memory fallback.');
+    
+    if (isProduction) {
+      console.error('❌ CRITICAL: Production database connection to MongoDB Atlas failed.');
+      console.error('❌ Refusing to start application in production without a valid MongoDB Atlas connection.');
       process.exit(1);
     }
 
@@ -33,9 +33,9 @@ const connectDB = async () => {
       const mongod = await MongoMemoryServer.create();
       const uri = mongod.getUri();
       const conn = await mongoose.connect(uri);
-      console.log(`✅ Automatic Fallback Applied: In-Memory MongoDB Connected at ${conn.connection.host}`);
+      console.log(`✅ Development Fallback Applied: In-Memory MongoDB Connected at ${conn.connection.host}`);
       
-      // Auto-seed so sandbox works
+      // Auto-seed so local sandbox works
       await seedInMemory();
     } catch (memError) {
       console.error(`❌ Critical Database Failure: ${memError.message}`);

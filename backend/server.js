@@ -138,6 +138,7 @@ if (process.env.NODE_ENV !== 'test') {
     max: 200, // 200 requests per 15 mins
     standardHeaders: true,
     legacyHeaders: false,
+    validate: { xForwardedForHeader: false, trustProxy: false },
     message: { success: false, message: 'Too many requests, please try again later.' }
   });
   app.use('/api/', limiter);

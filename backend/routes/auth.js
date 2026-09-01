@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 const rateLimit = require('express-rate-limit');
 const User = require('../models/User');
 const Otp = require('../models/Otp');
@@ -16,7 +17,17 @@ const authLimiter = rateLimit({
   max: 20,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false, trustProxy: false },
   message: { success: false, message: 'Too many authentication attempts. Please try again later.' }
+});
+
+const otpLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  validate: { xForwardedForHeader: false, trustProxy: false },
+  message: { success: false, message: 'Too many OTP requests from this IP, please try again after 15 minutes.' }
 });
 
 // Generate JWT
@@ -37,19 +48,18 @@ const checkLock = async (user) => {
 // @route   POST /api/auth/send-otp
 // @desc    Send OTP for registration or login
 // @access  Public
-router.post('/send-otp', async (req, res) => {
+router.post('/send-otp', otpLimiter, async (req, res) => {
   try {
     const { mobile, purpose } = req.body;
     const normMobile = normalizeMobile(mobile);
 
     if (!normMobile) {
-      return res.status(400).json({ success: false, message: 'Invalid mobile number format' });
+      return res.status(400).json({ success: false, message: 'Invalid mobile number format. Please provide a valid 10-digit Indian mobile number.' });
     }
     if (!['register', 'login', 'password_reset'].includes(purpose)) {
       return res.status(400).json({ success: false, message: 'Invalid OTP purpose' });
     }
 
-    const mongoose = require('mongoose');
     if (mongoose.connection.readyState !== 1) {
       await connectDB();
     }
@@ -72,8 +82,7 @@ router.post('/send-otp', async (req, res) => {
       }
     }
 
-// Delete existing unverified OTP for this purpose
-    const mongoose = require('mongoose');
+    // Delete existing unverified OTP for this purpose
     if (mongoose.connection.readyState !== 1) {
       await connectDB();
     }
