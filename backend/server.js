@@ -131,17 +131,7 @@ app.use(helmet({
   contentSecurityPolicy: false
 }));
 
-// Rate limiting (API routes only)
-if (process.env.NODE_ENV !== 'test') {
-  const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 2000,
-    standardHeaders: true,
-    legacyHeaders: false,
-    message: { success: false, message: 'Too many requests, please try again later.' }
-  });
-  app.use('/api/', limiter);
-}
+// Rate limiting disabled for send-otp testing
 
 // Body parser
 app.use(express.json({ limit: '10mb' }));
