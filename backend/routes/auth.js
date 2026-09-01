@@ -7,6 +7,7 @@ const Otp = require('../models/Otp');
 const { checkServiceability } = require('../utils/distance');
 const { protect } = require('../middleware/auth');
 const { createAuditLog } = require('../utils/auditLogger');
+const connectDB = require('../config/db');
 const { pickFields, normalizeMobile, generateOTP, validatePasswordStrength } = require('../utils/security');
 
 // Rate Limiters
@@ -56,6 +57,11 @@ router.post('/send-otp', otpLimiter, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid OTP purpose' });
     }
 
+    const mongoose = require('mongoose');
+    if (mongoose.connection.readyState !== 1) {
+      await connectDB();
+    }
+
     const existingUser = await User.findOne({ mobile: normMobile });
 
     if (purpose === 'register' && existingUser) {
@@ -74,7 +80,11 @@ router.post('/send-otp', otpLimiter, async (req, res) => {
       }
     }
 
-    // Delete existing unverified OTP for this purpose
+// Delete existing unverified OTP for this purpose
+    const mongoose = require('mongoose');
+    if (mongoose.connection.readyState !== 1) {
+      await connectDB();
+    }
     await Otp.deleteMany({ mobile: normMobile, purpose });
 
     const otpCode = generateOTP();
