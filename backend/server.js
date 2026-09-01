@@ -11,6 +11,7 @@ const path = require('path');
 require('dotenv').config({ override: false });
 
 // Safe startup diagnostics (no secrets printed)
+// Build trigger: 2026-09-01T19:13:00Z
 console.log(`🔧 NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
 console.log(`🔧 MONGODB_URI: ${process.env.MONGODB_URI ? 'set (' + process.env.MONGODB_URI.length + ' chars)' : '❌ NOT SET'}`);
 console.log(`🔧 JWT_SECRET: ${process.env.JWT_SECRET ? 'set (' + process.env.JWT_SECRET.length + ' chars)' : '❌ NOT SET'}`);
