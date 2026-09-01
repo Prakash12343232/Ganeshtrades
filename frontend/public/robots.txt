@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+Allow: /products
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /cart
+Disallow: /checkout
+Disallow: /orders
+Disallow: /profile
+Disallow: /admin/
+Disallow: /manager/
+Disallow: /api/
+
+Sitemap: https://ganeshtrades.vercel.app/sitemap.xml
