@@ -172,7 +172,7 @@ router.post('/bulk-images', protect, authorize('admin', 'manager'), upload.array
       }
     }
 
-    await createAuditLog(req.user._id, 'product_bulk_image_upload', 'product', null, { count: updatedProducts.length }, req);
+    await createAuditLog(req.user._id, 'bulk_image_upload', 'product', null, { count: updatedProducts.length }, req);
 
     res.json({
       success: true,
