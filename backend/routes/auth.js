@@ -117,8 +117,12 @@ router.post('/send-otp', otpLimiter, async (req, res) => {
       try {
         const client = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
         console.log(`[SMS TWILIO] Initiating OTP dispatch to ${maskedMobile}`);
+        
+        // Twilio Trial Accounts require pre-approved templates or specific message format
+        const smsBody = process.env.TWILIO_TEMPLATE_NAME || `Your Ganesh Trades OTP code is ${otpCode}. Valid for 5 minutes.`;
+        
         const message = await client.messages.create({
-          body: `Your Ganesh Trades OTP code is ${otpCode}. Valid for 5 minutes.`,
+          body: smsBody,
           from: process.env.TWILIO_PHONE_NUMBER,
           to: `+91${normMobile}`
         });
