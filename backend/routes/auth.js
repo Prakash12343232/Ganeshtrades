@@ -21,15 +21,9 @@ const authLimiter = rateLimit({
 
 const otpLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 50, // Max 50 OTP requests per 15 minutes
+  max: 500, // Generous limit for production testing
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => {
-    return req.body?.mobile && String(req.body.mobile).endsWith('8010412539');
-  },
-  keyGenerator: (req) => {
-    return req.body?.mobile ? `${req.ip}_${req.body.mobile}` : req.ip;
-  },
   message: { success: false, message: 'Too many OTP requests. Please try again later.' }
 });
 
