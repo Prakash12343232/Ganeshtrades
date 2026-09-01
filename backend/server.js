@@ -135,7 +135,9 @@ app.use(helmet({
 if (process.env.NODE_ENV !== 'test') {
   const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 200,
+    max: 2000,
+    standardHeaders: true,
+    legacyHeaders: false,
     message: { success: false, message: 'Too many requests, please try again later.' }
   });
   app.use('/api/', limiter);
