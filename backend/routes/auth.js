@@ -126,19 +126,63 @@ router.post('/send-otp', otpLimiter, async (req, res) => {
     } else if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER) {
       smsProvider = 'TWILIO';
       try {
-        const client = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+        const https = require('https');
+        const querystring = require('querystring');
         console.log(`[SMS TWILIO] Initiating OTP dispatch to ${maskedMobile}`);
         
-        // Twilio Trial Accounts require pre-approved templates or specific message format
         const smsBody = process.env.TWILIO_TEMPLATE_NAME || `Your Ganesh Trades OTP code is ${otpCode}. Valid for 5 minutes.`;
-        
-        const message = await client.messages.create({
-          body: smsBody,
-          from: process.env.TWILIO_PHONE_NUMBER,
-          to: `+91${normMobile}`
+        const postData = querystring.stringify({
+          To: `+91${normMobile}`,
+          From: process.env.TWILIO_PHONE_NUMBER,
+          Body: smsBody
         });
-        smsSent = true;
-        console.log(`[SMS TWILIO SUCCESS] OTP dispatched to ${maskedMobile}. SID: ${message.sid}, Status: ${message.status}`);
+
+        const authHeader = 'Basic ' + Buffer.from(`${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`).toString('base64');
+        
+        await new Promise((resolve, reject) => {
+          const req = https.request({
+            hostname: 'api.twilio.com',
+            path: `/2010-04-01/Accounts/${process.env.TWILIO_ACCOUNT_SID}/Messages.json`,
+            method: 'POST',
+            headers: {
+              'Authorization': authHeader,
+              'Content-Type': 'application/x-www-form-urlencoded',
+              'Content-Length': Buffer.byteLength(postData)
+            },
+            timeout: 10000
+          }, (res) => {
+            let data = '';
+            res.on('data', chunk => { data += chunk; });
+            res.on('end', () => {
+              try {
+                const parsed = JSON.parse(data);
+                if (res.statusCode >= 200 && res.statusCode < 300) {
+                  smsSent = true;
+                  console.log(`[SMS TWILIO SUCCESS] OTP dispatched to ${maskedMobile}. SID: ${parsed.sid}, Status: ${parsed.status}`);
+                  resolve();
+                } else {
+                  twilioError = parsed.message || `HTTP ${res.statusCode}`;
+                  console.error(`[SMS TWILIO FAILURE] Provider response error for ${maskedMobile}:`, parsed);
+                  reject(new Error(twilioError));
+                }
+              } catch (e) {
+                twilioError = e.message;
+                reject(e);
+              }
+            });
+          });
+          req.on('error', (err) => {
+            twilioError = err.message;
+            reject(err);
+          });
+          req.on('timeout', () => {
+            req.destroy();
+            twilioError = 'Twilio HTTP request timed out';
+            reject(new Error(twilioError));
+          });
+          req.write(postData);
+          req.end();
+        });
       } catch (err) {
         twilioError = err.message;
         console.error(`[SMS TWILIO ERROR] Failed to send OTP to ${maskedMobile}:`, err.message);
