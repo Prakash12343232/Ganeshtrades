@@ -56,6 +56,16 @@ export const updateStock = (id, data) => API.put(`/products/${id}/stock`, data);
 export const deleteProduct = (id) => API.delete(`/products/${id}`);
 export const getLowStock = () => API.get('/products/low-stock');
 export const getFeaturedProducts = () => API.get('/products/featured');
+export const uploadProductImages = (id, formData, onUploadProgress) => API.post(`/products/${id}/images`, formData, {
+  headers: { 'Content-Type': 'multipart/form-data' },
+  onUploadProgress
+});
+export const setPrimaryProductImage = (id, imageUrl) => API.put(`/products/${id}/images/primary`, { imageUrl });
+export const deleteProductImageApi = (id, imageUrl) => API.delete(`/products/${id}/images`, { data: { imageUrl } });
+export const bulkUploadProductImages = (formData, onUploadProgress) => API.post('/products/bulk-images', formData, {
+  headers: { 'Content-Type': 'multipart/form-data' },
+  onUploadProgress
+});
 
 // Orders
 export const createOrder = (data) => API.post('/orders', data);

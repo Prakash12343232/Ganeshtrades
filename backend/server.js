@@ -37,6 +37,7 @@ const expenseRoutes = require('./routes/expenses');
 const deliveryRoutes = require('./routes/deliveries');
 const backupRoutes = require('./routes/backups');
 const settingsRoutes = require('./routes/settings');
+const mediaRoutes = require('./routes/media');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -192,6 +193,7 @@ app.use('/api/expenses', expenseRoutes);
 app.use('/api/deliveries', deliveryRoutes);
 app.use('/api/backups', backupRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/media', mediaRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

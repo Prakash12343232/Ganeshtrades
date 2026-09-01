@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 import { useState, useEffect, useMemo } from 'react';
 import { FiTrash2, FiMinus, FiPlus, FiShoppingBag, FiAlertTriangle, FiCheckCircle, FiNavigation, FiMapPin, FiClock, FiCalendar, FiZap, FiCreditCard, FiSmartphone, FiGlobe, FiLock, FiCheck } from 'react-icons/fi';
+import ProductImage from '../../components/common/ProductImage';
 
 const TIME_SLOTS = [
   '8 AM - 10 AM', '10 AM - 12 PM', '12 PM - 2 PM',
@@ -203,12 +204,8 @@ export default function Cart() {
         <div className="lg:col-span-2 space-y-4">
           {items.map(item => (
             <div key={item.product} className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-4 hover:shadow-sm transition-all">
-              <div className="w-16 h-16 bg-primary-50 rounded-xl flex items-center justify-center flex-shrink-0">
-                {item.image && !item.image.includes('default-product') ? (
-                  <img src={item.image} alt={item.name} className="w-full h-full object-contain p-1" />
-                ) : (
-                  <span className="text-2xl">📦</span>
-                )}
+              <div className="w-16 h-16 bg-primary-50 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden border border-gray-100">
+                <ProductImage src={item.image} alt={item.name} showFallbackLabel={false} />
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="font-semibold text-gray-800 text-sm truncate">{item.name}</h3>

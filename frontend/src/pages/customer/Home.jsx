@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { getFeaturedProducts, getProducts, getCategories } from '../../services/api';
 import { useCart } from '../../context/CartContext';
 import { FiShoppingCart, FiSearch, FiStar, FiArrowRight, FiTruck, FiShield, FiClock, FiAward } from 'react-icons/fi';
+import ProductImage from '../../components/common/ProductImage';
 
 const CATEGORY_LABELS = {
   rice_grains: '🍚 Rice & Grains', dal_pulses: '🫘 Dal & Pulses', spices: '🌶️ Spices',
@@ -110,11 +111,7 @@ export default function Home() {
                 )}
                 <Link to={`/products/${product._id}`}>
                   <div className="h-44 bg-gray-50 flex items-center justify-center p-2 relative overflow-hidden">
-                    {product.image && !product.image.includes('default-product') ? (
-                      <img src={product.image} alt={product.name} className="h-full w-full object-contain group-hover:scale-105 transition-transform duration-300" />
-                    ) : (
-                      <span className="text-5xl">{CATEGORY_LABELS[product.category]?.split(' ')[0] || '📦'}</span>
-                    )}
+                  <ProductImage src={product.image} alt={product.name} />
                   </div>
                 </Link>
                 <div className="p-4 flex-1 flex flex-col justify-between">

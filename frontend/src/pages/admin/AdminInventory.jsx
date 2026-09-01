@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { getLowStock, updateStock } from '../../services/api';
 import toast from 'react-hot-toast';
 import { FiAlertTriangle, FiPlus, FiMinus } from 'react-icons/fi';
+import ProductImage from '../../components/common/ProductImage';
 
 export default function AdminInventory() {
   const [lowStock, setLowStock] = useState([]);
@@ -46,8 +47,9 @@ export default function AdminInventory() {
             lowStock.map(product => (
               <div key={product._id} className="bg-white rounded-xl border border-gray-100 p-4 flex items-center justify-between flex-wrap gap-4">
                 <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl ${product.stock === 0 ? 'bg-red-100' : 'bg-orange-100'}`}>
-                    {product.stock === 0 ? '🚫' : '⚠️'}
+                  <div className="w-12 h-12 rounded-xl overflow-hidden border border-gray-200 bg-gray-50 flex-shrink-0 relative">
+                    <ProductImage src={product.image} alt={product.name} showFallbackLabel={false} />
+                    <span className={`absolute top-0 right-0 w-3 h-3 rounded-full border-2 border-white ${product.stock === 0 ? 'bg-red-500' : 'bg-orange-500'}`} title={product.stock === 0 ? 'Out of Stock' : 'Low Stock'} />
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-800">{product.name}</h3>

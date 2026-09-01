@@ -5,6 +5,7 @@ import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 import { FiShoppingCart, FiMinus, FiPlus, FiStar, FiThumbsUp, FiCheckCircle, FiShield, FiTag } from 'react-icons/fi';
+import ProductImage from '../../components/common/ProductImage';
 
 const CATEGORY_LABELS = {
   rice_grains: '🍚 Rice & Grains', dal_pulses: '🫘 Dal & Pulses', spices: '🌶️ Spices',
@@ -94,11 +95,7 @@ export default function ProductDetail() {
                   Featured
                 </span>
               )}
-              {selectedImage && !selectedImage.includes('default-product') ? (
-                <img src={selectedImage} alt={product.name} className="h-full w-full object-contain" />
-              ) : (
-                <span className="text-9xl">{CATEGORY_LABELS[product.category]?.split(' ')[0] || '📦'}</span>
-              )}
+              <ProductImage src={selectedImage || product.image} alt={product.name} />
             </div>
 
             {/* Gallery Thumbnails */}
@@ -112,7 +109,7 @@ export default function ProductDetail() {
                       selectedImage === img ? 'border-primary-600 shadow-md scale-105' : 'border-gray-200 opacity-60 hover:opacity-100'
                     }`}
                   >
-                    <img src={img} alt="" className="w-full h-full object-contain" />
+                    <ProductImage src={img} alt="" showFallbackLabel={false} />
                   </button>
                 ))}
               </div>

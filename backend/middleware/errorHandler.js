@@ -4,6 +4,11 @@ const errorHandler = (err, req, res, next) => {
 
   console.error('Error:', err);
 
+  // Multer errors or custom file validation errors
+  if (err.code === 'LIMIT_FILE_SIZE' || (err.message && (err.message.includes('image') || err.message.includes('Only image files') || err.message.includes('File size')))) {
+    return res.status(400).json({ success: false, message: err.message });
+  }
+
   // Mongoose bad ObjectId
   if (err.name === 'CastError') {
     error.message = 'Resource not found';

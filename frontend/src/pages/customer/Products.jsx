@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { getProducts } from '../../services/api';
 import { useCart } from '../../context/CartContext';
 import { FiSearch, FiShoppingCart, FiFilter, FiStar, FiX, FiCheck } from 'react-icons/fi';
+import ProductImage from '../../components/common/ProductImage';
 
 const CATEGORIES = [
   { value: '', label: 'All Categories' },
@@ -275,13 +276,7 @@ export default function Products() {
                       <span className="bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-md">Out of Stock</span>
                     </div>
                   )}
-                  {product.image && !product.image.includes('default-product') ? (
-                    <img src={product.image} alt={product.name} className="h-full w-full object-contain group-hover:scale-105 transition-transform duration-300" />
-                  ) : (
-                    <span className="text-5xl">
-                      {{'rice_grains':'🍚','dal_pulses':'🫘','spices':'🌶️','oil_ghee':'🫒','flour':'🌾','sugar_jaggery':'🍬','tea_coffee':'☕','dry_fruits':'🥜','cleaning':'🧹','packaged_food':'📦'}[product.category] || '📦'}
-                    </span>
-                  )}
+                  <ProductImage src={product.image} alt={product.name} />
                 </div>
               </Link>
               <div className="p-4 flex-1 flex flex-col justify-between">

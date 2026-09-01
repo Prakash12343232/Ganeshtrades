@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { getOrder, cancelOrder, downloadInvoice, rescheduleOrder } from '../../services/api';
 import toast from 'react-hot-toast';
 import { FiDownload, FiX, FiCheck, FiClock, FiTruck, FiPackage, FiCalendar, FiZap, FiEdit3 } from 'react-icons/fi';
+import ProductImage from '../../components/common/ProductImage';
 
 const STATUS_STEPS = ['pending', 'confirmed', 'processing', 'out_for_delivery', 'delivered'];
 const STEP_LABELS = {
@@ -211,7 +212,9 @@ export default function OrderDetail() {
             {order.items?.map((item, i) => (
               <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center text-lg">📦</div>
+                  <div className="w-12 h-12 bg-white rounded-lg border border-gray-200 overflow-hidden flex-shrink-0">
+                    <ProductImage src={item.image} alt={item.name} showFallbackLabel={false} />
+                  </div>
                   <div><p className="font-medium text-sm">{item.name}</p><p className="text-xs text-gray-400">₹{item.price} × {item.quantity}</p></div>
                 </div>
                 <span className="font-bold text-gray-800">₹{item.total?.toFixed(2)}</span>

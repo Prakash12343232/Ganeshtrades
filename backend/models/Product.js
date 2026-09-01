@@ -23,10 +23,25 @@ const productSchema = new mongoose.Schema({
   },
   image: {
     type: String,
-    default: '/uploads/default-product.png'
+    default: ''
   },
   images: [{
     type: String
+  }],
+  imageMetadata: [{
+    url: String,
+    public_id: String,
+    fileId: String,
+    storageProvider: {
+      type: String,
+      enum: ['cloudinary', 'gridfs', 'local'],
+      default: 'local'
+    },
+    width: Number,
+    height: Number,
+    mimeType: String,
+    size: Number,
+    isPrimary: { type: Boolean, default: false }
   }],
   isFeatured: {
     type: Boolean,
