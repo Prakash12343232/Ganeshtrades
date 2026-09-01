@@ -150,7 +150,7 @@ router.post('/send-otp', otpLimiter, async (req, res) => {
     res.json({ success: true, message: 'OTP sent successfully to your mobile number' });
   } catch (error) {
     console.error('❌ send-otp route error:', error.message);
-    res.status(500).json({ success: false, message: 'An error occurred while processing OTP request.' });
+    res.status(500).json({ success: false, message: error.message || 'An error occurred while processing OTP request.' });
   }
 });
 
