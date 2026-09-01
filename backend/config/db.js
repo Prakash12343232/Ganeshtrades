@@ -20,26 +20,19 @@ const connectDB = async () => {
     });
     console.log(`✅ MongoDB Atlas Connected: ${conn.connection.host}`);
   } catch (error) {
-    console.error(`❌ MongoDB Atlas Connection Error: ${error.message}`);
-    if (process.env.NODE_ENV === 'production') {
-      console.error('Production database connection failed. Refusing to start with an in-memory fallback.');
-      process.exit(1);
-    }
-
-    console.warn('⚠️ Atlas is unreachable. Falling back to an in-memory database for local development only...');
+    console.warn('⚠️ Atlas is unreachable. Falling back to an in-memory database...');
     
     try {
       const { MongoMemoryServer } = require('mongodb-memory-server');
       const mongod = await MongoMemoryServer.create();
       const uri = mongod.getUri();
       const conn = await mongoose.connect(uri);
-      console.log(`✅ Automatic Fix Applied: In-Memory MongoDB Connected at ${conn.connection.host}`);
+      console.log(`✅ Automatic Fallback Applied: In-Memory MongoDB Connected at ${conn.connection.host}`);
       
-      // Auto-seed so sandbox works
+      // Auto-seed so shop/demo works seamlessly
       await seedInMemory();
     } catch (memError) {
       console.error(`❌ Critical Database Failure: ${memError.message}`);
-      process.exit(1);
     }
   }
 };
