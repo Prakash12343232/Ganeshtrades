@@ -89,6 +89,7 @@ router.post('/send-otp', otpLimiter, async (req, res) => {
     const maskedMobile = normMobile.replace(/^(\d{2})\d{4}(\d{4})$/, '$1****$2');
     let smsSent = false;
     let smsProvider = null;
+    let twilioError = null;
 
     if (process.env.FAST2SMS_API_KEY) {
       smsProvider = 'FAST2SMS';
@@ -129,6 +130,7 @@ router.post('/send-otp', otpLimiter, async (req, res) => {
         smsSent = true;
         console.log(`[SMS TWILIO SUCCESS] OTP dispatched to ${maskedMobile}. SID: ${message.sid}, Status: ${message.status}`);
       } catch (err) {
+        twilioError = err.message;
         console.error(`[SMS TWILIO ERROR] Failed to send OTP to ${maskedMobile}:`, err.message);
       }
     } else {
@@ -147,7 +149,7 @@ router.post('/send-otp', otpLimiter, async (req, res) => {
     if (!smsSent) {
       return res.status(502).json({
         success: false,
-        message: `Failed to deliver OTP SMS via ${smsProvider || 'configured provider'}. Please check SMS provider credentials/balance.`
+        message: `Failed to deliver OTP SMS via ${smsProvider || 'configured provider'}. ${twilioError ? 'Twilio error: ' + twilioError : 'Please check SMS provider credentials/balance.'}`
       });
     }
 
