@@ -3,8 +3,8 @@ import { useCart } from '../../context/CartContext';
 import { createOrder, checkServiceability, createPaymentOrder, verifyPayment } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
-import { useState, useEffect, useMemo } from 'react';
-import { FiTrash2, FiMinus, FiPlus, FiShoppingBag, FiAlertTriangle, FiCheckCircle, FiNavigation, FiMapPin, FiClock, FiCalendar, FiZap, FiCreditCard, FiSmartphone, FiGlobe, FiLock, FiCheck } from 'react-icons/fi';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { FiTrash2, FiMinus, FiPlus, FiAlertTriangle, FiCheckCircle, FiClock, FiCalendar, FiZap, FiCreditCard, FiSmartphone, FiGlobe, FiLock, FiCheck } from 'react-icons/fi';
 import ProductImage from '../../components/common/ProductImage';
 
 const TIME_SLOTS = [
@@ -47,11 +47,7 @@ export default function Cart() {
   const [scheduledDate, setScheduledDate] = useState('');
   const [timeSlot, setTimeSlot] = useState('');
 
-  useEffect(() => {
-    if (items.length > 0 && user?.address?.lat && user?.address?.lng) verifyServiceability();
-  }, []);
-
-  const verifyServiceability = async () => {
+  const verifyServiceability = useCallback(async () => {
     if (!user?.address?.lat || !user?.address?.lng) {
       setServiceInfo({ serviceable: false, message: 'Location not set.', distance: 0, radius: 15 });
       return;
@@ -60,7 +56,11 @@ export default function Cart() {
       const { data } = await checkServiceability(user.address.lat, user.address.lng);
       setServiceInfo(data.data);
     } catch { setServiceInfo(null); }
-  };
+  }, [user?.address?.lat, user?.address?.lng]);
+
+  useEffect(() => {
+    if (items.length > 0 && user?.address?.lat && user?.address?.lng) verifyServiceability();
+  }, [items.length, user?.address?.lat, user?.address?.lng, verifyServiceability]);
 
   const today = new Date();
   const getLocalYMD = (date) => {

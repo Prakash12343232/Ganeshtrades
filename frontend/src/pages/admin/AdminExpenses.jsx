@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getExpenses, createExpense, deleteExpense } from '../../services/api';
 import toast from 'react-hot-toast';
-import { FiPlus, FiTrash2, FiFileText } from 'react-icons/fi';
+import { FiPlus, FiTrash2 } from 'react-icons/fi';
 
 const CATEGORIES = ['electricity', 'salary', 'transport', 'maintenance', 'miscellaneous', 'supplies'];
 
@@ -25,7 +25,7 @@ export default function AdminExpenses() {
       setShowModal(false);
       setForm({ category: 'miscellaneous', amount: '', description: '' });
       fetchExpenses();
-    } catch (err) { toast.error('Failed'); }
+    } catch { toast.error('Failed'); }
   };
 
   const handleDelete = async (id) => {
@@ -34,7 +34,7 @@ export default function AdminExpenses() {
       await deleteExpense(id);
       toast.success('Deleted');
       fetchExpenses();
-    } catch (err) { toast.error('Failed'); }
+    } catch { toast.error('Failed'); }
   };
 
   if (loading) return <div className="text-center py-10">Loading...</div>;

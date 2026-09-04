@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getNotifications, createNotification, deleteNotification, clearReadNotifications, markAllRead } from '../../services/api';
 import toast from 'react-hot-toast';
-import { FiBell, FiSend, FiTrash2, FiCheckCircle, FiFilter } from 'react-icons/fi';
+import { FiBell, FiSend, FiTrash2, FiCheckCircle } from 'react-icons/fi';
 
 const TYPES = ['general', 'promotion', 'new_product', 'payment_reminder', 'order', 'delivery', 'system'];
 const TYPE_COLORS = {

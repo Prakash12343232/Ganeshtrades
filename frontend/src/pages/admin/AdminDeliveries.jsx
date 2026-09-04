@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { getTodayPriority, updateDeliveryStatus } from '../../services/api';
 import toast from 'react-hot-toast';
 import { FiTruck, FiMapPin, FiClock, FiCalendar, FiAlertTriangle, FiZap } from 'react-icons/fi';
-import { Link } from 'react-router-dom';
 
 export default function AdminDeliveries() {
   const [data, setData] = useState(null);
@@ -26,7 +25,7 @@ export default function AdminDeliveries() {
       await updateDeliveryStatus(id, { status });
       toast.success('Status updated');
       fetchDeliveries();
-    } catch (err) { toast.error('Failed to update'); }
+    } catch { toast.error('Failed to update'); }
   };
 
   if (loading) return <div className="text-center py-10">Loading...</div>;

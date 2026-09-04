@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getAllReviews, moderateReview, deleteReview } from '../../services/api';
 import toast from 'react-hot-toast';
 import { FiCheck, FiX, FiStar, FiMessageSquare, FiTrash2, FiFilter } from 'react-icons/fi';
@@ -10,7 +10,7 @@ export default function AdminReviews() {
   const [responseText, setResponseText] = useState({});
   const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
 
-  const fetchReviews = async (page = 1) => {
+  const fetchReviews = useCallback(async (page = 1) => {
     setLoading(true);
     try {
       const params = { page, limit: 20 };
@@ -21,9 +21,9 @@ export default function AdminReviews() {
       setPagination(data.pagination);
     } catch { toast.error('Failed to load reviews'); }
     finally { setLoading(false); }
-  };
+  }, [filter.status, filter.rating]);
 
-  useEffect(() => { fetchReviews(); }, [filter]);
+  useEffect(() => { fetchReviews(); }, [fetchReviews]);
 
   const handleModerate = async (id, status) => {
     try {

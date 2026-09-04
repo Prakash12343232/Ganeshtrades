@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { getProducts } from '../../services/api';
 import { useCart } from '../../context/CartContext';
-import { FiSearch, FiShoppingCart, FiFilter, FiStar, FiX, FiCheck } from 'react-icons/fi';
+import { FiSearch, FiShoppingCart, FiFilter, FiStar, FiX } from 'react-icons/fi';
 import ProductImage from '../../components/common/ProductImage';
 
 const CATEGORIES = [
@@ -44,7 +44,7 @@ export default function Products() {
   const [pagination, setPagination] = useState({ total: 0, page: 1, pages: 1 });
   const { addToCart } = useCart();
 
-  const fetchProducts = async (page = pagination.page) => {
+  const fetchProducts = useCallback(async (page = pagination.page) => {
     setLoading(true);
     try {
       const params = { page, limit: 16, sort };
@@ -63,11 +63,11 @@ export default function Products() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [category, search, minPrice, maxPrice, minRating, availability, sort, pagination.page]);
 
   useEffect(() => {
     fetchProducts(1);
-  }, [category, minPrice, maxPrice, minRating, availability, sort]);
+  }, [fetchProducts]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();

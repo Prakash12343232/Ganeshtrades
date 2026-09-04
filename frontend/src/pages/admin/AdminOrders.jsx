@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getOrders, updateOrderStatus, rescheduleOrder } from '../../services/api';
 import toast from 'react-hot-toast';
-import { FiEye, FiCheck, FiTruck, FiX, FiCalendar, FiZap, FiEdit3 } from 'react-icons/fi';
+import { FiCheck, FiTruck, FiX, FiCalendar, FiZap, FiEdit3 } from 'react-icons/fi';
 
 const STATUS_COLORS = {
   pending: 'bg-yellow-100 text-yellow-700', confirmed: 'bg-blue-100 text-blue-700',
@@ -30,7 +30,7 @@ export default function AdminOrders() {
   const [reschedSlot, setReschedSlot] = useState('');
   const [rescheduling, setRescheduling] = useState(false);
 
-  const fetchOrders = () => {
+  const fetchOrders = useCallback(() => {
     const params = { limit: 50 };
     if (filter) params.status = filter;
     if (deliveryFilter) params.deliveryType = deliveryFilter;
@@ -38,9 +38,9 @@ export default function AdminOrders() {
     if (slotFilter) params.timeSlot = slotFilter;
     
     getOrders(params).then(res => setOrders(res.data.data)).catch(() => {}).finally(() => setLoading(false));
-  };
+  }, [filter, deliveryFilter, dateFilter, slotFilter]);
 
-  useEffect(() => { fetchOrders(); }, [filter, deliveryFilter, dateFilter, slotFilter]);
+  useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
   const handleStatusUpdate = async (orderId, status) => {
     try {

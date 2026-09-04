@@ -1,29 +1,28 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getUsers, updateUser } from '../../services/api';
 import toast from 'react-hot-toast';
-import { FiSearch, FiEdit2, FiUserCheck, FiUserX } from 'react-icons/fi';
+import { FiSearch, FiUserCheck, FiUserX } from 'react-icons/fi';
 
 export default function AdminCustomers() {
   const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
 
-  const fetchUsers = () => {
+  const fetchUsers = useCallback(() => {
     const params = { limit: 50 };
     if (search) params.search = search;
     if (typeFilter) params.customerType = typeFilter;
-    getUsers(params).then(res => setUsers(res.data.data)).catch(() => {}).finally(() => setLoading(false));
-  };
+    getUsers(params).then(res => setUsers(res.data.data)).catch(() => {});
+  }, [search, typeFilter]);
 
-  useEffect(() => { fetchUsers(); }, [typeFilter]);
+  useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
   const handleToggleActive = async (user) => {
     try {
       await updateUser(user._id, { isActive: !user.isActive });
       toast.success(user.isActive ? 'User deactivated' : 'User activated');
       fetchUsers();
-    } catch (err) { toast.error('Failed'); }
+    } catch { toast.error('Failed'); }
   };
 
   return (
