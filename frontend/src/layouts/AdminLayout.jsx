@@ -2,7 +2,7 @@ import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useState, useEffect, Suspense } from 'react';
 import { getNotifications } from '../services/api';
-import { FiHome, FiPackage, FiUsers, FiDollarSign, FiBarChart2, FiBox, FiLogOut, FiMenu, FiArrowLeft, FiBell, FiTruck, FiBookOpen, FiFileText, FiDatabase, FiMap, FiStar } from 'react-icons/fi';
+import { FiHome, FiPackage, FiUsers, FiDollarSign, FiBarChart2, FiBox, FiLogOut, FiMenu, FiArrowLeft, FiBell, FiTruck, FiBookOpen, FiFileText, FiDatabase, FiMap, FiShoppingBag, FiStar } from 'react-icons/fi';
 
 export default function AdminLayout() {
   const { user, logout } = useAuth();

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getDashboardStats, getChartData, getAutoReorder } from '../../services/api';
 import { Link } from 'react-router-dom';
-import { FiShoppingBag, FiClock, FiTruck, FiXCircle, FiDollarSign, FiUsers, FiPackage, FiAlertTriangle, FiArrowRight, FiRefreshCw } from 'react-icons/fi';
+import { FiShoppingBag, FiClock, FiTruck, FiXCircle, FiDollarSign, FiUsers, FiPackage, FiAlertTriangle, FiArrowRight, FiRefreshCw, FiCalendar } from 'react-icons/fi';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 const COLORS = ['#7e22ce', '#a855f7', '#c084fc', '#e9d5ff'];
