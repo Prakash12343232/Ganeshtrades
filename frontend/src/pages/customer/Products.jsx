@@ -44,7 +44,7 @@ export default function Products() {
   const [pagination, setPagination] = useState({ total: 0, page: 1, pages: 1 });
   const { addToCart } = useCart();
 
-  const fetchProducts = useCallback(async (page = pagination.page) => {
+  const fetchProducts = useCallback(async (page = 1) => {
     setLoading(true);
     try {
       const params = { page, limit: 16, sort };
@@ -63,7 +63,7 @@ export default function Products() {
     } finally {
       setLoading(false);
     }
-  }, [category, search, minPrice, maxPrice, minRating, availability, sort, pagination.page]);
+  }, [category, search, minPrice, maxPrice, minRating, availability, sort]);
 
   useEffect(() => {
     fetchProducts(1);
