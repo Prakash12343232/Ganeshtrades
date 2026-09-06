@@ -5,11 +5,19 @@ const CartContext = createContext();
 
 export const useCart = () => useContext(CartContext);
 
-export const CartProvider = ({ children }) => {
-  const [items, setItems] = useState(() => {
+const getStoredCart = () => {
+  try {
     const saved = localStorage.getItem('gt_cart');
-    return saved ? JSON.parse(saved) : [];
-  });
+    const items = saved ? JSON.parse(saved) : [];
+    return Array.isArray(items) ? items : [];
+  } catch {
+    localStorage.removeItem('gt_cart');
+    return [];
+  }
+};
+
+export const CartProvider = ({ children }) => {
+  const [items, setItems] = useState(getStoredCart);
 
   useEffect(() => {
     localStorage.setItem('gt_cart', JSON.stringify(items));
