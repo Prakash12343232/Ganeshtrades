@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getProducts, createProduct, updateProduct, deleteProduct } from '../../services/api';
 import toast from 'react-hot-toast';
-import { FiPlus, FiEdit2, FiTrash2, FiX, FiImage } from 'react-icons/fi';
+import { FiPlus, FiEdit2, FiTrash2, FiX, FiImage, FiSearch } from 'react-icons/fi';
 import ProductImage from '../../components/common/ProductImage';
 import ProductImageUploader from '../../components/admin/ProductImageUploader';
 import BulkImageManager from '../../components/admin/BulkImageManager';
@@ -19,6 +19,10 @@ export default function AdminProducts() {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [photoModalProduct, setPhotoModalProduct] = useState(null);
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({ total: 0, page: 1, pages: 1 });
+  const [search, setSearch] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
 
   const [form, setForm] = useState({
     name: '',
@@ -32,16 +36,23 @@ export default function AdminProducts() {
     brand: ''
   });
 
-  const fetchProducts = () => {
-    getProducts({ limit: 150, status: 'all' })
-      .then(res => setProducts(res.data.data))
+  const fetchProducts = useCallback((nextPage = 1) => {
+    const params = { page: nextPage, limit: 20, status: 'all' };
+    if (search.trim()) params.search = search.trim();
+    if (categoryFilter) params.category = categoryFilter;
+    return getProducts(params)
+      .then(res => {
+        setProducts(res.data.data);
+        setPagination(res.data.pagination);
+        setPage(nextPage);
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
-  };
+  }, [search, categoryFilter]);
 
   useEffect(() => {
-    fetchProducts();
-  }, []);
+    fetchProducts(1);
+  }, [fetchProducts]);
 
   const openAdd = () => {
     setEditing(null);
@@ -86,7 +97,7 @@ export default function AdminProducts() {
         toast.success('Product created');
       }
       setShowModal(false);
-      fetchProducts();
+      fetchProducts(page);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed');
     }
@@ -97,7 +108,7 @@ export default function AdminProducts() {
     try {
       await deleteProduct(id);
       toast.success('Product removed');
-      fetchProducts();
+      fetchProducts(page);
     } catch { toast.error('Failed'); }
   };
 
@@ -118,7 +129,7 @@ export default function AdminProducts() {
                 activeTab === 'catalog' ? 'bg-white text-primary-700 shadow-sm' : 'text-gray-600 hover:text-gray-900'
               }`}
             >
-              Catalog List ({products.length})
+              Catalog List ({pagination.total || products.length})
             </button>
             <button
               onClick={() => setActiveTab('bulk_images')}
@@ -147,6 +158,34 @@ export default function AdminProducts() {
         <BulkImageManager />
       ) : (
         <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-4 py-3 border-b border-gray-100 bg-gray-50/50">
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              <div className="relative flex-1 sm:w-64">
+                <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Search by name, brand..."
+                  className="w-full pl-9 pr-3 py-2 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-400 text-sm"
+                />
+              </div>
+              <label htmlFor="product-category-filter" className="sr-only">Category</label>
+              <select
+                id="product-category-filter"
+                value={categoryFilter}
+                onChange={e => setCategoryFilter(e.target.value)}
+                className="px-3 py-2 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-400 text-sm capitalize"
+              >
+                <option value="">All Categories</option>
+                {CATEGORIES.map(c => <option key={c} value={c}>{c.replace(/_/g, ' ')}</option>)}
+              </select>
+            </div>
+            {pagination.total > 0 && (
+              <span className="text-xs text-gray-500">{pagination.total} total products</span>
+            )}
+          </div>
+
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -235,6 +274,37 @@ export default function AdminProducts() {
               </tbody>
             </table>
           </div>
+
+          {pagination.pages > 1 && (
+            <div className="flex items-center justify-end gap-1 px-4 py-3 border-t border-gray-100">
+              <span className="text-xs text-gray-400 mr-2">Page {pagination.page} of {pagination.pages}</span>
+              <button
+                onClick={() => fetchProducts(Math.max(1, pagination.page - 1))}
+                disabled={pagination.page <= 1}
+                className="w-8 h-8 rounded-lg text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-40"
+                aria-label="Previous page"
+              >
+                ‹
+              </button>
+              {Array.from({ length: pagination.pages }, (_, i) => (
+                <button
+                  key={i + 1}
+                  onClick={() => fetchProducts(i + 1)}
+                  className={`w-8 h-8 rounded-lg text-sm font-medium transition-all ${pagination.page === i + 1 ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                >
+                  {i + 1}
+                </button>
+              ))}
+              <button
+                onClick={() => fetchProducts(Math.min(pagination.pages, pagination.page + 1))}
+                disabled={pagination.page >= pagination.pages}
+                className="w-8 h-8 rounded-lg text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-40"
+                aria-label="Next page"
+              >
+                ›
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -364,7 +434,7 @@ export default function AdminProducts() {
                     primaryImage={editing.image}
                     onImagesUpdated={(updatedProduct) => {
                       setEditing(updatedProduct);
-                      fetchProducts();
+                      fetchProducts(page);
                     }}
                   />
                 </div>
@@ -399,7 +469,7 @@ export default function AdminProducts() {
               primaryImage={photoModalProduct.image}
               onImagesUpdated={(updatedProduct) => {
                 setPhotoModalProduct(updatedProduct);
-                fetchProducts();
+                fetchProducts(page);
               }}
             />
 
