@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { getProduct, getProductReviews, createReview, markReviewHelpful } from '../../services/api';
 import { useCart } from '../../context/CartContext';
@@ -17,24 +17,50 @@ export default function ProductDetail() {
   const [loading, setLoading] = useState(true);
   const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' });
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewPage, setReviewPage] = useState(1);
+  const [reviewHasMore, setReviewHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const { addToCart } = useCart();
   const { user } = useAuth();
 
+  const fetchReviews = useCallback(async (page) => {
+    const { data } = await getProductReviews(id, { page, limit: 10 });
+    setReviews(prev => page === 1 ? (data.data || []) : [...prev, ...(data.data || [])]);
+    if (data.ratingDistribution) setRatingDist(data.ratingDistribution);
+    setReviewHasMore((data.pagination?.page || 1) < (data.pagination?.pages || 1));
+    setReviewPage(page);
+    return data;
+  }, [id]);
+
   useEffect(() => {
-    Promise.all([getProduct(id), getProductReviews(id)])
-      .then(([pRes, rRes]) => {
-        setProduct(pRes.data.data);
-        if (pRes.data.data.images && pRes.data.data.images.length > 0) {
-          setSelectedImage(pRes.data.data.images[0]);
+    setLoading(true);
+    setReviewHasMore(false);
+    setLoadingMore(false);
+    getProduct(id)
+      .then(pRes => {
+        const prod = pRes.data.data;
+        setProduct(prod);
+        if (prod.images && prod.images.length > 0) {
+          setSelectedImage(prod.images[0]);
         } else {
-          setSelectedImage(pRes.data.data.image || '');
+          setSelectedImage(prod.image || '');
         }
-        setReviews(rRes.data.data || []);
-        if (rRes.data.ratingDistribution) setRatingDist(rRes.data.ratingDistribution);
       })
       .catch(() => toast.error('Failed to load product details'))
       .finally(() => setLoading(false));
-  }, [id]);
+    fetchReviews(1).catch(() => {});
+  }, [id, fetchReviews]);
+
+  const handleLoadMoreReviews = async () => {
+    setLoadingMore(true);
+    try {
+      await fetchReviews(reviewPage + 1);
+    } catch {
+      toast.error('Failed to load more reviews');
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   const handleReview = async (e) => {
     e.preventDefault();
@@ -42,9 +68,7 @@ export default function ProductDetail() {
     try {
       await createReview({ product: id, ...reviewForm });
       toast.success('Review submitted for approval!');
-      const { data } = await getProductReviews(id);
-      setReviews(data.data || []);
-      if (data.ratingDistribution) setRatingDist(data.ratingDistribution);
+      await fetchReviews(1);
       setReviewForm({ rating: 5, comment: '' });
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to submit review');
@@ -270,48 +294,62 @@ export default function ProductDetail() {
           {reviews.length === 0 ? (
             <p className="text-gray-400 text-center py-6">No approved reviews yet for this product.</p>
           ) : (
-            reviews.map(review => (
-              <div key={review._id} className="p-5 bg-white rounded-2xl border border-gray-100 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 bg-primary-100 text-primary-700 rounded-full flex items-center justify-center font-bold text-sm">
-                      {review.user?.name?.[0] || 'U'}
+            <>
+              {reviews.map(review => (
+                <div key={review._id} className="p-5 bg-white rounded-2xl border border-gray-100 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 bg-primary-100 text-primary-700 rounded-full flex items-center justify-center font-bold text-sm">
+                        {review.user?.name?.[0] || 'U'}
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-sm text-gray-800">{review.user?.name || 'Customer'}</h4>
+                        <p className="text-[11px] text-gray-400">{new Date(review.createdAt).toLocaleDateString('en-IN')}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="font-semibold text-sm text-gray-800">{review.user?.name || 'Customer'}</h4>
-                      <p className="text-[11px] text-gray-400">{new Date(review.createdAt).toLocaleDateString('en-IN')}</p>
+                    <div className="flex">
+                      {[...Array(5)].map((_, i) => (
+                        <span key={i} className={`text-sm ${i < review.rating ? 'text-amber-400' : 'text-gray-200'}`}>★</span>
+                      ))}
                     </div>
                   </div>
-                  <div className="flex">
-                    {[...Array(5)].map((_, i) => (
-                      <span key={i} className={`text-sm ${i < review.rating ? 'text-amber-400' : 'text-gray-200'}`}>★</span>
-                    ))}
+
+                  <p className="text-sm text-gray-600 pl-12">{review.comment}</p>
+
+                  {/* Admin Response */}
+                  {review.adminResponse && (
+                    <div className="ml-12 p-3 bg-primary-50 rounded-xl border border-primary-100 text-xs space-y-1">
+                      <span className="font-semibold text-primary-800 flex items-center gap-1">
+                        <FiCheckCircle className="text-primary-600" /> Seller Response
+                      </span>
+                      <p className="text-gray-700">{review.adminResponse}</p>
+                    </div>
+                  )}
+
+                  {/* Helpful Button */}
+                  <div className="flex justify-end pr-2">
+                    <button
+                      onClick={() => handleHelpful(review._id)}
+                      className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-primary-600 font-medium transition-colors"
+                    >
+                      <FiThumbsUp /> Helpful ({review.helpfulCount || 0})
+                    </button>
                   </div>
                 </div>
-
-                <p className="text-sm text-gray-600 pl-12">{review.comment}</p>
-
-                {/* Admin Response */}
-                {review.adminResponse && (
-                  <div className="ml-12 p-3 bg-primary-50 rounded-xl border border-primary-100 text-xs space-y-1">
-                    <span className="font-semibold text-primary-800 flex items-center gap-1">
-                      <FiCheckCircle className="text-primary-600" /> Seller Response
-                    </span>
-                    <p className="text-gray-700">{review.adminResponse}</p>
-                  </div>
-                )}
-
-                {/* Helpful Button */}
-                <div className="flex justify-end pr-2">
+              ))}
+              {reviewHasMore && (
+                <div className="flex justify-center pt-2">
                   <button
-                    onClick={() => handleHelpful(review._id)}
-                    className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-primary-600 font-medium transition-colors"
+                    onClick={handleLoadMoreReviews}
+                    disabled={loadingMore}
+                    className="px-6 py-2.5 bg-white border border-primary-200 text-primary-600 rounded-xl text-sm font-semibold hover:bg-primary-50 disabled:opacity-50 transition-all"
+                    id="load-more-reviews"
                   >
-                    <FiThumbsUp /> Helpful ({review.helpfulCount || 0})
+                    {loadingMore ? 'Loading...' : 'Load More Reviews'}
                   </button>
                 </div>
-              </div>
-            ))
+              )}
+            </>
           )}
         </div>
       </div>
