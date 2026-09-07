@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { getProduct, getProductReviews, createReview, markReviewHelpful } from '../../services/api';
+import { getProduct, getProductReviews, createReview, updateReview, deleteReview, markReviewHelpful, getAllReviews } from '../../services/api';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
@@ -20,6 +20,8 @@ export default function ProductDetail() {
   const [reviewPage, setReviewPage] = useState(1);
   const [reviewHasMore, setReviewHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [myReview, setMyReview] = useState(null);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const { addToCart } = useCart();
   const { user } = useAuth();
 
@@ -51,6 +53,28 @@ export default function ProductDetail() {
     fetchReviews(1).catch(() => {});
   }, [id, fetchReviews]);
 
+  const fetchMyReview = useCallback(async () => {
+    if (!user) {
+      setMyReview(null);
+      setReviewForm({ rating: 5, comment: '' });
+      return;
+    }
+    try {
+      const res = await getAllReviews({ product: id, user: user._id, limit: 1 });
+      const mine = res.data?.data?.[0] || null;
+      setMyReview(mine);
+      setReviewForm(mine ? { rating: mine.rating, comment: mine.comment || '' } : { rating: 5, comment: '' });
+      setConfirmingDelete(false);
+    } catch {
+      setMyReview(null);
+      setReviewForm({ rating: 5, comment: '' });
+    }
+  }, [id, user]);
+
+  useEffect(() => {
+    fetchMyReview();
+  }, [fetchMyReview]);
+
   const handleLoadMoreReviews = async () => {
     setLoadingMore(true);
     try {
@@ -69,9 +93,43 @@ export default function ProductDetail() {
       await createReview({ product: id, ...reviewForm });
       toast.success('Review submitted for approval!');
       await fetchReviews(1);
+      await fetchMyReview();
       setReviewForm({ rating: 5, comment: '' });
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to submit review');
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
+  const handleUpdateReview = async (e) => {
+    e.preventDefault();
+    if (!myReview) return;
+    setSubmittingReview(true);
+    try {
+      await updateReview(myReview._id, reviewForm);
+      toast.success('Review updated! It will reappear after approval.');
+      await fetchReviews(1);
+      await fetchMyReview();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update review');
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
+  const handleDeleteReview = async () => {
+    if (!myReview) return;
+    setSubmittingReview(true);
+    try {
+      await deleteReview(myReview._id);
+      toast.success('Your review has been deleted');
+      setMyReview(null);
+      setReviewForm({ rating: 5, comment: '' });
+      setConfirmingDelete(false);
+      await fetchReviews(1);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to delete review');
     } finally {
       setSubmittingReview(false);
     }
@@ -246,43 +304,123 @@ export default function ProductDetail() {
           </div>
         </div>
 
-        {/* Add Review Form */}
+        {/* My Review / Add Review Form */}
         {user ? (
-          <form onSubmit={handleReview} className="p-6 bg-primary-50/40 rounded-2xl border border-primary-100 space-y-4">
-            <h3 className="text-sm font-bold text-gray-800">Write a Review</h3>
-            <div className="flex items-center gap-3">
-              <span className="text-xs font-semibold text-gray-600">Your Rating:</span>
-              <div className="flex gap-1">
-                {[1, 2, 3, 4, 5].map(s => (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => setReviewForm(p => ({ ...p, rating: s }))}
-                    className={`text-2xl transition-all ${s <= reviewForm.rating ? 'text-amber-400 scale-110' : 'text-gray-300 hover:text-amber-200'}`}
-                  >
-                    ★
-                  </button>
-                ))}
+          myReview ? (
+            <form onSubmit={handleUpdateReview} className="p-6 bg-amber-50/40 rounded-2xl border border-amber-100 space-y-4">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <h3 className="text-sm font-bold text-gray-800">Your Review</h3>
+                <span className={`px-3 py-1 rounded-full text-[11px] font-semibold capitalize ${myReview.status === 'approved' ? 'bg-green-100 text-green-700' : myReview.status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                  {myReview.status}
+                </span>
               </div>
-            </div>
-            <textarea
-              value={reviewForm.comment}
-              onChange={e => setReviewForm(p => ({ ...p, comment: e.target.value }))}
-              className="w-full p-3.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 bg-white"
-              placeholder="Share your experience with this product (quality, freshness, packaging...)"
-              rows={3}
-              required
-            />
-            <button
-              type="submit"
-              disabled={submittingReview}
-              className="px-6 py-2.5 bg-primary-600 text-white rounded-xl text-sm font-semibold hover:bg-primary-700 transition-all disabled:opacity-50 shadow-md"
-              id="submit-review-btn"
-            >
-              {submittingReview ? 'Submitting...' : 'Submit Review'}
-            </button>
-            <p className="text-[11px] text-gray-400">Note: Reviews are moderated before appearing publicly.</p>
-          </form>
+              <p className="text-xs text-gray-500">
+                {myReview.status === 'pending'
+                  ? 'Your review is awaiting approval and will appear once moderated.'
+                  : myReview.status === 'rejected'
+                    ? 'Your previous review was rejected by the seller. Edit it below to resubmit for approval.'
+                    : 'You have already reviewed this product. Update or delete it below.'}
+              </p>
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-semibold text-gray-600">Your Rating:</span>
+                <div className="flex gap-1">
+                  {[1, 2, 3, 4, 5].map(s => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setReviewForm(p => ({ ...p, rating: s }))}
+                      className={`text-2xl transition-all ${s <= reviewForm.rating ? 'text-amber-400 scale-110' : 'text-gray-300 hover:text-amber-200'}`}
+                    >
+                      ★
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <textarea
+                value={reviewForm.comment}
+                onChange={e => setReviewForm(p => ({ ...p, comment: e.target.value }))}
+                className="w-full p-3.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 bg-white"
+                placeholder="Update your experience with this product..."
+                rows={3}
+                required
+              />
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="submit"
+                  disabled={submittingReview}
+                  className="px-6 py-2.5 bg-primary-600 text-white rounded-xl text-sm font-semibold hover:bg-primary-700 transition-all disabled:opacity-50 shadow-md"
+                  id="update-review-btn"
+                >
+                  {submittingReview ? 'Saving...' : 'Update Review'}
+                </button>
+                {confirmingDelete ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleDeleteReview}
+                      disabled={submittingReview}
+                      className="px-4 py-2.5 bg-red-600 text-white rounded-xl text-sm font-semibold hover:bg-red-700 transition-all disabled:opacity-50"
+                    >
+                      Yes, Delete Review
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmingDelete(false)}
+                      className="px-4 py-2.5 bg-white border border-gray-200 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-50 transition-all"
+                    >
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmingDelete(true)}
+                    className="px-4 py-2.5 bg-white border border-red-200 text-red-600 rounded-xl text-sm font-medium hover:bg-red-50 transition-all"
+                    id="delete-review-btn"
+                  >
+                    Delete Review
+                  </button>
+                )}
+              </div>
+              <p className="text-[11px] text-gray-400">Note: Updated reviews are re-moderated before appearing publicly.</p>
+            </form>
+          ) : (
+            <form onSubmit={handleReview} className="p-6 bg-primary-50/40 rounded-2xl border border-primary-100 space-y-4">
+              <h3 className="text-sm font-bold text-gray-800">Write a Review</h3>
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-semibold text-gray-600">Your Rating:</span>
+                <div className="flex gap-1">
+                  {[1, 2, 3, 4, 5].map(s => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setReviewForm(p => ({ ...p, rating: s }))}
+                      className={`text-2xl transition-all ${s <= reviewForm.rating ? 'text-amber-400 scale-110' : 'text-gray-300 hover:text-amber-200'}`}
+                    >
+                      ★
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <textarea
+                value={reviewForm.comment}
+                onChange={e => setReviewForm(p => ({ ...p, comment: e.target.value }))}
+                className="w-full p-3.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 bg-white"
+                placeholder="Share your experience with this product (quality, freshness, packaging...)"
+                rows={3}
+                required
+              />
+              <button
+                type="submit"
+                disabled={submittingReview}
+                className="px-6 py-2.5 bg-primary-600 text-white rounded-xl text-sm font-semibold hover:bg-primary-700 transition-all disabled:opacity-50 shadow-md"
+                id="submit-review-btn"
+              >
+                {submittingReview ? 'Submitting...' : 'Submit Review'}
+              </button>
+              <p className="text-[11px] text-gray-400">Note: Reviews are moderated before appearing publicly.</p>
+            </form>
+          )
         ) : (
           <div className="p-4 bg-gray-50 rounded-xl text-center text-sm text-gray-500">
             Please log in to write a review for this product.
