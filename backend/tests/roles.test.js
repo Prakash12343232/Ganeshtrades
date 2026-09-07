@@ -86,4 +86,18 @@ describe('RBAC (Role Based Access Control)', () => {
     expect(res.statusCode).toEqual(200);
     expect(await Expense.findById(expense._id)).toBeNull();
   });
+
+  it('should allow manager to access audit logs', async () => {
+    const manager = await User.create({
+      name: 'Manager', mobile: '9999999996', password: 'password123', role: 'manager'
+    });
+    const token = generateTestToken(manager._id);
+
+    const res = await request(app)
+      .get('/api/audit')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.success).toEqual(true);
+  });
 });

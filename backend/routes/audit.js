@@ -5,7 +5,7 @@ const { protect, authorize } = require('../middleware/auth');
 const { parsePagination } = require('../utils/security');
 
 // GET /api/audit
-router.get('/', protect, authorize('admin'), async (req, res) => {
+router.get('/', protect, authorize('admin', 'manager'), async (req, res) => {
   try {
     const { action, entity, page = 1, limit = 50 } = req.query;
     const paging = parsePagination(page, limit, 100);
