@@ -6,6 +6,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { CartProvider } from './context/CartContext'
 import { Toaster } from 'react-hot-toast'
+import ErrorBoundary from './components/common/ErrorBoundary'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
@@ -16,7 +17,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             style: { background: '#1e1b4b', color: '#e9d5ff', border: '1px solid #7e22ce' },
             success: { iconTheme: { primary: '#a855f7', secondary: '#fff' } },
           }} />
-          <App />
+          <ErrorBoundary>
+            <App />
+          </ErrorBoundary>
         </CartProvider>
       </AuthProvider>
     </BrowserRouter>
