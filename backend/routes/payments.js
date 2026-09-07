@@ -143,26 +143,37 @@ router.post('/create-order', protect, async (req, res) => {
     if (order.paymentStatus === 'paid') {
       return res.status(400).json({ success: false, message: 'Order is already paid' });
     }
+    if (order.orderStatus === 'cancelled') {
+      return res.status(400).json({ success: false, message: 'Order is cancelled and cannot be paid' });
+    }
 
-    // Generate simulated gateway order ID
     const crypto = require('crypto');
-    const gatewayOrderId = 'order_' + crypto.randomBytes(12).toString('hex');
+    const paymentMethod = paymentMode === 'upi' ? 'upi' : paymentMode === 'net_banking' ? 'bank_transfer' : 'card';
 
-    // Create pending payment record
-    const payment = await Payment.create({
-      user: req.user._id,
-      order: orderId,
-      amount: order.finalAmount,
-      paymentMethod: paymentMode === 'upi' ? 'upi' : paymentMode === 'net_banking' ? 'bank_transfer' : 'card',
-      paymentMode,
-      paymentStatus: 'pending',
-      gatewayOrderId
-    });
+    // Resume path: reuse the most recent pending gateway payment for this order so a
+    // customer retrying after an aborted payment attempt does not create orphan records.
+    let payment = await Payment.findOne({ user: req.user._id, order: orderId, paymentStatus: 'pending' }).sort('-createdAt');
+    if (payment) {
+      payment.paymentMode = paymentMode;
+      payment.paymentMethod = paymentMethod;
+      await payment.save();
+    } else {
+      const gatewayOrderId = 'order_' + crypto.randomBytes(12).toString('hex');
+      payment = await Payment.create({
+        user: req.user._id,
+        order: orderId,
+        amount: order.finalAmount,
+        paymentMethod,
+        paymentMode,
+        paymentStatus: 'pending',
+        gatewayOrderId
+      });
+    }
 
     res.json({
       success: true,
       data: {
-        gatewayOrderId,
+        gatewayOrderId: payment.gatewayOrderId,
         paymentId: payment._id,
         amount: order.finalAmount,
         currency: 'INR',

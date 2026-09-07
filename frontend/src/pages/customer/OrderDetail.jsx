@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { getOrder, cancelOrder, downloadInvoice, rescheduleOrder } from '../../services/api';
+import { getOrder, cancelOrder, downloadInvoice, rescheduleOrder, createPaymentOrder } from '../../services/api';
 import toast from 'react-hot-toast';
-import { FiDownload, FiX, FiCheck, FiClock, FiTruck, FiPackage, FiCalendar, FiZap, FiEdit3 } from 'react-icons/fi';
+import { FiDownload, FiX, FiCheck, FiClock, FiTruck, FiPackage, FiCalendar, FiZap, FiEdit3, FiCreditCard, FiSmartphone, FiGlobe } from 'react-icons/fi';
 import ProductImage from '../../components/common/ProductImage';
+import PaymentGatewayModal from '../../components/common/PaymentGatewayModal';
 
 const STATUS_STEPS = ['pending', 'confirmed', 'processing', 'out_for_delivery', 'delivered'];
 const STEP_LABELS = {
@@ -29,9 +30,32 @@ export default function OrderDetail() {
   const [reschedSlot, setReschedSlot] = useState('');
   const [rescheduling, setRescheduling] = useState(false);
 
+  // Online payment resume
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [payingMode, setPayingMode] = useState('upi');
+  const [pendingGateway, setPendingGateway] = useState(null);
+  const [payingLoading, setPayingLoading] = useState(false);
+
+  const refreshOrder = async () => {
+    const { data } = await getOrder(id);
+    setOrder(data.data);
+  };
+
   useEffect(() => {
     getOrder(id).then(res => setOrder(res.data.data)).catch(() => toast.error('Failed to load')).finally(() => setLoading(false));
   }, [id]);
+
+  const handlePayNow = async () => {
+    if (!order) return;
+    setPayingLoading(true);
+    try {
+      const { data } = await createPaymentOrder({ orderId: order._id, paymentMode: payingMode });
+      setPendingGateway(data.data);
+      setShowPaymentModal(true);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to start payment');
+    } finally { setPayingLoading(false); }
+  };
 
   const handleCancel = async () => {
     if (!confirm('Cancel this order?')) return;
@@ -75,6 +99,16 @@ export default function OrderDetail() {
 
   const currentStep = STATUS_STEPS.indexOf(order.orderStatus);
   const canReschedule = !['processing', 'out_for_delivery', 'delivered', 'cancelled'].includes(order.orderStatus);
+  const payableOnline = !['paid', 'refunded'].includes(order.paymentStatus)
+    && ['upi', 'card', 'bank_transfer'].includes(order.paymentMethod)
+    && order.orderStatus !== 'cancelled';
+
+  const PAYMENT_MODES = [
+    { id: 'upi', label: 'UPI', icon: <FiSmartphone /> },
+    { id: 'debit_card', label: 'Debit Card', icon: <FiCreditCard /> },
+    { id: 'credit_card', label: 'Credit Card', icon: <FiCreditCard /> },
+    { id: 'net_banking', label: 'Net Banking', icon: <FiGlobe /> },
+  ];
 
   const getLocalYMD = (date) => {
     const y = date.getFullYear();
@@ -287,6 +321,28 @@ export default function OrderDetail() {
             </div>
           </div>
 
+          {payableOnline && (
+            <div className="bg-amber-50 rounded-2xl border border-amber-200 p-6">
+              <h3 className="font-bold text-amber-800 mb-1">💳 Payment Required</h3>
+              <p className="text-xs text-amber-700 mb-4">Your order is on hold until payment is completed. Resume your payment to confirm it.</p>
+              <div className="grid grid-cols-2 gap-2 mb-4">
+                {PAYMENT_MODES.map(mode => (
+                  <button key={mode.id} type="button" onClick={() => setPayingMode(mode.id)}
+                    className={`p-2 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                      payingMode === mode.id ? 'bg-amber-600 text-white border-amber-600 shadow-sm' : 'bg-white text-gray-700 border-gray-200 hover:border-amber-300'
+                    }`}>
+                    {mode.icon} {mode.label}
+                  </button>
+                ))}
+              </div>
+              <button onClick={handlePayNow} disabled={payingLoading}
+                className={`w-full py-3 rounded-xl font-bold text-white bg-amber-600 hover:bg-amber-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-md`}>
+                {payingLoading ? <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-white"></span> : null}
+                Pay Now ₹{order.finalAmount?.toFixed(2)}
+              </button>
+            </div>
+          )}
+
           {order.deliveryAddress && (
             <div className="bg-white rounded-2xl border border-gray-100 p-6">
               <h3 className="font-bold text-gray-800 mb-3">Delivery Address</h3>
@@ -304,6 +360,23 @@ export default function OrderDetail() {
           )}
         </div>
       </div>
+
+      {/* Online Payment Resume Modal */}
+      {showPaymentModal && pendingGateway && (
+        <PaymentGatewayModal
+          open={showPaymentModal}
+          onClose={() => { setShowPaymentModal(false); setPendingGateway(null); }}
+          orderNumber={order.orderNumber}
+          amount={order.finalAmount}
+          paymentMode={payingMode}
+          gatewayData={pendingGateway}
+          onSuccess={async () => {
+            setShowPaymentModal(false);
+            setPendingGateway(null);
+            await refreshOrder();
+          }}
+        />
+      )}
     </div>
   );
 }
