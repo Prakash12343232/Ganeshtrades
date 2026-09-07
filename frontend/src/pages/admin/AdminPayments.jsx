@@ -6,12 +6,20 @@ export default function AdminPayments() {
   const [payments, setPayments] = useState([]);
   const [pending, setPending] = useState([]);
   const [tab, setTab] = useState('payments');
-  const [, setLoading] = useState(true);
+  const [pagination, setPagination] = useState({ total: 0, page: 1, pages: 1 });
+
+  const fetchPayments = (nextPage = 1) => {
+    getPayments({ page: nextPage, limit: 20 })
+      .then(pRes => {
+        setPayments(pRes.data.data);
+        setPagination(pRes.data.pagination);
+      })
+      .catch(() => {});
+  };
 
   useEffect(() => {
-    Promise.all([getPayments({ limit: 50 }), getPendingPayments()])
-      .then(([pRes, pendRes]) => { setPayments(pRes.data.data); setPending(pendRes.data.data); })
-      .catch(() => {}).finally(() => setLoading(false));
+    fetchPayments(1);
+    getPendingPayments().then(pendRes => setPending(pendRes.data.data)).catch(() => {});
   }, []);
 
   return (
@@ -52,6 +60,23 @@ export default function AdminPayments() {
             </table>
           </div>
           {payments.length === 0 && <div className="text-center py-10 text-gray-400">No payments found</div>}
+          {pagination.pages > 1 && (
+            <div className="flex items-center justify-end gap-1 px-4 py-3 border-t border-gray-100">
+              <span className="text-xs text-gray-400 mr-2">Page {pagination.page} of {pagination.pages}</span>
+              <button onClick={() => fetchPayments(Math.max(1, pagination.page - 1))} disabled={pagination.page <= 1}
+                className="w-8 h-8 rounded-lg text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-40"
+                aria-label="Previous page">‹</button>
+              {Array.from({ length: pagination.pages }, (_, i) => (
+                <button key={i + 1} onClick={() => fetchPayments(i + 1)}
+                  className={`w-8 h-8 rounded-lg text-sm font-medium transition-all ${pagination.page === i + 1 ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                  {i + 1}
+                </button>
+              ))}
+              <button onClick={() => fetchPayments(Math.min(pagination.pages, pagination.page + 1))} disabled={pagination.page >= pagination.pages}
+                className="w-8 h-8 rounded-lg text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-40"
+                aria-label="Next page">›</button>
+            </div>
+          )}
         </div>
       ) : (
         <div className="space-y-4">

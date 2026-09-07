@@ -6,15 +6,16 @@ import { FiDollarSign } from 'react-icons/fi';
 export default function AdminCredit() {
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [pagination, setPagination] = useState({ total: 0, page: 1, pages: 1 });
   const [selectedUser, setSelectedUser] = useState(null);
   const [settleAmount, setSettleAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cash');
 
-  const fetchCreditCustomers = () => {
-    // Ideally we filter backend, but for simplicity here we fetch all and filter client side
-    getUsers({ limit: 100 }).then(res => {
+  const fetchCreditCustomers = (nextPage = 1) => {
+    getUsers({ page: nextPage, limit: 20, hasCredit: true }).then(res => {
       const creditUsers = res.data.data.filter(u => u.creditBalance > 0 || u.creditLimit > 0);
       setCustomers(creditUsers);
+      setPagination(res.data.pagination);
     }).catch(() => {}).finally(() => setLoading(false));
   };
 
@@ -31,7 +32,7 @@ export default function AdminCredit() {
       toast.success('Settlement recorded');
       setSelectedUser(null);
       setSettleAmount('');
-      fetchCreditCustomers();
+      fetchCreditCustomers(pagination.page);
     } catch (err) { toast.error(err.response?.data?.message || 'Failed'); }
   };
 
@@ -73,6 +74,24 @@ export default function AdminCredit() {
         ))}
         {customers.length === 0 && <div className="col-span-full text-center py-10 text-gray-400">No credit accounts found</div>}
       </div>
+
+      {pagination.pages > 1 && (
+        <div className="flex items-center justify-end gap-1 pt-4 pb-2">
+          <span className="text-xs text-gray-400 mr-2">Page {pagination.page} of {pagination.pages}</span>
+          <button onClick={() => fetchCreditCustomers(Math.max(1, pagination.page - 1))} disabled={pagination.page <= 1}
+            className="w-8 h-8 rounded-lg text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-40"
+            aria-label="Previous page">‹</button>
+          {Array.from({ length: pagination.pages }, (_, i) => (
+            <button key={i + 1} onClick={() => fetchCreditCustomers(i + 1)}
+              className={`w-8 h-8 rounded-lg text-sm font-medium transition-all ${pagination.page === i + 1 ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+              {i + 1}
+            </button>
+          ))}
+          <button onClick={() => fetchCreditCustomers(Math.min(pagination.pages, pagination.page + 1))} disabled={pagination.page >= pagination.pages}
+            className="w-8 h-8 rounded-lg text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-40"
+            aria-label="Next page">›</button>
+        </div>
+      )}
 
       {selectedUser && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">

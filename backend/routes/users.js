@@ -11,19 +11,27 @@ const { escapeRegex, sanitizeSort, pickFields, parsePagination } = require('../u
 // @access  Private/Admin
 router.get('/', protect, authorize('admin', 'manager'), async (req, res) => {
   try {
-    const { customerType, role, search, page = 1, limit = 20, sort = '-createdAt' } = req.query;
+    const { customerType, role, search, hasCredit, page = 1, limit = 20, sort = '-createdAt' } = req.query;
     const query = {};
 
     if (customerType) query.customerType = customerType;
     if (role) query.role = role;
+    const andClauses = [];
+    if (hasCredit === 'true') {
+      andClauses.push({ $or: [{ creditBalance: { $gt: 0 } }, { creditLimit: { $gt: 0 } }] });
+    }
     if (search) {
       const safeSearch = escapeRegex(search);
-      query.$or = [
-        { name: { $regex: safeSearch, $options: 'i' } },
-        { mobile: { $regex: safeSearch, $options: 'i' } },
-        { email: { $regex: safeSearch, $options: 'i' } }
-      ];
+      andClauses.push({
+        $or: [
+          { name: { $regex: safeSearch, $options: 'i' } },
+          { mobile: { $regex: safeSearch, $options: 'i' } },
+          { email: { $regex: safeSearch, $options: 'i' } }
+        ]
+      });
     }
+    if (andClauses.length === 1) { Object.assign(query, andClauses[0]); }
+    else if (andClauses.length > 1) { query.$and = andClauses; }
 
     // BUG-07 fix: use parsePagination to cap limit (prevents limit=100000 full-scan)
     const paging = parsePagination(page, limit, 200);
