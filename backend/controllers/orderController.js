@@ -359,6 +359,14 @@ exports.rescheduleOrder = async (req, res) => {
     const [sYear, sMonth, sDay] = scheduledDate.split('-');
     const localScheduledDate = new Date(sYear, sMonth - 1, sDay);
 
+    // Keep the ETA banner consistent with the new slot instead of showing a stale estimate
+    const slotMatch = timeSlot.match(/^(\d+)\s*(AM|PM)/i);
+    let slotHour = slotMatch ? parseInt(slotMatch[1]) : 12;
+    const slotPeriod = slotMatch ? slotMatch[2].toUpperCase() : 'PM';
+    if (slotPeriod === 'PM' && slotHour !== 12) slotHour += 12;
+    if (slotPeriod === 'AM' && slotHour === 12) slotHour = 0;
+    order.estimatedDeliveryTime = new Date(sYear, sMonth - 1, sDay, slotHour, 0, 0);
+
     order.deliveryType = 'scheduled';
     order.scheduledDelivery = {
       ...order.scheduledDelivery?.toObject?.() || {},

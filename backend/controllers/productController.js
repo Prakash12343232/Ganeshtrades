@@ -20,11 +20,21 @@ const PRODUCT_FIELDS = [
 
 exports.getProducts = async (req, res) => {
   try {
-    const { category, search, minPrice, maxPrice, minRating, availability, sort = '-createdAt', page = 1, limit = 20 } = req.query;
+    const { category, search, minPrice, maxPrice, minRating, availability, status, sort = '-createdAt', page = 1, limit = 20 } = req.query;
     const query = {};
 
     if (category) query.category = category;
-    query.status = { $ne: 'inactive' };
+
+    // Explicit status filter for admin catalog views. The public default only
+    // surfaces non-inactive products; 'all' lets admins see/edit/reactivate
+    // archived products.
+    if (status === 'all') {
+      // no status filter — include every status
+    } else if (['active', 'inactive', 'out_of_stock'].includes(status)) {
+      query.status = status;
+    } else {
+      query.status = { $ne: 'inactive' };
+    }
 
     // Availability filter
     if (availability === 'in_stock') {

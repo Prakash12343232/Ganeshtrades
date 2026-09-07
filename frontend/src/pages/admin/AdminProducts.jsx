@@ -33,7 +33,7 @@ export default function AdminProducts() {
   });
 
   const fetchProducts = () => {
-    getProducts({ limit: 150, status: '' })
+    getProducts({ limit: 150, status: 'all' })
       .then(res => setProducts(res.data.data))
       .catch(() => {})
       .finally(() => setLoading(false));

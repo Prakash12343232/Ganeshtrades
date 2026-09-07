@@ -16,7 +16,7 @@ export default function BulkImageManager() {
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      const res = await getProducts({ limit: 200, sort: 'name' });
+      const res = await getProducts({ limit: 200, sort: 'name', status: 'all' });
       if (res.data.success) {
         setProducts(res.data.data || []);
       }

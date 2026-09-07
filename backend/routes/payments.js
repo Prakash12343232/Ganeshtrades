@@ -189,7 +189,8 @@ router.post('/verify', protect, async (req, res) => {
     const payment = await Payment.findOne({ gatewayOrderId, user: req.user._id });
     if (!payment) return res.status(404).json({ success: false, message: 'Payment not found' });
     if (payment.paymentStatus === 'completed') {
-      return res.status(400).json({ success: false, message: 'Payment already verified' });
+      // Idempotent: a retry after a lost response must not fail the flow.
+      return res.json({ success: true, message: 'Payment already verified', data: payment });
     }
 
     // Simulated verification — in production, verify signature with Razorpay SDK

@@ -117,7 +117,7 @@ export default function OrderDetail() {
                 <FiEdit3 /> Reschedule
               </button>
             )}
-            {!['delivered', 'cancelled'].includes(order.orderStatus) && (
+            {['pending', 'confirmed'].includes(order.orderStatus) && (
               <button onClick={handleCancel} className="flex items-center gap-2 px-4 py-2 bg-red-100 text-red-600 rounded-lg text-sm font-medium hover:bg-red-200 transition-all">
                 <FiX /> Cancel
               </button>
@@ -213,7 +213,7 @@ export default function OrderDetail() {
               <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-white rounded-lg border border-gray-200 overflow-hidden flex-shrink-0">
-                    <ProductImage src={item.image} alt={item.name} showFallbackLabel={false} />
+                    <ProductImage src={item.product?.image || item.image} alt={item.name} showFallbackLabel={false} />
                   </div>
                   <div><p className="font-medium text-sm">{item.name}</p><p className="text-xs text-gray-400">₹{item.price} × {item.quantity}</p></div>
                 </div>

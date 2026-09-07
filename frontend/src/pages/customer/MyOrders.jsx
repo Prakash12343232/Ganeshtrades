@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { getOrders } from '../../services/api';
 import { FiEye, FiPackage, FiCalendar, FiZap, FiClock } from 'react-icons/fi';
@@ -18,15 +18,36 @@ const STATUS_LABELS = {
 export default function MyOrders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [filter, setFilter] = useState('');
   const [deliveryFilter, setDeliveryFilter] = useState('');
 
-  useEffect(() => {
-    const params = {};
+  const fetchOrders = useCallback(async (pageNum, append = false) => {
+    const params = { page: pageNum, limit: 10 };
     if (filter) params.status = filter;
     if (deliveryFilter) params.deliveryType = deliveryFilter;
-    getOrders(params).then(res => setOrders(res.data.data)).catch(() => {}).finally(() => setLoading(false));
+    try {
+      const res = await getOrders(params);
+      setOrders(prev => append ? [...prev, ...res.data.data] : res.data.data);
+      setHasMore((res.data.pagination?.page || 1) < (res.data.pagination?.pages || 1));
+      setPage(pageNum);
+    } catch { if (!append) setOrders([]); }
+    finally { setLoading(false); setLoadingMore(false); }
   }, [filter, deliveryFilter]);
+
+  useEffect(() => {
+    setLoading(true);
+    setLoadingMore(false);
+    fetchOrders(1);
+  }, [fetchOrders]);
+
+  const loadMore = () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    fetchOrders(page + 1, true);
+  };
 
   if (loading) return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary-500"></div></div>;
 
@@ -100,6 +121,17 @@ export default function MyOrders() {
               </div>
             </Link>
           ))}
+        </div>
+      )}
+      {!loading && hasMore && (
+        <div className="flex justify-center pt-6">
+          <button
+            onClick={loadMore}
+            disabled={loadingMore}
+            className="px-6 py-2.5 bg-white border border-primary-200 text-primary-600 rounded-xl text-sm font-semibold hover:bg-primary-50 disabled:opacity-50 transition-all"
+          >
+            {loadingMore ? 'Loading...' : 'Load More Orders'}
+          </button>
         </div>
       )}
     </div>

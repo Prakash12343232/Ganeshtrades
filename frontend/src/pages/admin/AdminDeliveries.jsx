@@ -29,6 +29,7 @@ export default function AdminDeliveries() {
   };
 
   if (loading) return <div className="text-center py-10">Loading...</div>;
+  if (!data) return <div className="text-center py-10 text-gray-500">Failed to load deliveries. Please try again.</div>;
 
   const currentList = data[tab] || [];
 
