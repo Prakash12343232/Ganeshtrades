@@ -19,10 +19,10 @@ router.get('/', async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
-// @desc    Update settings (Admin only)
+// @desc    Update settings (Admin or Manager)
 // @route   PUT /api/settings
-// @access  Private/Admin
-router.put('/', protect, authorize('admin'), async (req, res, next) => {
+// @access  Private/Admin/Manager
+router.put('/', protect, authorize('admin', 'manager'), async (req, res, next) => {
   try {
     let settings = await Settings.findOne();
     if (!settings) {

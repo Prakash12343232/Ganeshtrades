@@ -10,9 +10,13 @@ export default function AdminExpenses() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ category: 'miscellaneous', amount: '', description: '' });
+  const [pagination, setPagination] = useState({ page: 1, pages: 1 });
 
-  const fetchExpenses = () => {
-    getExpenses().then(res => setExpenses(res.data.data)).catch(() => {}).finally(() => setLoading(false));
+  const fetchExpenses = (page = 1) => {
+    getExpenses({ page, limit: 50 }).then(res => {
+      setExpenses(res.data.data);
+      setPagination(res.data.pagination);
+    }).catch(() => {}).finally(() => setLoading(false));
   };
 
   useEffect(() => { fetchExpenses(); }, []);
@@ -24,7 +28,7 @@ export default function AdminExpenses() {
       toast.success('Expense recorded');
       setShowModal(false);
       setForm({ category: 'miscellaneous', amount: '', description: '' });
-      fetchExpenses();
+      fetchExpenses(pagination.page);
     } catch { toast.error('Failed'); }
   };
 
@@ -33,7 +37,7 @@ export default function AdminExpenses() {
     try {
       await deleteExpense(id);
       toast.success('Deleted');
-      fetchExpenses();
+      fetchExpenses(pagination.page);
     } catch { toast.error('Failed'); }
   };
 
@@ -76,6 +80,17 @@ export default function AdminExpenses() {
             </tbody>
           </table>
         </div>
+        {pagination.pages > 1 && (
+          <div className="flex items-center justify-center gap-2 p-4 border-t border-gray-100">
+            <span className="text-xs text-gray-400 mr-2">Page {pagination.page} of {pagination.pages}</span>
+            {Array.from({ length: pagination.pages }, (_, i) => (
+              <button key={i + 1} onClick={() => fetchExpenses(i + 1)}
+                className={`w-8 h-8 rounded-lg text-sm font-medium transition-all ${pagination.page === i + 1 ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                {i + 1}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {showModal && (

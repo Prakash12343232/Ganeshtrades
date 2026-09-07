@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getOrders, updateOrderStatus, rescheduleOrder } from '../../services/api';
+import { getOrders, updateOrderStatus, rescheduleOrder, assignDelivery } from '../../services/api';
 import toast from 'react-hot-toast';
-import { FiCheck, FiTruck, FiX, FiCalendar, FiZap, FiEdit3 } from 'react-icons/fi';
+import { FiCheck, FiTruck, FiX, FiCalendar, FiZap, FiEdit3, FiUser } from 'react-icons/fi';
 
 const STATUS_COLORS = {
   pending: 'bg-yellow-100 text-yellow-700', confirmed: 'bg-blue-100 text-blue-700',
@@ -30,17 +30,38 @@ export default function AdminOrders() {
   const [reschedSlot, setReschedSlot] = useState('');
   const [rescheduling, setRescheduling] = useState(false);
 
-  const fetchOrders = useCallback(() => {
-    const params = { limit: 50 };
+  // Assign delivery state
+  const [assignModal, setAssignModal] = useState(null);
+  const [deliveryName, setDeliveryName] = useState('');
+  const [deliveryMobile, setDeliveryMobile] = useState('');
+  const [deliveryNotes, setDeliveryNotes] = useState('');
+  const [assigning, setAssigning] = useState(false);
+
+  // Pagination
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+
+  const fetchOrders = useCallback((nextPage = 1) => {
+    const params = { page: nextPage, limit: 50 };
     if (filter) params.status = filter;
     if (deliveryFilter) params.deliveryType = deliveryFilter;
     if (dateFilter) params.scheduledDate = dateFilter;
     if (slotFilter) params.timeSlot = slotFilter;
     
-    getOrders(params).then(res => setOrders(res.data.data)).catch(() => {}).finally(() => setLoading(false));
+    getOrders(params).then(res => {
+      setOrders(prev => nextPage === 1 ? res.data.data : [...prev, ...res.data.data]);
+      setPage(nextPage);
+      setHasMore(nextPage * 50 < res.data.pagination.total);
+    }).catch(() => {}).finally(() => setLoading(false));
   }, [filter, deliveryFilter, dateFilter, slotFilter]);
 
-  useEffect(() => { fetchOrders(); }, [fetchOrders]);
+  useEffect(() => {
+    fetchOrders(1);
+  }, [fetchOrders]);
+
+  const loadMoreOrders = () => {
+    fetchOrders(page + 1);
+  };
 
   const handleStatusUpdate = async (orderId, status) => {
     try {
@@ -72,6 +93,28 @@ export default function AdminOrders() {
       setReschedDate('');
       setReschedSlot('');
     }
+  };
+
+  const openAssignModal = (order) => {
+    setAssignModal(order);
+    setDeliveryName('');
+    setDeliveryMobile('');
+    setDeliveryNotes('');
+  };
+
+  const handleAssignDelivery = async () => {
+    if (!deliveryName.trim()) return toast.error('Enter delivery person name');
+    if (!/^[6-9]\d{9}$/.test(deliveryMobile)) return toast.error('Enter a valid 10-digit mobile number');
+    setAssigning(true);
+    try {
+      const payload = { orderId: assignModal._id, deliveryPersonName: deliveryName.trim(), deliveryPersonMobile: deliveryMobile };
+      if (deliveryNotes.trim()) payload.notes = deliveryNotes.trim();
+      await assignDelivery(payload);
+      toast.success('Delivery assigned!');
+      fetchOrders();
+      setAssignModal(null);
+    } catch (err) { toast.error(err.response?.data?.message || 'Failed to assign delivery'); }
+    finally { setAssigning(false); }
   };
 
   return (
@@ -150,6 +193,11 @@ export default function AdminOrders() {
                           <FiZap className="w-3 h-3" /> Instant
                         </span>
                       )}
+                      {order.deliveryAssigned && (
+                        <p className="text-xs text-green-600 font-medium mt-1.5 flex items-center gap-1">
+                          <FiTruck className="w-3 h-3" /> {order.deliveryPersonName}
+                        </p>
+                      )}
                     </td>
                     <td className="py-3 px-4">
                       <p className="font-semibold text-primary-600">₹{order.finalAmount}</p>
@@ -171,6 +219,9 @@ export default function AdminOrders() {
                         {order.orderStatus === 'out_for_delivery' && (
                           <button onClick={() => handleStatusUpdate(order._id, 'delivered')} className="p-1.5 bg-green-50 text-green-600 rounded hover:bg-green-100" title="Delivered"><FiCheck className="w-4 h-4" /></button>
                         )}
+                        {!order.deliveryAssigned && !['delivered', 'cancelled'].includes(order.orderStatus) && (
+                          <button onClick={() => openAssignModal(order)} className="p-1.5 bg-teal-50 text-teal-600 rounded hover:bg-teal-100" title="Assign Delivery"><FiUser className="w-4 h-4" /></button>
+                        )}
                         {order.deliveryType === 'scheduled' && !['delivered', 'cancelled'].includes(order.orderStatus) && (
                           <button onClick={() => openRescheduleModal(order)} className="p-1.5 bg-gray-100 text-gray-600 rounded hover:bg-gray-200" title="Reschedule"><FiEdit3 className="w-4 h-4" /></button>
                         )}
@@ -182,6 +233,54 @@ export default function AdminOrders() {
             </table>
           </div>
           {orders.length === 0 && <div className="text-center py-10 text-gray-400">No orders found</div>}
+        </div>
+      )}
+
+      {hasMore && !loading && (
+        <div className="text-center mt-4">
+          <button onClick={loadMoreOrders} className="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors">
+            Load More Orders
+          </button>
+        </div>
+      )}
+
+      {/* Assign Delivery Modal */}
+      {assignModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-fadeIn">
+            <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+              <h2 className="font-bold text-gray-800 flex items-center gap-2"><FiTruck className="text-teal-500" /> Assign Delivery for Order #{assignModal.orderNumber}</h2>
+              <button onClick={() => setAssignModal(null)} className="text-gray-400 hover:text-gray-600"><FiX className="w-5 h-5" /></button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="bg-teal-50 border border-teal-100 rounded-xl p-3 text-sm text-teal-800">
+                Assigning a delivery person will move the order to <span className="font-semibold capitalize">processing</span> and notify the customer.
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Delivery Person Name</label>
+                <input type="text" value={deliveryName} onChange={e => setDeliveryName(e.target.value)} placeholder="e.g. Rahul Sharma"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-400" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Mobile Number</label>
+                <input type="tel" value={deliveryMobile} onChange={e => setDeliveryMobile(e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="10-digit mobile number"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-400" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Notes <span className="text-gray-400 font-normal">(optional)</span></label>
+                <textarea value={deliveryNotes} onChange={e => setDeliveryNotes(e.target.value)} rows="2" placeholder="Any instructions for the delivery person"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-400" />
+              </div>
+            </div>
+            <div className="p-4 border-t border-gray-100 flex gap-3 bg-gray-50">
+              <button onClick={handleAssignDelivery} disabled={assigning} className="flex-1 py-2.5 bg-teal-600 text-white rounded-xl font-semibold hover:bg-teal-700 disabled:opacity-50 transition-colors">
+                {assigning ? 'Assigning...' : 'Assign Delivery'}
+              </button>
+              <button onClick={() => setAssignModal(null)} className="px-6 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors">
+                Cancel
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

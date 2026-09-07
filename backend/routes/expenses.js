@@ -48,7 +48,7 @@ router.get('/', async (req, res) => {
 });
 
 // DELETE /api/expenses/:id
-router.delete('/:id', authorize('admin'), async (req, res) => {
+router.delete('/:id', authorize('admin', 'manager'), async (req, res) => {
   try {
     const expense = await Expense.findByIdAndDelete(req.params.id);
     if (!expense) return res.status(404).json({ success: false, message: 'Expense not found' });

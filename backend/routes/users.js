@@ -137,9 +137,6 @@ router.put('/:id', protect, authorize('admin', 'manager'), async (req, res) => {
     }
 
     if (isActive !== undefined) {
-      if (req.user.role !== 'admin') {
-        return res.status(403).json({ success: false, message: 'Only administrators can activate or deactivate users' });
-      }
       if (targetUser._id.toString() === req.user._id.toString() && isActive === false) {
         return res.status(400).json({ success: false, message: 'Cannot deactivate your own account' });
       }

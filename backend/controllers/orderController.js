@@ -3,6 +3,7 @@ const Product = require('../models/Product');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
 const CreditTransaction = require('../models/CreditTransaction');
+const Delivery = require('../models/Delivery');
 const { createAuditLog } = require('../utils/auditLogger');
 const { generateInvoicePDF } = require('../utils/pdfGenerator');
 const { checkServiceability } = require('../utils/distance');
@@ -259,7 +260,26 @@ exports.getOrders = async (req, res) => {
     const total = await Order.countDocuments(query);
     const safeSort = sanitizeSort(sort, '-createdAt', ['createdAt', 'totalAmount', 'orderStatus', 'finalAmount', 'deliveryDate']);
     const orders = await Order.find(query).populate('user', 'name mobile customerType').sort(safeSort).skip(paging.skip).limit(paging.limit);
-    res.json({ success: true, data: orders, pagination: { total, page: paging.page, pages: Math.ceil(total / paging.limit) } });
+
+    // Attach delivery assignment info so admin UIs can show/trigger assignment
+    const deliveryByOrder = new Map();
+    const orderIds = orders.map((o) => o._id);
+    if (orderIds.length) {
+      const deliveries = await Delivery.find({ order: { $in: orderIds } }).select('order deliveryPersonName deliveryPersonMobile status');
+      deliveries.forEach((d) => deliveryByOrder.set(String(d.order), d));
+    }
+    const data = orders.map((o) => {
+      const delivery = deliveryByOrder.get(String(o._id));
+      return {
+        ...o.toObject(),
+        deliveryAssigned: Boolean(delivery),
+        deliveryPersonName: delivery?.deliveryPersonName || null,
+        deliveryPersonMobile: delivery?.deliveryPersonMobile || null,
+        deliveryStatus: delivery?.status || null
+      };
+    });
+
+    res.json({ success: true, data, pagination: { total, page: paging.page, pages: Math.ceil(total / paging.limit) } });
   } catch (error) { res.status(500).json({ success: false, message: error.message }); }
 };
 

@@ -41,4 +41,42 @@ describe('Deliveries Workflow', () => {
     const o = await Order.findById(order._id);
     expect(o.orderStatus).toEqual('delivered');
   });
+
+  it('should reject duplicate delivery assignment for the same order', async () => {
+    const res = await request(app)
+      .post('/api/deliveries')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ orderId: order._id, deliveryPersonName: 'Delivery Man', deliveryPersonMobile: '9111111111' });
+    expect(res.statusCode).toEqual(201);
+
+    const res2 = await request(app)
+      .post('/api/deliveries')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ orderId: order._id, deliveryPersonName: 'Someone Else', deliveryPersonMobile: '9222222222' });
+    expect(res2.statusCode).toEqual(400);
+    expect(res2.body.message).toMatch(/already assigned/i);
+  });
+
+  it('GET /api/orders should report delivery assignment state', async () => {
+    // No delivery yet -> deliveryAssigned false
+    const before = await request(app)
+      .get('/api/orders')
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(before.statusCode).toEqual(200);
+    expect(before.body.data[0].deliveryAssigned).toEqual(false);
+
+const assignRes = await request(app)
+      .post('/api/deliveries')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ orderId: order._id, deliveryPersonName: 'Delivery Man', deliveryPersonMobile: '9111111111' });
+    expect(assignRes.statusCode).toEqual(201);
+
+    // After assignment -> deliveryAssigned true with person info
+    const after = await request(app)
+      .get('/api/orders')
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(after.body.data[0].deliveryAssigned).toEqual(true);
+    expect(after.body.data[0].deliveryPersonName).toEqual('Delivery Man');
+    expect(after.body.data[0].deliveryStatus).toEqual('assigned');
+  });
 });
