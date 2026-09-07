@@ -6,23 +6,7 @@ import toast from 'react-hot-toast';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { FiTrash2, FiMinus, FiPlus, FiAlertTriangle, FiCheckCircle, FiClock, FiCalendar, FiZap, FiCreditCard, FiSmartphone, FiGlobe, FiLock, FiCheck } from 'react-icons/fi';
 import ProductImage from '../../components/common/ProductImage';
-
-const TIME_SLOTS = [
-  '8 AM - 10 AM', '10 AM - 12 PM', '12 PM - 2 PM',
-  '2 PM - 4 PM', '4 PM - 6 PM', '6 PM - 8 PM', '8 PM - 10 PM'
-];
-
-const SLOT_ICONS = ['🌅', '☀️', '🌤️', '⛅', '🌇', '🌆', '🌙'];
-
-function parseSlotStartHour(slot) {
-  const match = slot.match(/^(\d+)\s*(AM|PM)/i);
-  if (!match) return 0;
-  let hour = parseInt(match[1]);
-  const period = match[2].toUpperCase();
-  if (period === 'PM' && hour !== 12) hour += 12;
-  if (period === 'AM' && hour === 12) hour = 0;
-  return hour;
-}
+import { TIME_SLOTS, SLOT_ICONS, getAvailableSlots } from '../../utils/timeSlots';
 
 export default function Cart() {
   const { items, removeFromCart, updateQuantity, clearCart, totalAmount } = useCart();
@@ -74,12 +58,7 @@ export default function Cart() {
   maxDate.setDate(maxDate.getDate() + 30);
   const maxDateStr = getLocalYMD(maxDate);
 
-  const availableSlots = useMemo(() => {
-    if (!scheduledDate || scheduledDate !== todayStr) return TIME_SLOTS;
-    const now = new Date();
-    const currentHour = now.getHours();
-    return TIME_SLOTS.filter(slot => parseSlotStartHour(slot) > currentHour);
-  }, [scheduledDate, todayStr]);
+  const availableSlots = useMemo(() => getAvailableSlots(scheduledDate, todayStr, new Date()), [scheduledDate, todayStr]);
 
   useEffect(() => {
     if (timeSlot && !availableSlots.includes(timeSlot)) setTimeSlot('');

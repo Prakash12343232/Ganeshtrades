@@ -49,6 +49,10 @@ jobs:
         continue-on-error: true
         run: npm run lint
 
+      - name: Test frontend
+        working-directory: ./frontend
+        run: npm test
+
       - name: Build frontend
         working-directory: ./frontend
         env:
