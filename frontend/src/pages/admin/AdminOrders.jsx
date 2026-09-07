@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getOrders, updateOrderStatus, rescheduleOrder, assignDelivery } from '../../services/api';
+import { getOrders, updateOrderStatus, rescheduleOrder, assignDelivery, createPayment } from '../../services/api';
 import toast from 'react-hot-toast';
-import { FiCheck, FiTruck, FiX, FiCalendar, FiZap, FiEdit3, FiUser } from 'react-icons/fi';
+import { FiCheck, FiTruck, FiX, FiCalendar, FiZap, FiEdit3, FiUser, FiDollarSign } from 'react-icons/fi';
 
 const STATUS_COLORS = {
   pending: 'bg-yellow-100 text-yellow-700', confirmed: 'bg-blue-100 text-blue-700',
@@ -36,6 +36,13 @@ export default function AdminOrders() {
   const [deliveryMobile, setDeliveryMobile] = useState('');
   const [deliveryNotes, setDeliveryNotes] = useState('');
   const [assigning, setAssigning] = useState(false);
+
+  // Record payment state
+  const [payModal, setPayModal] = useState(null);
+  const [payAmount, setPayAmount] = useState('');
+  const [payMethod, setPayMethod] = useState('cash');
+  const [payNotes, setPayNotes] = useState('');
+  const [recording, setRecording] = useState(false);
 
   // Pagination
   const [page, setPage] = useState(1);
@@ -100,6 +107,34 @@ export default function AdminOrders() {
     setDeliveryName('');
     setDeliveryMobile('');
     setDeliveryNotes('');
+  };
+
+  const openPayModal = (order) => {
+    setPayModal(order);
+    setPayAmount(String(order.finalAmount));
+    setPayMethod('cash');
+    setPayNotes('');
+  };
+
+  const handleRecordPayment = async () => {
+    if (!payModal) return;
+    const amount = Number(payAmount);
+    if (!Number.isFinite(amount) || amount <= 0) return toast.error('Enter a valid payment amount');
+    if (amount > payModal.finalAmount) return toast.error(`Amount exceeds order total of ₹${payModal.finalAmount}`);
+    setRecording(true);
+    try {
+      await createPayment({
+        userId: payModal.user._id,
+        orderId: payModal._id,
+        amount,
+        paymentMethod: payMethod,
+        ...(payNotes.trim() ? { notes: payNotes.trim() } : {})
+      });
+      toast.success('Payment recorded');
+      fetchOrders();
+      setPayModal(null);
+    } catch (err) { toast.error(err.response?.data?.message || 'Failed to record payment'); }
+    finally { setRecording(false); }
   };
 
   const handleAssignDelivery = async () => {
@@ -225,6 +260,9 @@ export default function AdminOrders() {
                         {order.deliveryType === 'scheduled' && !['delivered', 'cancelled'].includes(order.orderStatus) && (
                           <button onClick={() => openRescheduleModal(order)} className="p-1.5 bg-gray-100 text-gray-600 rounded hover:bg-gray-200" title="Reschedule"><FiEdit3 className="w-4 h-4" /></button>
                         )}
+                        {order.paymentStatus !== 'paid' && order.orderStatus !== 'cancelled' && (
+                          <button onClick={() => openPayModal(order)} className="p-1.5 bg-green-50 text-green-600 rounded hover:bg-green-100" title="Record Payment"><FiDollarSign className="w-4 h-4" /></button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -241,6 +279,51 @@ export default function AdminOrders() {
           <button onClick={loadMoreOrders} className="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors">
             Load More Orders
           </button>
+        </div>
+      )}
+
+      {/* Record Payment Modal */}
+      {payModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-fadeIn">
+            <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+              <h2 className="font-bold text-gray-800 flex items-center gap-2"><FiDollarSign className="text-green-500" /> Record Payment for Order #{payModal.orderNumber}</h2>
+              <button onClick={() => setPayModal(null)} className="text-gray-400 hover:text-gray-600"><FiX className="w-5 h-5" /></button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="bg-green-50 border border-green-100 rounded-xl p-3 text-sm text-green-800">
+                Customer: <span className="font-semibold">{payModal.user?.name}</span>{payModal.user?.mobile ? ` (${payModal.user.mobile})` : ''} — Order total: <span className="font-semibold">₹{payModal.finalAmount}</span>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Amount (₹)</label>
+                <input type="number" value={payAmount} onChange={e => setPayAmount(e.target.value)} min="1" max={payModal.finalAmount}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-400" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+                <select value={payMethod} onChange={e => setPayMethod(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-400">
+                  <option value="cash">Cash</option>
+                  <option value="upi">UPI</option>
+                  <option value="card">Card</option>
+                  <option value="bank_transfer">Bank Transfer</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Notes <span className="text-gray-400 font-normal">(optional)</span></label>
+                <textarea value={payNotes} onChange={e => setPayNotes(e.target.value)} rows="2" placeholder="Any payment reference details"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-400" />
+              </div>
+            </div>
+            <div className="p-4 border-t border-gray-100 flex gap-3 bg-gray-50">
+              <button onClick={handleRecordPayment} disabled={recording} className="flex-1 py-2.5 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 disabled:opacity-50 transition-colors">
+                {recording ? 'Recording...' : 'Record Payment'}
+              </button>
+              <button onClick={() => setPayModal(null)} className="px-6 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors">
+                Cancel
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

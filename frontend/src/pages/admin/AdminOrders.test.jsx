@@ -6,7 +6,8 @@ vi.mock('../../services/api', () => ({
   getOrders: vi.fn(),
   updateOrderStatus: vi.fn(),
   rescheduleOrder: vi.fn(),
-  assignDelivery: vi.fn()
+  assignDelivery: vi.fn(),
+  createPayment: vi.fn()
 }));
 
 vi.mock('react-hot-toast', () => ({
@@ -14,14 +15,14 @@ vi.mock('react-hot-toast', () => ({
   default: { success: vi.fn(), error: vi.fn() }
 }));
 
-const { getOrders, assignDelivery } = await import('../../services/api');
+const { getOrders, assignDelivery, createPayment } = await import('../../services/api');
 const AdminOrders = (await import('./AdminOrders.jsx')).default;
 
 const baseOrders = [
   {
     _id: 'o1',
     orderNumber: 'GT202500001',
-    user: { name: 'Ravi Kumar', mobile: '9876543210' },
+    user: { _id: 'u1', name: 'Ravi Kumar', mobile: '9876543210' },
     deliveryType: 'instant',
     finalAmount: 120,
     paymentStatus: 'pending',
@@ -33,7 +34,7 @@ const baseOrders = [
   {
     _id: 'o2',
     orderNumber: 'GT202500002',
-    user: { name: 'Sita Devi', mobile: '9123456789' },
+    user: { _id: 'u2', name: 'Sita Devi', mobile: '9123456789' },
     deliveryType: 'scheduled',
     scheduledDelivery: { date: '2025-01-02T00:00:00.000Z', timeSlot: '8 AM - 10 AM' },
     finalAmount: 250,
@@ -50,6 +51,9 @@ const baseOrders = [
 const submitAssign = () =>
     screen.getAllByRole('button', { name: 'Assign Delivery' }).find(b => !b.title);
 
+const submitPay = () =>
+    screen.getAllByRole('button', { name: 'Record Payment' }).find(b => !b.title);
+
 async function openAssignModal() {
   render(<AdminOrders />);
   await screen.findByText('#GT202500001');
@@ -62,6 +66,7 @@ describe('AdminOrders Assign Delivery', () => {
     vi.clearAllMocks();
     getOrders.mockResolvedValue({ data: { data: baseOrders, pagination: { total: baseOrders.length, page: 1, pages: 1 } } });
     assignDelivery.mockResolvedValue({ data: { success: true } });
+    createPayment.mockResolvedValue({ data: { success: true } });
   });
 
   it('renders assigned person for orders that already have a delivery and shows an assign button only for unassigned orders', async () => {
@@ -165,5 +170,72 @@ it('blocks assignment when the mobile number is invalid', async () => {
       expect(assignDelivery).not.toHaveBeenCalled();
     });
     expect(toast.error).toHaveBeenCalledWith('Enter a valid 10-digit mobile number');
+  });
+});
+
+describe('AdminOrders Record Payment', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    getOrders.mockResolvedValue({ data: { data: baseOrders, pagination: { total: baseOrders.length, page: 1, pages: 1 } } });
+    createPayment.mockResolvedValue({ data: { success: true } });
+  });
+
+  it('shows a Record Payment button only for unpaid non-cancelled orders', async () => {
+    render(<AdminOrders />);
+
+    await screen.findByText('#GT202500001');
+    const payButtons = screen.getAllByTitle('Record Payment');
+    expect(payButtons).toHaveLength(1);
+  });
+
+  it('records a payment via the modal and refreshes the order list', async () => {
+    render(<AdminOrders />);
+    await screen.findByText('#GT202500001');
+
+    fireEvent.click(screen.getByTitle('Record Payment'));
+    expect(screen.getByText('Record Payment for Order #GT202500001')).toBeInTheDocument();
+
+    expect(screen.getByDisplayValue('120')).toBeInTheDocument();
+    fireEvent.change(screen.getByPlaceholderText('Any payment reference details'), { target: { value: 'UPI ref 12345' } });
+    fireEvent.click(submitPay());
+
+    await waitFor(() => {
+      expect(createPayment).toHaveBeenCalledWith({
+        userId: 'u1',
+        orderId: 'o1',
+        amount: 120,
+        paymentMethod: 'cash',
+        notes: 'UPI ref 12345'
+      });
+    });
+    expect(toast.success).toHaveBeenCalledWith('Payment recorded');
+    expect(getOrders).toHaveBeenCalledTimes(2);
+  });
+
+  it('blocks submission when the amount exceeds the order total', async () => {
+    render(<AdminOrders />);
+    await screen.findByText('#GT202500001');
+
+    fireEvent.click(screen.getByTitle('Record Payment'));
+    fireEvent.change(screen.getByDisplayValue('120'), { target: { value: '500' } });
+    fireEvent.click(submitPay());
+
+    await waitFor(() => {
+      expect(createPayment).not.toHaveBeenCalled();
+    });
+    expect(toast.error).toHaveBeenCalledWith('Amount exceeds order total of ₹120');
+  });
+
+  it('surfaces a backend rejection as an error toast', async () => {
+    createPayment.mockRejectedValue({ response: { data: { message: 'Payment exceeds outstanding amount of ₹50' } } });
+    render(<AdminOrders />);
+    await screen.findByText('#GT202500001');
+
+    fireEvent.click(screen.getByTitle('Record Payment'));
+    fireEvent.click(submitPay());
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith('Payment exceeds outstanding amount of ₹50');
+    });
   });
 });
