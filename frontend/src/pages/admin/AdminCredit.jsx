@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getUsers, createSettlement } from '../../services/api';
 import toast from 'react-hot-toast';
-import { FiBookOpen, FiDollarSign } from 'react-icons/fi';
+import { FiDollarSign } from 'react-icons/fi';
 
 export default function AdminCredit() {
   const [customers, setCustomers] = useState([]);

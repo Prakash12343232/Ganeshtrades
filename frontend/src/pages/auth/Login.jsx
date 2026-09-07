@@ -62,18 +62,6 @@ export default function Login() {
         }
       }
 
-      const payload = {
-        mobile: form.mobile,
-        password: form.password,
-        useOtp: loginMethod === 'otp',
-        otp: form.otp // login endpoint handles otp verification if useOtp is true via the separate verify logic inside the backend, actually wait!
-      };
-
-      // Ah, our backend expects verify-otp to be called first for login, or we can just send it and let the backend do it.
-      // Wait, in auth.js we wrote:
-      // if (useOtp) { const verifiedOtp = await Otp.findOne({ mobile: normMobile, purpose: 'login', verified: true });
-      // This means OTP must be verified BEFORE calling /login!
-      
       if (loginMethod === 'otp') {
         await verifyOtp({ mobile: form.mobile, otp: form.otp, purpose: 'login' });
         // After successful verification, call login to get the token

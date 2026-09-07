@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Upload, X, Star, Trash2, CheckCircle2, AlertCircle, Image as ImageIcon } from 'lucide-react';
+import { Upload, X, Star, Trash2, CheckCircle2, Image as ImageIcon } from 'lucide-react';
 import ProductImage from '../common/ProductImage';
 import { uploadProductImages, setPrimaryProductImage, deleteProductImageApi } from '../../services/api';
 import toast from 'react-hot-toast';
@@ -109,7 +109,7 @@ export default function ProductImageUploader({ productId, existingImages = [], p
         toast.success('Set as primary product photograph');
         if (onImagesUpdated) onImagesUpdated(res.data.data);
       }
-    } catch (err) {
+    } catch {
       toast.error('Failed to set primary image');
     }
   };
@@ -124,7 +124,7 @@ export default function ProductImageUploader({ productId, existingImages = [], p
         toast.success('Product photograph removed');
         if (onImagesUpdated) onImagesUpdated(res.data.data);
       }
-    } catch (err) {
+    } catch {
       toast.error('Failed to delete product photo');
     }
   };

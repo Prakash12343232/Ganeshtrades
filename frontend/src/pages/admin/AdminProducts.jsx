@@ -14,7 +14,7 @@ const CATEGORIES = [
 
 export default function AdminProducts() {
   const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('catalog'); // 'catalog' | 'bulk_images'
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -98,9 +98,7 @@ export default function AdminProducts() {
       await deleteProduct(id);
       toast.success('Product removed');
       fetchProducts();
-    } catch (err) {
-      toast.error('Failed');
-    }
+    } catch { toast.error('Failed'); }
   };
 
   return (

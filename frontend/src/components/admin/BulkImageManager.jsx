@@ -20,7 +20,7 @@ export default function BulkImageManager() {
       if (res.data.success) {
         setProducts(res.data.data || []);
       }
-    } catch (err) {
+    } catch {
       toast.error('Failed to load products for bulk image management');
     } finally {
       setLoading(false);
@@ -219,7 +219,6 @@ export default function BulkImageManager() {
               <tbody className="divide-y divide-gray-100 text-sm">
                 {filteredProducts.map(product => {
                   const pending = pendingUploads[product._id];
-                  const hasRealPhoto = product.image && product.image.trim() !== '' && !product.image.includes('default-product');
 
                   return (
                     <tr key={product._id} className="hover:bg-gray-50/80 transition">

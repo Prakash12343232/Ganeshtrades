@@ -7,14 +7,6 @@ import toast from 'react-hot-toast';
 import { FiShoppingCart, FiMinus, FiPlus, FiStar, FiThumbsUp, FiCheckCircle, FiShield, FiTag } from 'react-icons/fi';
 import ProductImage from '../../components/common/ProductImage';
 
-const CATEGORY_LABELS = {
-  rice_grains: '🍚 Rice & Grains', dal_pulses: '🫘 Dal & Pulses', spices: '🌶️ Spices',
-  oil_ghee: '🫒 Oil & Ghee', flour: '🌾 Flour', sugar_jaggery: '🍬 Sugar & Jaggery',
-  tea_coffee: '☕ Tea & Coffee', snacks: '🍿 Snacks', beverages: '🥤 Beverages',
-  dairy: '🥛 Dairy', dry_fruits: '🥜 Dry Fruits', cleaning: '🧹 Cleaning',
-  personal_care: '🧴 Personal Care', packaged_food: '📦 Packaged Food', other: '📋 Other'
-};
-
 export default function ProductDetail() {
   const { id } = useParams();
   const [product, setProduct] = useState(null);

@@ -26,7 +26,7 @@ export default function AdminBackups() {
       await triggerBackup();
       toast.success('Backup completed successfully', { id: loadingToast });
       fetchBackups();
-    } catch (error) {
+    } catch {
       toast.error('Backup failed', { id: loadingToast });
     }
     setIsTriggering(false);
@@ -40,7 +40,7 @@ export default function AdminBackups() {
       toast.success('Database restored successfully', { id: loadingToast });
       setShowRestoreModal(null);
       fetchBackups();
-    } catch (error) {
+    } catch {
       toast.error('Database restore failed', { id: loadingToast });
     }
     setIsRestoring(false);
@@ -56,7 +56,7 @@ export default function AdminBackups() {
       document.body.appendChild(link);
       link.click();
       link.remove();
-    } catch (error) {
+    } catch {
       toast.error('Failed to download file');
     }
   };

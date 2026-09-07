@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { updateProfile, changePassword, checkServiceability } from '../../services/api';
 import toast from 'react-hot-toast';
-import { FiUser, FiPhone, FiMail, FiMapPin, FiLock, FiSave, FiCrosshair, FiNavigation, FiCheckCircle, FiXCircle } from 'react-icons/fi';
+import { FiMapPin, FiLock, FiSave, FiCrosshair, FiNavigation, FiCheckCircle, FiXCircle } from 'react-icons/fi';
 
 export default function Profile() {
   const { user, updateUser } = useAuth();

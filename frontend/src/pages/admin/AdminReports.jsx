@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react';
 import { getSalesReport, exportOrders, exportProducts } from '../../services/api';
 import toast from 'react-hot-toast';
-import { FiDownload, FiCalendar } from 'react-icons/fi';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { FiDownload } from 'react-icons/fi';
 
 export default function AdminReports() {
   const [report, setReport] = useState(null);
   const [period, setPeriod] = useState('daily');
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
 
   useEffect(() => {
     getSalesReport({ period }).then(res => setReport(res.data.data)).catch(() => {}).finally(() => setLoading(false));

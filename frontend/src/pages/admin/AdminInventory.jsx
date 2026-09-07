@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getLowStock, updateStock } from '../../services/api';
 import toast from 'react-hot-toast';
-import { FiAlertTriangle, FiPlus, FiMinus } from 'react-icons/fi';
+import { FiAlertTriangle } from 'react-icons/fi';
 import ProductImage from '../../components/common/ProductImage';
 
 export default function AdminInventory() {
@@ -19,7 +19,7 @@ export default function AdminInventory() {
       await updateStock(id, { stock: amount, action });
       toast.success('Stock updated');
       fetchLowStock();
-    } catch (err) { toast.error('Failed'); }
+    } catch { toast.error('Failed'); }
   };
 
   return (

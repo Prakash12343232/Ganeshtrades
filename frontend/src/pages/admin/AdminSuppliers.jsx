@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getSuppliers, getPurchaseOrders, createSupplier } from '../../services/api';
 import toast from 'react-hot-toast';
-import { FiPlus, FiBox } from 'react-icons/fi';
+import { FiPlus } from 'react-icons/fi';
 
 export default function AdminSuppliers() {
   const [suppliers, setSuppliers] = useState([]);
@@ -26,7 +26,7 @@ export default function AdminSuppliers() {
       setShowModal(false);
       setForm({ name: '', mobile: '', gstNumber: '' });
       fetchData();
-    } catch (err) { toast.error('Failed'); }
+    } catch { toast.error('Failed'); }
   };
 
   if (loading) return <div className="text-center py-10">Loading...</div>;

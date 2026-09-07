@@ -1,7 +1,7 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getNotifications, markRead, markAllRead } from '../services/api';
 import { FiShoppingCart, FiUser, FiMenu, FiX, FiHome, FiPackage, FiLogOut, FiLogIn, FiClipboard, FiBell, FiCheck } from 'react-icons/fi';
 import { FaWhatsapp } from 'react-icons/fa';
@@ -17,7 +17,7 @@ export default function CustomerLayout() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const fetchNotifs = () => {
+  const fetchNotifs = useCallback(() => {
     if (user) {
       getNotifications({ limit: 10 })
         .then(res => {
@@ -26,13 +26,13 @@ export default function CustomerLayout() {
         })
         .catch(() => {});
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     fetchNotifs();
     const interval = setInterval(fetchNotifs, 30000); // refresh every 30s
     return () => clearInterval(interval);
-  }, [user]);
+  }, [fetchNotifs]);
 
   const handleMarkRead = async (n) => {
     try {

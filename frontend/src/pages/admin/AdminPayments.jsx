@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react';
-import { getPayments, getPendingPayments, createPayment } from '../../services/api';
-import toast from 'react-hot-toast';
-import { FiDollarSign, FiPlus, FiX } from 'react-icons/fi';
+import { getPayments, getPendingPayments } from '../../services/api';
+import { FiDollarSign } from 'react-icons/fi';
 
 export default function AdminPayments() {
   const [payments, setPayments] = useState([]);
   const [pending, setPending] = useState([]);
   const [tab, setTab] = useState('payments');
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([getPayments({ limit: 50 }), getPendingPayments()])

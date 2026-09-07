@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getFeaturedProducts, getProducts, getCategories } from '../../services/api';
 import { useCart } from '../../context/CartContext';
-import { FiShoppingCart, FiSearch, FiStar, FiArrowRight, FiTruck, FiShield, FiClock, FiAward } from 'react-icons/fi';
+import { FiShoppingCart, FiStar, FiArrowRight, FiTruck, FiShield, FiClock, FiAward } from 'react-icons/fi';
 import ProductImage from '../../components/common/ProductImage';
 
 const CATEGORY_LABELS = {

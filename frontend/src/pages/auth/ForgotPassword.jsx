@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { forgotPassword, resetPassword, sendOtp } from '../../services/api';
+import { forgotPassword, resetPassword } from '../../services/api';
 import toast from 'react-hot-toast';
 import { FiPhone, FiKey, FiLock, FiArrowLeft, FiEye, FiEyeOff, FiCheck, FiX } from 'react-icons/fi';
 
@@ -27,7 +27,7 @@ export default function ForgotPassword() {
     { label: 'One uppercase letter', pass: /[A-Z]/.test(password) },
     { label: 'One lowercase letter', pass: /[a-z]/.test(password) },
     { label: 'One number', pass: /[0-9]/.test(password) },
-    { label: 'One special character', pass: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(password) },
+    { label: 'One special character', pass: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?`~]/.test(password) },
   ];
   const passedCount = checks.filter(c => c.pass).length;
   const strength = passedCount >= 5 ? 'strong' : passedCount >= 3 ? 'medium' : 'weak';

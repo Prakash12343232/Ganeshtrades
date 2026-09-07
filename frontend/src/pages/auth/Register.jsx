@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { register, checkServiceability, sendOtp, verifyOtp } from '../../services/api';
 import toast from 'react-hot-toast';
-import { FiUser, FiPhone, FiMail, FiLock, FiMapPin, FiCrosshair, FiCheckCircle, FiXCircle, FiNavigation, FiKey } from 'react-icons/fi';
+import { FiUser, FiPhone, FiMail, FiLock, FiMapPin, FiCrosshair, FiCheckCircle, FiXCircle, FiKey } from 'react-icons/fi';
 
 export default function Register() {
   const [form, setForm] = useState({ name: '', mobile: '', email: '', password: '', customerType: 'public', address: { street: '', area: '', city: '', pincode: '', lat: null, lng: null }, otp: '' });
@@ -193,7 +193,7 @@ export default function Register() {
                       /[A-Z]/.test(form.password),
                       /[a-z]/.test(form.password),
                       /[0-9]/.test(form.password),
-                      /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(form.password)
+                      /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?`~]/.test(form.password)
                     ].map((passed, idx) => (
                       <div key={idx} className={`h-1 flex-1 rounded-full transition-all ${passed ? 'bg-green-400' : 'bg-white/20'}`} />
                     ))}
