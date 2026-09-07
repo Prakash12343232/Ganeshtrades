@@ -19,23 +19,39 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid delivery person mobile number' });
     }
     
-    const existing = await Delivery.findOne({ order: orderId });
-    if (existing) return res.status(400).json({ success: false, message: 'Delivery already assigned for this order' });
-
     const order = await Order.findById(orderId);
     if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
     if (['delivered', 'cancelled'].includes(order.orderStatus)) {
       return res.status(400).json({ success: false, message: 'Cannot assign delivery for a completed or cancelled order' });
     }
 
-    const delivery = await Delivery.create({
-      order: orderId,
-      deliveryPersonName,
-      deliveryPersonMobile,
-      notes,
-      assignedBy: req.user._id,
-      history: [{ status: 'assigned', note: 'Assigned to ' + deliveryPersonName }]
-    });
+    const existing = await Delivery.findOne({ order: orderId });
+    // A terminal delivery (failed, or delivered on a still-open order) can be replaced
+    // in place so a failed dispatch can be retried with a fresh rider.
+    const canReassign = existing && ['failed', 'delivered'].includes(existing.status);
+    if (existing && !canReassign) {
+      return res.status(400).json({ success: false, message: 'Delivery already assigned for this order' });
+    }
+
+    let delivery;
+    if (canReassign) {
+      existing.deliveryPersonName = deliveryPersonName;
+      existing.deliveryPersonMobile = deliveryPersonMobile;
+      if (notes !== undefined) existing.notes = notes;
+      existing.status = 'assigned';
+      existing.location = undefined;
+      existing.history.push({ status: 'assigned', note: 'Re-assigned to ' + deliveryPersonName });
+      delivery = await existing.save();
+    } else {
+      delivery = await Delivery.create({
+        order: orderId,
+        deliveryPersonName,
+        deliveryPersonMobile,
+        notes,
+        assignedBy: req.user._id,
+        history: [{ status: 'assigned', note: 'Assigned to ' + deliveryPersonName }]
+      });
+    }
 
     order.orderStatus = 'processing';
     await order.save();
@@ -46,11 +62,11 @@ router.post('/', async (req, res) => {
         : '';
     await Notification.create({
       title: '📦 Delivery Assigned',
-      message: `Your order #${order.orderNumber} has been assigned to ${deliveryPersonName}.${scheduleInfo}`,
+      message: `Your order #${order.orderNumber} has been ${canReassign ? 're-' : ''}assigned to ${deliveryPersonName}.${scheduleInfo}`,
       type: 'order', recipient: order.user
     });
 
-    await createAuditLog(req.user._id, 'delivery_assign', 'delivery', delivery._id, { orderId }, req);
+    await createAuditLog(req.user._id, canReassign ? 'delivery_reassign' : 'delivery_assign', 'delivery', delivery._id, { orderId }, req);
     res.status(201).json({ success: true, data: delivery });
   } catch (error) { res.status(400).json({ success: false, message: error.message }); }
 });
@@ -216,7 +232,12 @@ router.put('/:id/status', async (req, res) => {
       }
     } else if (status === 'on_the_way') {
       if (order) {
-        await Order.findByIdAndUpdate(delivery.order, { orderStatus: 'out_for_delivery' });
+        if (order.orderStatus !== 'out_for_delivery') {
+          order.orderStatus = 'out_for_delivery';
+          order.estimatedDeliveryTime = new Date(Date.now() + 30 * 60 * 1000); // 30 min ETA
+          order.statusHistory.push({ status: 'out_for_delivery', note: 'Delivery person on the way' });
+          await order.save();
+        }
         // Dispatch notification for scheduled orders
         if (order.deliveryType === 'scheduled') {
           await Notification.create({

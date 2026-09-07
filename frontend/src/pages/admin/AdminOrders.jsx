@@ -219,7 +219,7 @@ export default function AdminOrders() {
                         {order.orderStatus === 'out_for_delivery' && (
                           <button onClick={() => handleStatusUpdate(order._id, 'delivered')} className="p-1.5 bg-green-50 text-green-600 rounded hover:bg-green-100" title="Delivered"><FiCheck className="w-4 h-4" /></button>
                         )}
-                        {!order.deliveryAssigned && !['delivered', 'cancelled'].includes(order.orderStatus) && (
+                        {(!order.deliveryAssigned || order.deliveryStatus === 'failed') && !['delivered', 'cancelled'].includes(order.orderStatus) && (
                           <button onClick={() => openAssignModal(order)} className="p-1.5 bg-teal-50 text-teal-600 rounded hover:bg-teal-100" title="Assign Delivery"><FiUser className="w-4 h-4" /></button>
                         )}
                         {order.deliveryType === 'scheduled' && !['delivered', 'cancelled'].includes(order.orderStatus) && (

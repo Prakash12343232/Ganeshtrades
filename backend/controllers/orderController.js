@@ -459,6 +459,20 @@ exports.updateOrderStatus = async (req, res) => {
 
     await order.save();
 
+    // Keep the delivery record in sync when the order reaches a terminal state
+    // via the manual status path (unifies it with the delivery-assignment path).
+    if (orderStatus === 'delivered' || orderStatus === 'cancelled') {
+      const delivery = await Delivery.findOne({ order: order._id });
+      if (delivery && !['delivered', 'failed'].includes(delivery.status)) {
+        delivery.status = orderStatus === 'delivered' ? 'delivered' : 'failed';
+        delivery.history.push({
+          status: delivery.status,
+          note: orderStatus === 'delivered' ? 'Order marked as delivered' : 'Order cancelled'
+        });
+        await delivery.save();
+      }
+    }
+
     // Status-specific notification labels
     const statusLabels = { pending: 'Order Received', confirmed: 'Order Confirmed', processing: 'Preparing Your Order', out_for_delivery: 'Out for Delivery', delivered: 'Delivered Successfully', cancelled: 'Order Cancelled' };
     await Notification.create({ title: '📦 Order Update', message: `Order #${order.orderNumber}: ${statusLabels[orderStatus] || orderStatus}`, type: 'order', recipient: order.user, link: `/orders/${order._id}` });
@@ -483,6 +497,14 @@ exports.cancelOrder = async (req, res) => {
     order.cancelReason = req.body.reason || 'Cancelled';
     order.statusHistory.push({ status: 'cancelled', note: order.cancelReason });
     await order.save();
+
+    // A cancelled order must not keep an active delivery in the dispatch queues.
+    const delivery = await Delivery.findOne({ order: order._id });
+    if (delivery && !['delivered', 'failed'].includes(delivery.status)) {
+      delivery.status = 'failed';
+      delivery.history.push({ status: 'failed', note: 'Order cancelled' });
+      await delivery.save();
+    }
 
     if (order.paymentMethod === 'credit') {
       await User.findByIdAndUpdate(order.user, { $inc: { creditBalance: -order.finalAmount } });

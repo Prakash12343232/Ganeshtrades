@@ -95,6 +95,31 @@ describe('AdminOrders Assign Delivery', () => {
     expect(getOrders).toHaveBeenCalledTimes(2);
   });
 
+  it('shows an assign button again for an order whose delivery failed (re-dispatch)', async () => {
+    const orders = [
+      {
+        _id: 'o9',
+        orderNumber: 'GT202500009',
+        user: { name: 'Kiran Rao', mobile: '9812345678' },
+        deliveryType: 'instant',
+        finalAmount: 80,
+        paymentStatus: 'paid',
+        paymentMethod: 'cash',
+        orderStatus: 'processing',
+        createdAt: '2025-01-01T13:00:00.000Z',
+        deliveryAssigned: true,
+        deliveryPersonName: 'Old Rider',
+        deliveryStatus: 'failed'
+      }
+    ];
+    getOrders.mockResolvedValue({ data: { data: orders, pagination: { total: orders.length, page: 1, pages: 1 } } });
+
+    render(<AdminOrders />);
+
+    await screen.findByText('#GT202500009');
+    expect(screen.getByTitle('Assign Delivery')).toBeInTheDocument();
+  });
+
   it('loads more orders when pagination has more pages', async () => {
   getOrders.mockImplementation((params) => {
     if (params.page === 2) {
