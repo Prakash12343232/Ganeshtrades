@@ -13,7 +13,18 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <title>Ganesh Trades - Grocery & Wholesale Shop</title>
+    <script>
+      (function() {
+        try {
+          var t = localStorage.getItem('theme');
+          var theme = t === 'light' ? 'light' : 'dark';
+          document.documentElement.classList.add(theme);
+        } catch (e) {
+          document.documentElement.classList.add('dark');
+        }
+      })();
+    </script>
+    <title>Ganesh Trades - Grocery &amp; Wholesale Shop</title>
   </head>
   <body>
     <div id="root"></div>

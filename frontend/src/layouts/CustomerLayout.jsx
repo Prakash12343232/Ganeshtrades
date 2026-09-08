@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { getNotifications, markRead, markAllRead } from '../services/api';
 import { FiShoppingCart, FiUser, FiMenu, FiX, FiHome, FiPackage, FiLogOut, FiLogIn, FiClipboard, FiBell, FiCheck } from 'react-icons/fi';
 import { FaWhatsapp } from 'react-icons/fa';
+import ThemeToggle from '../components/common/ThemeToggle';
 
 export default function CustomerLayout() {
   const { user, logout } = useAuth();
@@ -68,9 +69,9 @@ export default function CustomerLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-navy-950 text-slate-100 flex flex-col justify-between selection:bg-mint-500 selection:text-navy-950">
+    <div className="min-h-screen bg-navy-950 text-slate-100 flex flex-col justify-between selection:bg-mint-500 selection:text-navy-950 transition-colors duration-200">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-navy-900/90 backdrop-blur-lg border-b border-navy-800 shadow-lg shadow-black/20">
+      <header className="sticky top-0 z-50 bg-navy-900/90 backdrop-blur-lg border-b border-navy-800 shadow-lg shadow-black/20 transition-colors duration-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
@@ -95,7 +96,10 @@ export default function CustomerLayout() {
             </nav>
 
             {/* Actions */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
+              {/* Theme Switcher Toggle */}
+              <ThemeToggle />
+
               {/* Notification Bell */}
               {user && (
                 <div className="relative">
