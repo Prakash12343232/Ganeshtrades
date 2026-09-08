@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseSlotStartHour, getAvailableSlots, TIME_SLOTS } from './timeSlots';
+import { parseSlotStartHour, getAvailableSlots, TIME_SLOTS, SLOT_ICONS, SLOT_ICON_MAP } from './timeSlots';
 
 describe('parseSlotStartHour', () => {
   it('parses AM slots', () => {
@@ -49,5 +49,23 @@ describe('getAvailableSlots', () => {
     const now = new Date('2026-09-08T06:30:00');
     const result = getAvailableSlots(todayStr, todayStr, now);
     expect(result).toEqual(TIME_SLOTS);
+  });
+
+  it('filters a custom slot list for today', () => {
+    const custom = ['6 AM - 8 AM', '12 PM - 2 PM', '9 PM - 11 PM'];
+    const now = new Date('2026-09-08T15:00:00');
+    expect(getAvailableSlots(todayStr, todayStr, now, custom)).toEqual(['9 PM - 11 PM']);
+  });
+});
+
+describe('SLOT_ICON_MAP', () => {
+  it('maps every static slot to its icon by name', () => {
+    TIME_SLOTS.forEach((slot, i) => {
+      expect(SLOT_ICON_MAP[slot]).toBe(SLOT_ICONS[i]);
+    });
+  });
+
+  it('returns undefined for unknown slots', () => {
+    expect(SLOT_ICON_MAP['9 AM - 11 AM']).toBeUndefined();
   });
 });

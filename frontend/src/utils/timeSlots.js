@@ -5,6 +5,8 @@ export const TIME_SLOTS = [
 
 export const SLOT_ICONS = ['🌅', '☀️', '🌤️', '⛅', '🌇', '🌆', '🌙'];
 
+export const SLOT_ICON_MAP = Object.fromEntries(TIME_SLOTS.map((slot, i) => [slot, SLOT_ICONS[i]]));
+
 export function parseSlotStartHour(slot) {
   const match = slot.match(/^(\d+)\s*(AM|PM)/i);
   if (!match) return 0;
@@ -15,8 +17,8 @@ export function parseSlotStartHour(slot) {
   return hour;
 }
 
-export function getAvailableSlots(date, todayStr, now) {
-  if (!date || date !== todayStr) return TIME_SLOTS;
+export function getAvailableSlots(date, todayStr, now, slots = TIME_SLOTS) {
+  if (!date || date !== todayStr) return slots;
   const currentHour = now.getHours();
-  return TIME_SLOTS.filter(slot => parseSlotStartHour(slot) > currentHour);
+  return slots.filter(slot => parseSlotStartHour(slot) > currentHour);
 }

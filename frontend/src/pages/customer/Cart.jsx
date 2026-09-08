@@ -7,7 +7,8 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { FiTrash2, FiMinus, FiPlus, FiAlertTriangle, FiCheckCircle, FiClock, FiCalendar, FiZap, FiCreditCard, FiSmartphone, FiGlobe, FiLock } from 'react-icons/fi';
 import ProductImage from '../../components/common/ProductImage';
 import PaymentGatewayModal from '../../components/common/PaymentGatewayModal';
-import { TIME_SLOTS, SLOT_ICONS, getAvailableSlots } from '../../utils/timeSlots';
+import { SLOT_ICON_MAP, getAvailableSlots } from '../../utils/timeSlots';
+import { useTimeSlots } from '../../utils/useTimeSlots';
 
 export default function Cart() {
   const { items, removeFromCart, updateQuantity, clearCart, totalAmount } = useCart();
@@ -55,7 +56,9 @@ export default function Cart() {
   maxDate.setDate(maxDate.getDate() + 30);
   const maxDateStr = getLocalYMD(maxDate);
 
-  const availableSlots = useMemo(() => getAvailableSlots(scheduledDate, todayStr, new Date()), [scheduledDate, todayStr]);
+  const timeSlots = useTimeSlots();
+
+  const availableSlots = useMemo(() => getAvailableSlots(scheduledDate, todayStr, new Date(), timeSlots), [scheduledDate, todayStr, timeSlots]);
 
   useEffect(() => {
     if (timeSlot && !availableSlots.includes(timeSlot)) setTimeSlot('');
@@ -225,7 +228,7 @@ export default function Cart() {
                           className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-left transition-all ${
                             timeSlot === slot ? 'bg-mint-500/10 border-mint-400 border-2 text-mint-300 font-semibold' : 'border border-navy-800 bg-navy-950 text-slate-300 hover:border-mint-500/30'
                           }`}>
-                          <span>{SLOT_ICONS[TIME_SLOTS.indexOf(slot)]}</span>
+                          <span>{SLOT_ICON_MAP[slot] || '🕒'}</span>
                           <span>{slot}</span>
                         </button>
                       ))}

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { getOrders, updateOrderStatus, rescheduleOrder, assignDelivery, createPayment } from '../../services/api';
 import toast from 'react-hot-toast';
 import { FiCheck, FiTruck, FiX, FiCalendar, FiZap, FiEdit3, FiUser, FiDollarSign } from 'react-icons/fi';
+import { useTimeSlots } from '../../utils/useTimeSlots';
 
 const STATUS_COLORS = {
   pending: 'bg-yellow-100 text-yellow-700', confirmed: 'bg-blue-100 text-blue-700',
@@ -9,12 +10,8 @@ const STATUS_COLORS = {
   delivered: 'bg-green-100 text-green-700', cancelled: 'bg-red-100 text-red-700'
 };
 
-const TIME_SLOTS = [
-  '8 AM - 10 AM', '10 AM - 12 PM', '12 PM - 2 PM',
-  '2 PM - 4 PM', '4 PM - 6 PM', '6 PM - 8 PM', '8 PM - 10 PM'
-];
-
 export default function AdminOrders() {
+  const timeSlots = useTimeSlots();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   
@@ -182,7 +179,7 @@ export default function AdminOrders() {
               <select value={slotFilter} onChange={e => setSlotFilter(e.target.value)}
                 className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-400">
                 <option value="">All Slots</option>
-                {TIME_SLOTS.map(s => <option key={s} value={s}>{s}</option>)}
+                {timeSlots.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
               {(dateFilter || slotFilter) && (
                 <button onClick={() => { setDateFilter(''); setSlotFilter(''); }} className="text-xs text-red-500 hover:underline">Clear</button>
@@ -395,7 +392,7 @@ export default function AdminOrders() {
                 <select value={reschedSlot} onChange={e => setReschedSlot(e.target.value)}
                   className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-400">
                   <option value="">Select a time slot...</option>
-                  {TIME_SLOTS.map(s => <option key={s} value={s}>{s}</option>)}
+                  {timeSlots.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
             </div>

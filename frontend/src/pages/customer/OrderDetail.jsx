@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { FiDownload, FiX, FiCheck, FiClock, FiTruck, FiPackage, FiCalendar, FiZap, FiEdit3, FiCreditCard, FiSmartphone, FiGlobe } from 'react-icons/fi';
 import ProductImage from '../../components/common/ProductImage';
 import PaymentGatewayModal from '../../components/common/PaymentGatewayModal';
+import { useTimeSlots } from '../../utils/useTimeSlots';
 
 const STATUS_STEPS = ['pending', 'confirmed', 'processing', 'out_for_delivery', 'delivered'];
 const STEP_LABELS = {
@@ -16,11 +17,6 @@ const STEP_LABELS = {
 };
 const STEP_ICONS = { pending: <FiClock />, confirmed: <FiCheck />, processing: <FiPackage />, out_for_delivery: <FiTruck />, delivered: <FiCheck /> };
 
-const TIME_SLOTS = [
-  '8 AM - 10 AM', '10 AM - 12 PM', '12 PM - 2 PM',
-  '2 PM - 4 PM', '4 PM - 6 PM', '6 PM - 8 PM', '8 PM - 10 PM'
-];
-
 export default function OrderDetail() {
   const { id } = useParams();
   const [order, setOrder] = useState(null);
@@ -28,6 +24,7 @@ export default function OrderDetail() {
   const [showReschedule, setShowReschedule] = useState(false);
   const [reschedDate, setReschedDate] = useState('');
   const [reschedSlot, setReschedSlot] = useState('');
+  const timeSlots = useTimeSlots();
   const [rescheduling, setRescheduling] = useState(false);
 
   // Online payment resume
@@ -174,7 +171,7 @@ export default function OrderDetail() {
                 <select value={reschedSlot} onChange={e => setReschedSlot(e.target.value)}
                   className="w-full px-3 py-2 bg-navy-900 border border-navy-700 text-slate-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-mint-500">
                   <option value="">Select slot</option>
-                  {TIME_SLOTS.map(s => <option key={s} value={s}>{s}</option>)}
+                  {timeSlots.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
             </div>

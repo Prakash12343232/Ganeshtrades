@@ -2,12 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { getTodayPriority, updateDeliveryStatus, getDeliveries } from '../../services/api';
 import toast from 'react-hot-toast';
 import { FiTruck, FiMapPin, FiClock, FiCalendar, FiAlertTriangle, FiZap, FiGrid, FiList } from 'react-icons/fi';
+import { useTimeSlots } from '../../utils/useTimeSlots';
 
 const DELIVERY_STATUSES = ['assigned', 'picked_up', 'on_the_way', 'delivered', 'failed'];
-const TIME_SLOTS = [
-  '8 AM - 10 AM', '10 AM - 12 PM', '12 PM - 2 PM',
-  '2 PM - 4 PM', '4 PM - 6 PM', '6 PM - 8 PM', '8 PM - 10 PM'
-];
 const HISTORY_STATUS_COLORS = {
   assigned: 'bg-blue-100 text-blue-700',
   picked_up: 'bg-amber-100 text-amber-700',
@@ -17,6 +14,7 @@ const HISTORY_STATUS_COLORS = {
 };
 
 export default function AdminDeliveries() {
+  const timeSlots = useTimeSlots();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('today');
@@ -261,7 +259,7 @@ export default function AdminDeliveries() {
                     <select id="slot-filter" value={slotFilter} onChange={e => setSlotFilter(e.target.value)}
                       className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-400">
                       <option value="">All Slots</option>
-                      {TIME_SLOTS.map(s => <option key={s} value={s}>{s}</option>)}
+                      {timeSlots.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
                   </div>
                 </>
