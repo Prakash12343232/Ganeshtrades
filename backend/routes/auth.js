@@ -146,6 +146,22 @@ router.post('/verify-otp', authLimiter, async (req, res) => {
       console.log(`[BACKEND -> OTP SERVER] Forwarding verify-otp request for ${normMobile} (${purpose})`);
       const otpResult = await OtpClient.verifyOtp(normMobile, otp, purpose);
       if (otpResult.verified || otpResult.success) {
+        // The OTP was verified on the remote otp-server, which keeps its own
+        // database. /register and /login confirm verification against THIS
+        // server's otps collection, so persist a short-lived verified receipt
+        // (expiring via the TTL index) to bridge the two servers.
+        const receipt = await Otp.findOne({
+          mobile: normMobile, purpose, verified: true
+        });
+        if (!receipt) {
+          await Otp.create({
+            mobile: normMobile,
+            otp: 'remote-verified',
+            purpose,
+            verified: true,
+            expiresAt: new Date(Date.now() + 5 * 60000)
+          });
+        }
         return res.json({ success: true, message: 'OTP verified successfully' });
       } else {
         return res.status(400).json({ success: false, message: otpResult.message || 'Invalid or expired OTP' });
