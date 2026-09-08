@@ -16,9 +16,10 @@ const auditLogSchema = new mongoose.Schema({
       'stock_update', 'price_update',
       'review_create', 'review_delete',
       'settings_update', 'data_export',
-      'settlement_create', 'delivery_assign', 'delivery_update',
+      'settlement_create', 'delivery_assign', 'delivery_reassign', 'delivery_update',
       'supplier_create', 'supplier_payment', 'po_create', 'po_receive',
       'expense_create', 'expense_delete',
+      'password_reset',
       'product_image_upload', 'product_image_delete', 'bulk_image_upload'
     ]
   },

@@ -33,8 +33,11 @@ export default function AdminLayout() {
     { path: '/admin/payments', label: 'Payments', icon: <FiDollarSign /> },
     { path: '/admin/reports', label: 'Reports', icon: <FiBarChart2 /> },
     { path: '/admin/coverage', label: 'Delivery Coverage', icon: <FiMap /> },
-    { path: '/admin/backups', label: 'Database Backups', icon: <FiDatabase /> },
   ];
+
+  if (user?.role === 'admin') {
+    menuItems.push({ path: '/admin/backups', label: 'Database Backups', icon: <FiDatabase /> });
+  }
 
   if (user?.role === 'manager') {
     menuItems.push({ path: '/manager', label: 'Management', icon: <FiBarChart2 /> });

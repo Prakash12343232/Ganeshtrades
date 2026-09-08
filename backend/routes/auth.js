@@ -6,6 +6,7 @@ const rateLimit = require('express-rate-limit');
 const User = require('../models/User');
 const Otp = require('../models/Otp');
 const OtpClient = require('../utils/otpClient');
+const { sendOtpSms } = require('../utils/sms');
 const { checkServiceability } = require('../utils/distance');
 const { protect } = require('../middleware/auth');
 const { createAuditLog } = require('../utils/auditLogger');
@@ -105,119 +106,19 @@ router.post('/send-otp', otpLimiter, async (req, res) => {
       expiresAt: new Date(Date.now() + 5 * 60000) // 5 minutes
     });
 
-    const maskedMobile = normMobile.replace(/^(\d{2})\d{4}(\d{4})$/, '$1****$2');
-    let smsSent = false;
-    let smsProvider = null;
-    let twilioError = null;
+    const { smsSent, smsProvider, error: smsError, unconfigured } = await sendOtpSms(normMobile, otpCode);
 
-    if (process.env.FAST2SMS_API_KEY) {
-      smsProvider = 'FAST2SMS';
-      try {
-        const axios = require('axios');
-        console.log(`[SMS FAST2SMS] Initiating OTP dispatch to ${maskedMobile}`);
-        const response = await axios.post('https://www.fast2sms.com/dev/bulkV2', {
-          route: 'otp',
-          variables_values: otpCode,
-          numbers: normMobile
-        }, {
-          headers: { 'authorization': process.env.FAST2SMS_API_KEY },
-          timeout: 10000
-        });
-        if (response.data && (response.data.return === true || response.data.status_code === 200)) {
-          smsSent = true;
-          console.log(`[SMS FAST2SMS SUCCESS] OTP dispatched to ${maskedMobile}. Status: ${response.data.message || 'Accepted'}`);
-        } else {
-          console.error(`[SMS FAST2SMS FAILURE] Provider response error for ${maskedMobile}:`, response.data);
-        }
-      } catch (err) {
-        console.error(`[SMS FAST2SMS ERROR] Failed to send OTP to ${maskedMobile}:`, err.response?.data?.message || err.response?.data || err.message);
-      }
-    } else if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER) {
-      smsProvider = 'TWILIO';
-      try {
-        const https = require('https');
-        const querystring = require('querystring');
-        console.log(`[SMS TWILIO] Initiating OTP dispatch to ${maskedMobile}`);
-        
-        const twilioAccountSid = process.env.TWILIO_ACCOUNT_SID.trim();
-        const twilioAuthToken = process.env.TWILIO_AUTH_TOKEN.trim();
-        const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER.trim();
-        const twilioTemplate = (process.env.TWILIO_TEMPLATE_NAME || '').trim();
-
-        const smsBody = twilioTemplate || `Your Ganesh Trades OTP code is ${otpCode}. Valid for 5 minutes.`;
-        const postData = querystring.stringify({
-          To: `+91${normMobile}`,
-          From: twilioPhoneNumber,
-          Body: smsBody
-        });
-
-        const authHeader = 'Basic ' + Buffer.from(`${twilioAccountSid}:${twilioAuthToken}`).toString('base64');
-        
-        await new Promise((resolve, reject) => {
-          const req = https.request({
-            hostname: 'api.twilio.com',
-            path: `/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`,
-            method: 'POST',
-            headers: {
-              'Authorization': authHeader,
-              'Content-Type': 'application/x-www-form-urlencoded',
-              'Content-Length': Buffer.byteLength(postData)
-            },
-            timeout: 10000
-          }, (res) => {
-            let data = '';
-            res.on('data', chunk => { data += chunk; });
-            res.on('end', () => {
-              try {
-                const parsed = JSON.parse(data);
-                if (res.statusCode >= 200 && res.statusCode < 300) {
-                  smsSent = true;
-                  console.log(`[SMS TWILIO SUCCESS] OTP dispatched to ${maskedMobile}. SID: ${parsed.sid}, Status: ${parsed.status}`);
-                  resolve();
-                } else {
-                  twilioError = parsed.message || `HTTP ${res.statusCode}`;
-                  console.error(`[SMS TWILIO FAILURE] Provider response error for ${maskedMobile}:`, parsed);
-                  reject(new Error(twilioError));
-                }
-              } catch (e) {
-                twilioError = e.message;
-                reject(e);
-              }
-            });
-          });
-          req.on('error', (err) => {
-            twilioError = err.message;
-            reject(err);
-          });
-          req.on('timeout', () => {
-            req.destroy();
-            twilioError = 'Twilio HTTP request timed out';
-            reject(new Error(twilioError));
-          });
-          req.write(postData);
-          req.end();
-        });
-      } catch (err) {
-        twilioError = err.message;
-        console.error(`[SMS TWILIO ERROR] Failed to send OTP to ${maskedMobile}:`, err.message);
-      }
-    } else {
-      if (process.env.NODE_ENV === 'production') {
-        console.error(`[SMS PRODUCTION ERROR] No SMS Gateway API keys configured (FAST2SMS_API_KEY or Twilio) for ${maskedMobile}. Cannot deliver SMS in production.`);
-        return res.status(503).json({
-          success: false,
-          message: 'SMS service is currently unconfigured in production. Please set FAST2SMS_API_KEY or Twilio credentials in backend environment variables.'
-        });
-      } else {
-        console.log(`[SMS DEV LOG] OTP for ${maskedMobile} (${purpose}): [PROTECTED IN LOGS]`);
-        smsSent = true;
-      }
+    if (unconfigured) {
+      return res.status(503).json({
+        success: false,
+        message: 'SMS service is currently unconfigured in production. Please set FAST2SMS_API_KEY or Twilio credentials in backend environment variables.'
+      });
     }
 
     if (!smsSent) {
       return res.status(502).json({
         success: false,
-        message: `Failed to deliver OTP SMS via ${smsProvider || 'configured provider'}. ${twilioError ? 'Twilio error: ' + twilioError : 'Please check SMS provider credentials/balance.'}`
+        message: `Failed to deliver OTP SMS via ${smsProvider || 'configured provider'}. ${smsError ? (smsProvider === 'TWILIO' ? 'Twilio error: ' + smsError : smsError) : 'Please check SMS provider credentials/balance.'}`
       });
     }
 
@@ -572,7 +473,21 @@ router.post('/forgot-password', otpLimiter, async (req, res) => {
       expiresAt: new Date(Date.now() + 10 * 60000) // 10 minutes
     });
 
-    console.log(`[SMS MOCK] Password Reset OTP for ${normMobile}: ${otpCode}`);
+    const { smsSent, smsProvider, error: smsError, unconfigured } = await sendOtpSms(normMobile, otpCode);
+
+    if (unconfigured) {
+      return res.status(503).json({
+        success: false,
+        message: 'SMS service is currently unconfigured in production. Please set FAST2SMS_API_KEY or Twilio credentials in backend environment variables.'
+      });
+    }
+
+    if (!smsSent) {
+      return res.status(502).json({
+        success: false,
+        message: `Failed to deliver OTP SMS via ${smsProvider || 'configured provider'}. ${smsError ? (smsProvider === 'TWILIO' ? 'Twilio error: ' + smsError : smsError) : 'Please check SMS provider credentials/balance.'}`
+      });
+    }
 
     res.json({ success: true, message: 'If an account exists with this number, an OTP has been sent.' });
   } catch (error) {

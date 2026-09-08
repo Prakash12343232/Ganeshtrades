@@ -4,9 +4,9 @@ import toast from 'react-hot-toast';
 import { FiSearch, FiUsers, FiUserCheck, FiUserX, FiUserPlus } from 'react-icons/fi';
 
 const STAT_COLORS = [
-  { label: 'Public', bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-100' },
-  { label: 'Hotel / Restaurants', bg: 'bg-amber-50', text: 'text-amber-600', border: 'border-amber-100' },
-  { label: 'PG / Hostel', bg: 'bg-orange-50', text: 'text-orange-600', border: 'border-orange-100' }
+  { key: 'public', label: 'Public', bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-100' },
+  { key: 'hotel', label: 'Hotel / Restaurants', bg: 'bg-amber-50', text: 'text-amber-600', border: 'border-amber-100' },
+  { key: 'pg_hostel', label: 'PG / Hostel', bg: 'bg-orange-50', text: 'text-orange-600', border: 'border-orange-100' }
 ];
 
 export default function AdminCustomers() {
@@ -48,8 +48,8 @@ export default function AdminCustomers() {
       </div>
       {stats && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-          {STAT_COLORS.map((c, idx) => {
-            const row = stats.stats[idx] || { _id: c.label, count: 0, totalSpent: 0, totalPending: 0 };
+          {STAT_COLORS.map((c) => {
+            const row = stats.stats.find(s => s._id === c.key) || { _id: c.key, count: 0, totalSpent: 0, totalPending: 0 };
             return (
               <div key={c.label} className={`${c.bg} rounded-2xl p-5 ${c.border}`}>
                 <div className="flex items-center justify-between mb-3">

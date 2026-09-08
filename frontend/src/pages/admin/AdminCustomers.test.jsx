@@ -58,6 +58,30 @@ describe('AdminCustomers', () => {
     expect(screen.getByText('15')).toBeInTheDocument();
   });
 
+  it('maps stat cards to the right customer type regardless of backend aggregation order', async () => {
+    getUserStats.mockResolvedValue({
+      data: {
+        data: {
+          stats: [
+            { _id: 'pg_hostel', count: 3, totalSpent: 500, totalPending: 0 },
+            { _id: 'public', count: 10, totalSpent: 1000, totalPending: 200 },
+            { _id: 'hotel', count: 5, totalSpent: 2000, totalPending: 50 }
+          ],
+          totalCustomers: 18,
+          activeCustomers: 15
+        }
+      }
+    });
+
+    render(<AdminCustomers />);
+    await screen.findByText('Ravi Kumar');
+
+    expect(screen.getByText('₹1,000')).toBeInTheDocument();
+    expect(screen.getByText('₹200')).toBeInTheDocument();
+    expect(screen.getByText('₹2,000')).toBeInTheDocument();
+    expect(screen.getByText('₹500')).toBeInTheDocument();
+  });
+
   it('renders customer rows and outstanding amounts', async () => {
     render(<AdminCustomers />);
     await screen.findByText('Ravi Kumar');
