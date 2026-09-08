@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Package, ImageOff } from 'lucide-react';
+import { resolveMediaUrl } from '../../utils/mediaUrl';
 
 /**
  * Reusable Product Image component with automatic fallback & error handling
@@ -20,7 +21,9 @@ export default function ProductImage({
     setIsLoaded(false);
   }, [src]);
 
-  const isValidSrc = src && typeof src === 'string' && src.trim() !== '' && !src.includes('default-product');
+  const originalSrc = src;
+  const resolvedSrc = resolveMediaUrl(originalSrc);
+  const isValidSrc = resolvedSrc && typeof resolvedSrc === 'string' && resolvedSrc.trim() !== '' && !resolvedSrc.includes('default-product');
 
   if (!isValidSrc || hasError) {
     return (
@@ -51,7 +54,7 @@ export default function ProductImage({
         </div>
       )}
       <img
-        src={src}
+        src={resolvedSrc}
         alt={alt}
         className={`${className} transition-opacity duration-300 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
         onLoad={() => setIsLoaded(true)}
