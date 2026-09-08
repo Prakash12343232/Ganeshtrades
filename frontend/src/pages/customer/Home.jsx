@@ -33,26 +33,26 @@ export default function Home() {
   return (
     <div className="space-y-12 animate-fadeIn">
       {/* Hero */}
-      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-navy-900 via-navy-850 to-navy-950 text-white p-8 md:p-12 border border-navy-700/80 shadow-2xl">
+      <section className="hero-section relative overflow-hidden rounded-3xl bg-gradient-to-br from-navy-900 via-navy-850 to-navy-950 text-slate-900 dark:text-white p-8 md:p-12 border border-navy-700/80 shadow-2xl transition-all duration-200">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2260%22%20height%3D%2260%22%20viewBox%3D%220%200%2060%2060%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cg%20fill%3D%22none%22%20fill-rule%3D%22evenodd%22%3E%3Cg%20fill%3D%22%2334d399%22%20fill-opacity%3D%220.05%22%3E%3Cpath%20d%3D%22M36%2034v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6%2034v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6%204V0H4v4H0v2h4v4h2V6h4V4H6z%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-40"></div>
         <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
           {/* Hero Left Content */}
           <div className="lg:col-span-7 space-y-5">
-            <div className="inline-flex items-center gap-1.5 px-3.5 py-1 bg-navy-800/90 border border-navy-700 rounded-full text-xs font-semibold text-mint-300 backdrop-blur-md shadow-sm">
+            <div className="hero-badge inline-flex items-center gap-1.5 px-3.5 py-1 bg-navy-800/90 border border-navy-700 rounded-full text-xs font-semibold text-mint-400 dark:text-mint-300 backdrop-blur-md shadow-sm">
               <span className="text-amber-400">⚡</span> Fresh Groceries Delivered
             </div>
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight leading-[1.15]">
-              Quality Groceries<br />
-              <span className="text-mint-400">Delivered to You</span>
+              <span className="hero-title-main text-slate-900 dark:text-white">Quality Groceries</span><br />
+              <span className="hero-title-accent text-mint-600 dark:text-mint-400">Delivered to You</span>
             </h1>
-            <p className="text-slate-300 text-sm sm:text-base leading-relaxed max-w-lg">
+            <p className="hero-subtext text-slate-600 dark:text-slate-300 text-sm sm:text-base leading-relaxed max-w-lg font-medium">
               Your trusted grocery and wholesale shop. Quality products at best prices for homes, hotels &amp; PGs.
             </p>
             <div className="flex flex-wrap items-center gap-3 pt-2">
               <Link to="/products" className="inline-flex items-center gap-2 px-6 py-3.5 bg-mint-500 hover:bg-mint-400 text-navy-950 font-bold rounded-xl transition-all shadow-lg shadow-mint-500/25 active:scale-95">
                 Browse Products <FiArrowRight className="w-4 h-4" />
               </Link>
-              <Link to="/register" className="inline-flex items-center gap-2 px-6 py-3.5 bg-navy-900/80 hover:bg-navy-800 text-slate-100 font-semibold rounded-xl transition-all border border-navy-600/80 hover:border-mint-500/50 backdrop-blur-sm active:scale-95">
+              <Link to="/register" className="hero-sec-btn inline-flex items-center gap-2 px-6 py-3.5 bg-navy-900/80 hover:bg-navy-800 text-slate-800 dark:text-slate-100 font-semibold rounded-xl transition-all border border-navy-600/80 hover:border-mint-500/50 backdrop-blur-sm active:scale-95">
                 Register Now
               </Link>
             </div>
@@ -64,7 +64,7 @@ export default function Home() {
               <img
                 src="/hero-basket.svg"
                 alt="Groceries Made Simple"
-                className="w-full h-auto drop-shadow-[0_15px_30px_rgba(52,211,153,0.12)] transition-transform hover:scale-105 duration-300"
+                className="w-full h-auto drop-shadow-[0_15px_30px_rgba(52,211,153,0.12)] transition-transform hover:scale-105 duration-300 opacity-100"
               />
             </div>
           </div>
@@ -78,11 +78,11 @@ export default function Home() {
           { icon: <FiShield className="w-6 h-6" />, title: 'Quality Products', desc: 'Only genuine and fresh items' },
           { icon: <FiClock className="w-6 h-6" />, title: 'Wholesale Prices', desc: 'Best prices for bulk orders' },
         ].map((f, i) => (
-          <div key={i} className="flex items-start gap-4 p-5 sm:p-6 bg-navy-900 rounded-2xl border border-navy-800/90 shadow-md hover:border-mint-500/40 hover:shadow-lg hover:shadow-mint-500/10 transition-all group">
-            <div className="p-3 bg-mint-500/10 text-mint-400 rounded-xl group-hover:bg-mint-500 group-hover:text-navy-950 transition-all flex-shrink-0">{f.icon}</div>
+          <div key={i} className="feature-card flex items-start gap-4 p-5 sm:p-6 bg-navy-900 rounded-2xl border border-navy-800/90 shadow-md hover:border-mint-500/40 hover:shadow-lg hover:shadow-mint-500/10 transition-all group">
+            <div className="feature-icon-box p-3 bg-mint-500/10 text-mint-600 dark:text-mint-400 rounded-xl group-hover:bg-mint-500 group-hover:text-navy-950 transition-all flex-shrink-0">{f.icon}</div>
             <div>
-              <h3 className="font-bold text-white text-base">{f.title}</h3>
-              <p className="text-xs sm:text-sm text-slate-400 mt-1 leading-snug">{f.desc}</p>
+              <h3 className="font-bold text-slate-900 dark:text-white text-base">{f.title}</h3>
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1 leading-snug font-medium">{f.desc}</p>
             </div>
           </div>
         ))}

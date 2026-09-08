@@ -71,7 +71,7 @@ export default function CustomerLayout() {
   return (
     <div className="min-h-screen bg-navy-950 text-slate-100 flex flex-col justify-between selection:bg-mint-500 selection:text-navy-950 transition-colors duration-200">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-navy-900/90 backdrop-blur-lg border-b border-navy-800 shadow-lg shadow-black/20 transition-colors duration-200">
+      <header className="header-container sticky top-0 z-50 bg-navy-900/90 backdrop-blur-lg border-b border-navy-800 shadow-lg shadow-black/20 transition-all duration-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
