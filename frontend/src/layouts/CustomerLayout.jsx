@@ -75,20 +75,20 @@ export default function CustomerLayout() {
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2.5 group">
-              <div className="w-10 h-10 bg-gradient-to-br from-mint-400 to-mint-600 rounded-xl flex items-center justify-center text-navy-950 font-extrabold text-xl shadow-md shadow-mint-500/20 group-hover:scale-105 transition-all">
+              <div className="w-10 h-10 bg-mint-400 text-navy-950 rounded-xl flex items-center justify-center font-extrabold text-xl shadow-md shadow-mint-500/25 group-hover:scale-105 transition-all">
                 G
               </div>
               <div className="hidden sm:block">
-                <h1 className="text-lg font-bold gradient-text leading-tight">Ganesh Trades</h1>
-                <p className="text-[10px] text-mint-400/90 font-medium tracking-wide -mt-0.5">Grocery & Wholesale</p>
+                <h1 className="text-lg font-bold text-white leading-tight">Ganesh Trades</h1>
+                <p className="text-[10px] text-amber-400 font-semibold tracking-wide -mt-0.5">Grocery &amp; Wholesale</p>
               </div>
             </Link>
 
             {/* Desktop Nav */}
-            <nav className="hidden md:flex items-center gap-1.5">
+            <nav className="hidden md:flex items-center gap-2">
               {navLinks.map(link => (
                 <Link key={link.path} to={link.path}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${isActive(link.path) ? 'bg-mint-500/10 text-mint-400 border border-mint-500/30 shadow-sm' : 'text-slate-300 hover:bg-navy-800 hover:text-mint-300'}`}>
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${isActive(link.path) ? 'bg-mint-500/15 text-mint-400 border border-mint-500/40 shadow-sm' : 'text-slate-200 hover:bg-navy-800 hover:text-mint-300'}`}>
                   {link.icon} {link.label}
                 </Link>
               ))}
@@ -180,8 +180,8 @@ export default function CustomerLayout() {
                   </button>
                 </div>
               ) : (
-                <Link to="/login" className="hidden md:flex items-center gap-2 px-4 py-2 bg-mint-500 text-navy-950 font-bold rounded-xl text-sm hover:bg-mint-400 transition-all shadow-md shadow-mint-500/20">
-                  <FiLogIn className="w-4 h-4" /> Login
+                <Link to="/login" className="hidden md:flex items-center gap-1.5 px-4 py-2 bg-mint-400 hover:bg-mint-300 text-navy-950 font-extrabold rounded-xl text-sm transition-all shadow-md shadow-mint-500/25 active:scale-95">
+                  <FiLogIn className="w-4 h-4 stroke-[2.5]" /> Login
                 </Link>
               )}
 
