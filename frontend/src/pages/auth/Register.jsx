@@ -144,9 +144,11 @@ export default function Register() {
 
       <div className="w-full max-w-lg animate-fadeIn relative z-10 mt-10">
         <div className="text-center mb-6">
-          <div className="w-16 h-16 bg-navy-900/90 backdrop-blur-xl rounded-2xl flex items-center justify-center mx-auto mb-3 border border-mint-500/30 shadow-xl shadow-mint-500/5">
-            <span className="text-3xl font-extrabold text-mint-400">G</span>
-          </div>
+          <img
+            src="/logo.png"
+            alt="Ganesh Trades Logo"
+            className="w-16 h-16 object-contain mx-auto mb-3 drop-shadow-[0_10px_25px_rgba(52,211,153,0.3)] hover:scale-105 transition-transform"
+          />
           <h1 className="text-2xl font-extrabold text-white tracking-tight">Create Account</h1>
           <p className="text-mint-300/80 mt-1 text-sm">Join Ganesh Trades</p>
         </div>

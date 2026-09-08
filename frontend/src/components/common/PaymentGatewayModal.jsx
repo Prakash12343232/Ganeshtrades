@@ -41,8 +41,12 @@ export default function PaymentGatewayModal({ open, onClose, orderNumber, amount
     <div className="fixed inset-0 bg-navy-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fadeIn">
       <div className="bg-navy-900 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-5 border border-navy-700 text-slate-100">
         <div className="flex items-center justify-between border-b border-navy-800 pb-3">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-mint-500 rounded-lg flex items-center justify-center text-navy-950 font-bold">G</div>
+          <div className="flex items-center gap-2.5">
+            <img
+              src="/logo.png"
+              alt="Ganesh Trades Logo"
+              className="w-8 h-8 object-contain drop-shadow-[0_2px_8px_rgba(52,211,153,0.3)]"
+            />
             <div>
               <h3 className="font-bold text-white text-sm">Ganesh Trades Gateway</h3>
               <p className="text-[10px] text-slate-400">Order #{orderNumber}</p>

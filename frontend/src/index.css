@@ -123,27 +123,27 @@ body {
 /* Light Theme Overrides */
 html.light {
   color-scheme: light;
-  --bg-main: #f1f5f9;
+  --bg-main: #f0f4f8;
   --bg-surface: #ffffff;
   --bg-card: #ffffff;
   --bg-card-hover: #f8fafc;
-  --border-subtle: #e2e8f0;
-  --border-mint: rgba(16, 185, 129, 0.3);
+  --border-subtle: #cbd5e1;
+  --border-mint: rgba(5, 150, 105, 0.35);
   --text-primary: #0f172a;
-  --text-secondary: #475569;
+  --text-secondary: #334155;
   --text-muted: #64748b;
   --accent-mint: #059669;
   --accent-mint-dark: #047857;
-  --accent-mint-glow: rgba(16, 185, 129, 0.15);
+  --accent-mint-glow: rgba(5, 150, 105, 0.15);
 
-  --color-navy-950: #f1f5f9;
+  --color-navy-950: #f0f4f8;
   --color-navy-900: #ffffff;
   --color-navy-850: #f8fafc;
   --color-navy-800: #ffffff;
   --color-navy-700: #e2e8f0;
   --color-navy-600: #cbd5e1;
-  --color-navy-500: #94a3b8;
-  --color-navy-400: #64748b;
+  --color-navy-500: #64748b;
+  --color-navy-400: #475569;
 
   --color-slate-100: #0f172a;
   --color-slate-200: #1e293b;
@@ -153,19 +153,19 @@ html.light {
 }
 
 html.light body {
-  background-color: #f1f5f9;
+  background-color: #f0f4f8;
   color: #0f172a;
 }
 
-html.light ::-webkit-scrollbar-track { background: #f1f5f9; }
+html.light ::-webkit-scrollbar-track { background: #f0f4f8; }
 html.light ::-webkit-scrollbar-thumb { background: #cbd5e1; }
 html.light ::-webkit-scrollbar-thumb:hover { background: #059669; }
 
 html.light .glass {
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(203, 213, 225, 0.7);
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.06);
 }
 
 html.light .gradient-text {
@@ -175,15 +175,35 @@ html.light .gradient-text {
   background-clip: text;
 }
 
-/* Light Mode Specific Elevation & Contrast Improvements */
-html.light section.relative {
-  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+/* Light Theme Shadow Elevation System */
+html.light .shadow-sm {
+  box-shadow: 0 2px 8px -1px rgba(15, 23, 42, 0.06), 0 1px 4px -1px rgba(15, 23, 42, 0.04) !important;
+}
+html.light .shadow-md {
+  box-shadow: 0 6px 20px -4px rgba(15, 23, 42, 0.08), 0 2px 6px -2px rgba(15, 23, 42, 0.04) !important;
+}
+html.light .shadow-lg {
+  box-shadow: 0 10px 25px -4px rgba(15, 23, 42, 0.09), 0 4px 10px -2px rgba(15, 23, 42, 0.05) !important;
+}
+html.light .shadow-xl {
+  box-shadow: 0 14px 30px -5px rgba(15, 23, 42, 0.10), 0 6px 14px -3px rgba(15, 23, 42, 0.06) !important;
+}
+html.light .shadow-2xl {
+  box-shadow: 0 20px 40px -10px rgba(15, 23, 42, 0.12), 0 8px 20px -4px rgba(15, 23, 42, 0.07) !important;
 }
 
+/* Header Container in Light Mode */
+html.light .header-container {
+  background-color: rgba(255, 255, 255, 0.94) !important;
+  border-bottom: 1px solid rgba(203, 213, 225, 0.7) !important;
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.06) !important;
+}
+
+/* Hero Section in Light Mode */
 html.light .hero-section {
-  background: linear-gradient(135deg, #ffffff 0%, #ecfdf5 50%, #f1f5f9 100%) !important;
+  background: linear-gradient(135deg, #ffffff 0%, #edf5fd 50%, #e6f7f1 100%) !important;
   border: 1px solid #cbd5e1 !important;
-  box-shadow: 0 20px 30px -10px rgba(15, 23, 42, 0.08) !important;
+  box-shadow: 0 20px 40px -12px rgba(15, 23, 42, 0.09), inset 0 1px 0 0 rgba(255, 255, 255, 0.9) !important;
 }
 
 html.light .hero-title-main {
@@ -199,32 +219,38 @@ html.light .hero-subtext {
 }
 
 html.light .hero-badge {
-  background-color: #e2e8f0 !important;
-  color: #0f172a !important;
-  border-color: #cbd5e1 !important;
+  background-color: #e6f7f1 !important;
+  color: #047857 !important;
+  border: 1px solid #a7f3d0 !important;
 }
 
 html.light .hero-sec-btn {
   background-color: #ffffff !important;
   color: #0f172a !important;
-  border-color: #cbd5e1 !important;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06) !important;
+  border: 1px solid #059669 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+  transition: all 0.2s ease !important;
 }
 
 html.light .hero-sec-btn:hover {
   background-color: #f8fafc !important;
-  border-color: #059669 !important;
+  border-color: #047857 !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08) !important;
 }
 
+/* Feature Cards in Light Mode */
 html.light .feature-card {
   background-color: #ffffff !important;
   border: 1px solid #e2e8f0 !important;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06) !important;
+  box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.06) !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 html.light .feature-card:hover {
-  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.1) !important;
-  border-color: rgba(5, 150, 105, 0.4) !important;
+  transform: translateY(-3px) !important;
+  box-shadow: 0 12px 28px -4px rgba(16, 185, 129, 0.15), 0 4px 10px -2px rgba(15, 23, 42, 0.06) !important;
+  border-color: #34d399 !important;
 }
 
 html.light .feature-icon-box {
@@ -232,10 +258,71 @@ html.light .feature-icon-box {
   color: #059669 !important;
 }
 
-html.light .header-container {
-  background-color: rgba(255, 255, 255, 0.95) !important;
-  border-bottom: 1px solid #e2e8f0 !important;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05) !important;
+/* Global Text Overrides for Light Mode readability */
+html.light h1,
+html.light h2,
+html.light h3,
+html.light h4,
+html.light h5,
+html.light h6 {
+  color: #0f172a;
 }
+
+/* Hardcoded text-white overrides in Light mode for section titles and cards */
+html.light .text-white {
+  color: #0f172a;
+}
+
+/* Exceptions: Keep text white on mint, green, red, amber dark badge backgrounds */
+html.light .bg-mint-500 .text-white,
+html.light .bg-mint-600 .text-white,
+html.light .bg-emerald-500 .text-white,
+html.light .bg-rose-500 .text-white,
+html.light .bg-rose-600 .text-white,
+html.light .bg-red-500 .text-white,
+html.light .bg-amber-500 .text-white,
+html.light .bg-navy-950 .text-white,
+html.light button.bg-mint-500 .text-white,
+html.light span.bg-rose-500,
+html.light span.bg-mint-500,
+html.light span.bg-emerald-500,
+html.light span.bg-red-500 {
+  color: #ffffff !important;
+}
+
+/* Primary mint button text contrast in light mode */
+html.light button.bg-mint-500,
+html.light a.bg-mint-500 {
+  color: #06281e !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35) !important;
+}
+
+html.light button.bg-mint-500:hover,
+html.light a.bg-mint-500:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 20px rgba(16, 185, 129, 0.45) !important;
+}
+
+/* Secondary & Input elements in Light mode */
+html.light input,
+html.light select,
+html.light textarea {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+html.light input::placeholder,
+html.light textarea::placeholder {
+  color: #64748b !important;
+}
+
+/* Card image box in Light mode */
+html.light .product-img-box {
+  background-color: #f8fafc !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
 
 

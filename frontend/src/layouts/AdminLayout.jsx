@@ -47,7 +47,11 @@ export default function AdminLayout() {
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-gradient-to-b from-navy-900 via-navy-950 to-navy-950 border-r border-navy-800 text-white transform transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:static lg:inset-0 flex flex-col justify-between`}>
         <div>
           <div className="flex items-center gap-3 px-6 py-5 border-b border-navy-800">
-            <div className="w-10 h-10 bg-mint-500 text-navy-950 rounded-xl flex items-center justify-center font-extrabold text-lg shadow-lg shadow-mint-500/20">G</div>
+            <img
+              src="/logo.png"
+              alt="Ganesh Trades Logo"
+              className="w-10 h-10 object-contain drop-shadow-[0_4px_10px_rgba(52,211,153,0.3)]"
+            />
             <div>
               <h1 className="font-extrabold text-lg text-white">Ganesh Trades</h1>
               <p className="text-xs text-mint-400 font-medium capitalize">{user?.role} Panel</p>

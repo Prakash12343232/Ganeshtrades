@@ -90,9 +90,11 @@ export default function Login() {
 
       <div className="w-full max-w-md animate-fadeIn relative z-10 my-8">
         <div className="text-center mb-8">
-          <div className="w-20 h-20 bg-navy-900/90 backdrop-blur-xl rounded-2xl flex items-center justify-center mx-auto mb-4 border border-mint-500/30 shadow-xl shadow-mint-500/5">
-            <span className="text-4xl font-extrabold text-mint-400">G</span>
-          </div>
+          <img
+            src="/logo.png"
+            alt="Ganesh Trades Logo"
+            className="w-20 h-20 object-contain mx-auto mb-4 drop-shadow-[0_10px_25px_rgba(52,211,153,0.3)] hover:scale-105 transition-transform"
+          />
           <h1 className="text-3xl font-extrabold text-white tracking-tight">Welcome Back</h1>
           <p className="text-mint-300/80 mt-2 text-sm">Login to Ganesh Trades</p>
         </div>

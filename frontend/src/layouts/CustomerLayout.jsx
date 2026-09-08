@@ -76,12 +76,14 @@ export default function CustomerLayout() {
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2.5 group">
-              <div className="w-10 h-10 bg-mint-400 text-navy-950 rounded-xl flex items-center justify-center font-extrabold text-xl shadow-md shadow-mint-500/25 group-hover:scale-105 transition-all">
-                G
-              </div>
+              <img
+                src="/logo.png"
+                alt="Ganesh Trades Logo"
+                className="w-10 h-10 object-contain drop-shadow-[0_4px_10px_rgba(52,211,153,0.3)] group-hover:scale-105 transition-transform"
+              />
               <div className="hidden sm:block">
-                <h1 className="text-lg font-bold text-white leading-tight">Ganesh Trades</h1>
-                <p className="text-[10px] text-amber-400 font-semibold tracking-wide -mt-0.5">Grocery &amp; Wholesale</p>
+                <h1 className="text-lg font-bold text-slate-900 dark:text-white leading-tight">Ganesh Trades</h1>
+                <p className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold tracking-wide -mt-0.5">Grocery &amp; Wholesale</p>
               </div>
             </Link>
 
@@ -89,7 +91,7 @@ export default function CustomerLayout() {
             <nav className="hidden md:flex items-center gap-2">
               {navLinks.map(link => (
                 <Link key={link.path} to={link.path}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${isActive(link.path) ? 'bg-mint-500/15 text-mint-400 border border-mint-500/40 shadow-sm' : 'text-slate-200 hover:bg-navy-800 hover:text-mint-300'}`}>
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${isActive(link.path) ? 'bg-mint-500/15 text-mint-600 dark:text-mint-400 border border-mint-500/40 shadow-sm' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-navy-800 hover:text-mint-600 dark:hover:text-mint-300'}`}>
                   {link.icon} {link.label}
                 </Link>
               ))}
@@ -105,7 +107,7 @@ export default function CustomerLayout() {
                 <div className="relative">
                   <button
                     onClick={() => setNotifOpen(!notifOpen)}
-                    className="p-2 text-slate-300 hover:text-mint-400 hover:bg-navy-800 rounded-xl transition-colors relative"
+                    className="p-2 text-slate-700 dark:text-slate-300 hover:text-mint-600 dark:hover:text-mint-400 hover:bg-slate-100 dark:hover:bg-navy-800 rounded-xl transition-colors relative"
                     id="notif-bell-btn"
                   >
                     <FiBell className="w-5 h-5" />
@@ -118,38 +120,38 @@ export default function CustomerLayout() {
 
                   {/* Notification Dropdown */}
                   {notifOpen && (
-                    <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-navy-900 rounded-2xl shadow-2xl border border-navy-700 overflow-hidden z-50 animate-fadeIn">
-                      <div className="p-4 bg-navy-850 border-b border-navy-700 text-white flex items-center justify-between">
+                    <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-navy-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-navy-700 overflow-hidden z-50 animate-fadeIn">
+                      <div className="p-4 bg-slate-50 dark:bg-navy-850 border-b border-slate-200 dark:border-navy-700 text-slate-900 dark:text-white flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <FiBell className="text-mint-400" />
+                          <FiBell className="text-mint-600 dark:text-mint-400" />
                           <h3 className="font-bold text-sm">Notifications</h3>
                         </div>
                         {unreadCount > 0 && (
-                          <button onClick={handleMarkAllRead} className="text-xs text-mint-400 hover:underline flex items-center gap-1">
+                          <button onClick={handleMarkAllRead} className="text-xs text-mint-600 dark:text-mint-400 hover:underline flex items-center gap-1">
                             <FiCheck /> Mark all read
                           </button>
                         )}
                       </div>
 
-                      <div className="max-h-80 overflow-y-auto divide-y divide-navy-800/60">
+                      <div className="max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-navy-800/60">
                         {notifications.length === 0 ? (
-                          <div className="p-6 text-center text-slate-400 text-sm">No notifications</div>
+                          <div className="p-6 text-center text-slate-500 dark:text-slate-400 text-sm">No notifications</div>
                         ) : (
                           notifications.map(n => (
                             <div
                               key={n._id}
                               onClick={() => handleMarkRead(n)}
-                              className={`p-3.5 hover:bg-navy-800/70 transition-colors cursor-pointer flex items-start gap-3 ${!n.isRead ? 'bg-mint-500/10' : ''}`}
+                              className={`p-3.5 hover:bg-slate-50 dark:hover:bg-navy-800/70 transition-colors cursor-pointer flex items-start gap-3 ${!n.isRead ? 'bg-mint-500/10' : ''}`}
                             >
                               <span className="text-lg flex-shrink-0 mt-0.5">
                                 {{ order: '📦', delivery: '🚚', payment: '💳', promotion: '🎉', new_product: '🆕', payment_reminder: '💰' }[n.type] || '📢'}
                               </span>
                               <div className="flex-1 min-w-0">
-                                <p className={`text-xs font-semibold ${!n.isRead ? 'text-mint-300' : 'text-slate-200'}`}>{n.title}</p>
-                                <p className="text-xs text-slate-400 mt-0.5 line-clamp-2">{n.message}</p>
-                                <span className="text-[10px] text-slate-500 mt-1 block">{new Date(n.createdAt).toLocaleDateString('en-IN', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}</span>
+                                <p className={`text-xs font-semibold ${!n.isRead ? 'text-mint-700 dark:text-mint-300' : 'text-slate-800 dark:text-slate-200'}`}>{n.title}</p>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">{n.message}</p>
+                                <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 block">{new Date(n.createdAt).toLocaleDateString('en-IN', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}</span>
                               </div>
-                              {!n.isRead && <span className="w-2 h-2 bg-mint-400 rounded-full flex-shrink-0 mt-1.5" />}
+                              {!n.isRead && <span className="w-2 h-2 bg-mint-500 dark:bg-mint-400 rounded-full flex-shrink-0 mt-1.5" />}
                             </div>
                           ))
                         )}
@@ -160,7 +162,7 @@ export default function CustomerLayout() {
               )}
 
               {/* Cart Button */}
-              <Link to="/cart" className="relative p-2 text-slate-300 hover:text-mint-400 hover:bg-navy-800 rounded-xl transition-colors" id="cart-button">
+              <Link to="/cart" className="relative p-2 text-slate-700 dark:text-slate-300 hover:text-mint-600 dark:hover:text-mint-400 hover:bg-slate-100 dark:hover:bg-navy-800 rounded-xl transition-colors" id="cart-button">
                 <FiShoppingCart className="w-5 h-5" />
                 {totalItems > 0 && (
                   <span className="absolute -top-1 -right-1 w-5 h-5 bg-mint-500 text-navy-950 text-xs font-extrabold rounded-full flex items-center justify-center animate-pulse-glow">
@@ -171,25 +173,25 @@ export default function CustomerLayout() {
 
               {user ? (
                 <div className="hidden md:flex items-center gap-2">
-                  <Link to="/profile" className="flex items-center gap-2 px-3.5 py-2 bg-navy-800 border border-navy-700 rounded-xl text-slate-200 hover:text-mint-300 hover:border-mint-500/30 transition-all text-sm font-medium">
-                    <FiUser className="w-4 h-4 text-mint-400" /> {user.name?.split(' ')[0]}
+                  <Link to="/profile" className="flex items-center gap-2 px-3.5 py-2 bg-slate-100 dark:bg-navy-800 border border-slate-200 dark:border-navy-700 rounded-xl text-slate-800 dark:text-slate-200 hover:text-mint-600 dark:hover:text-mint-300 hover:border-mint-500/30 transition-all text-sm font-medium">
+                    <FiUser className="w-4 h-4 text-mint-600 dark:text-mint-400" /> {user.name?.split(' ')[0]}
                   </Link>
                   {(user.role === 'admin' || user.role === 'manager') && (
                     <Link to="/admin" className="px-3.5 py-2 bg-mint-500 text-navy-950 font-bold rounded-xl text-sm hover:bg-mint-400 transition-all shadow-md shadow-mint-500/20">
                       Dashboard
                     </Link>
                   )}
-                  <button onClick={handleLogout} className="p-2 text-slate-400 hover:text-red-400 hover:bg-navy-800 rounded-xl transition-colors">
+                  <button onClick={handleLogout} className="p-2 text-slate-500 dark:text-slate-400 hover:text-red-500 hover:bg-slate-100 dark:hover:bg-navy-800 rounded-xl transition-colors">
                     <FiLogOut className="w-4 h-4" />
                   </button>
                 </div>
               ) : (
-                <Link to="/login" className="hidden md:flex items-center gap-1.5 px-4 py-2 bg-mint-400 hover:bg-mint-300 text-navy-950 font-extrabold rounded-xl text-sm transition-all shadow-md shadow-mint-500/25 active:scale-95">
+                <Link to="/login" className="hidden md:flex items-center gap-1.5 px-4 py-2 bg-mint-500 hover:bg-mint-400 text-navy-950 font-extrabold rounded-xl text-sm transition-all shadow-md shadow-mint-500/25 active:scale-95">
                   <FiLogIn className="w-4 h-4 stroke-[2.5]" /> Login
                 </Link>
               )}
 
-              <button onClick={() => setMenuOpen(!menuOpen)} className="md:hidden p-2 text-slate-300 hover:text-mint-400">
+              <button onClick={() => setMenuOpen(!menuOpen)} className="md:hidden p-2 text-slate-700 dark:text-slate-300 hover:text-mint-600 dark:hover:text-mint-400">
                 {menuOpen ? <FiX className="w-6 h-6" /> : <FiMenu className="w-6 h-6" />}
               </button>
             </div>
@@ -242,18 +244,22 @@ export default function CustomerLayout() {
       </a>
 
       {/* Footer */}
-      <footer className="bg-gradient-to-b from-navy-900 via-navy-950 to-navy-950 border-t border-navy-800/80 text-slate-300 mt-16">
+      <footer className="bg-slate-900 dark:bg-gradient-to-b dark:from-navy-900 dark:via-navy-950 dark:to-navy-950 border-t border-slate-800 dark:border-navy-800/80 text-slate-300 mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-7 h-7 bg-mint-500 rounded-lg flex items-center justify-center text-navy-950 font-bold text-sm">G</div>
-                <h3 className="text-xl font-bold gradient-text">Ganesh Trades</h3>
+              <div className="flex items-center gap-2.5 mb-3">
+                <img
+                  src="/logo.png"
+                  alt="Ganesh Trades Logo"
+                  className="w-8 h-8 object-contain drop-shadow-[0_2px_8px_rgba(52,211,153,0.3)]"
+                />
+                <h3 className="text-xl font-bold text-white">Ganesh Trades</h3>
               </div>
               <p className="text-slate-400 text-sm leading-relaxed max-w-sm">Your trusted grocery and wholesale shop. Quality products at the best prices for homes, hotels and PGs.</p>
             </div>
             <div>
-              <h4 className="font-semibold text-white mb-3 text-sm uppercase tracking-wider text-mint-400">Quick Links</h4>
+              <h4 className="font-semibold text-mint-400 mb-3 text-sm uppercase tracking-wider">Quick Links</h4>
               <div className="space-y-2 text-sm text-slate-400">
                 <Link to="/products" className="block hover:text-mint-400 transition-colors">Browse Products</Link>
                 <Link to="/orders" className="block hover:text-mint-400 transition-colors">My Orders</Link>
@@ -261,7 +267,7 @@ export default function CustomerLayout() {
               </div>
             </div>
             <div>
-              <h4 className="font-semibold text-white mb-3 text-sm uppercase tracking-wider text-mint-400">Contact Us</h4>
+              <h4 className="font-semibold text-mint-400 mb-3 text-sm uppercase tracking-wider">Contact Us</h4>
               <div className="space-y-2 text-sm text-slate-400">
                 <p className="flex items-center gap-2"><span>📞</span> +91 80104 12539</p>
                 <p className="flex items-center gap-2"><span>📧</span> info@ganeshtrades.com</p>
@@ -269,7 +275,7 @@ export default function CustomerLayout() {
               </div>
             </div>
           </div>
-          <div className="border-t border-navy-800/80 mt-10 pt-6 text-center text-sm text-slate-500">
+          <div className="border-t border-slate-800 dark:border-navy-800/80 mt-10 pt-6 text-center text-sm text-slate-500">
             © {new Date().getFullYear()} Ganesh Trades. All rights reserved.
           </div>
         </div>

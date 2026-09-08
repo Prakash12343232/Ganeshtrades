@@ -1,0 +1,38 @@
+# Standalone Render Configuration for Separate OTP Server Repository
+services:
+  - type: web
+    name: ganeshtrades-otp-server
+    runtime: node
+    repo: https://github.com/Prakash12343232/ganesh-otp-server.git
+    branch: main
+    buildCommand: npm install
+    startCommand: npm start
+    autoDeploy: true
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5001
+      - key: OTP_EXPIRY_SECONDS
+        value: "300"
+      - key: OTP_RESEND_COOLDOWN_SECONDS
+        value: "60"
+      - key: OTP_MAX_VERIFY_ATTEMPTS
+        value: "5"
+      - key: OTP_MAX_SENDS_PER_HOUR
+        value: "5"
+      - key: MONGODB_URI
+        sync: false
+      - key: OTP_SERVICE_API_KEY
+        sync: false
+      - key: OTP_HASH_SECRET
+        sync: false
+      - key: FAST2SMS_API_KEY
+        sync: false
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_PHONE_NUMBER
+        sync: false

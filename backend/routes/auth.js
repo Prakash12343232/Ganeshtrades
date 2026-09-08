@@ -5,6 +5,7 @@ const mongoose = require('mongoose');
 const rateLimit = require('express-rate-limit');
 const User = require('../models/User');
 const Otp = require('../models/Otp');
+const OtpClient = require('../utils/otpClient');
 const { checkServiceability } = require('../utils/distance');
 const { protect } = require('../middleware/auth');
 const { createAuditLog } = require('../utils/auditLogger');
@@ -80,6 +81,13 @@ router.post('/send-otp', otpLimiter, async (req, res) => {
       } catch (err) {
         return res.status(403).json({ success: false, message: err.message });
       }
+    }
+
+    // Forward to independent OTP Server if configured
+    if (OtpClient.isConfigured()) {
+      console.log(`[BACKEND -> OTP SERVER] Forwarding send-otp request for ${normMobile} (${purpose})`);
+      const otpResult = await OtpClient.sendOtp(normMobile, purpose);
+      return res.json(otpResult);
     }
 
     // Delete existing unverified OTP for this purpose
@@ -230,6 +238,17 @@ router.post('/verify-otp', authLimiter, async (req, res) => {
 
     if (!normMobile || !otp || !purpose) {
       return res.status(400).json({ success: false, message: 'Please provide mobile, OTP, and purpose' });
+    }
+
+    // Forward to independent OTP Server if configured
+    if (OtpClient.isConfigured()) {
+      console.log(`[BACKEND -> OTP SERVER] Forwarding verify-otp request for ${normMobile} (${purpose})`);
+      const otpResult = await OtpClient.verifyOtp(normMobile, otp, purpose);
+      if (otpResult.verified || otpResult.success) {
+        return res.json({ success: true, message: 'OTP verified successfully' });
+      } else {
+        return res.status(400).json({ success: false, message: otpResult.message || 'Invalid or expired OTP' });
+      }
     }
 
     const otpRecord = await Otp.findOne({ mobile: normMobile, purpose, verified: false });
