@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useState, useEffect, Suspense } from 'react';
 import { getNotifications } from '../services/api';
 import { FiHome, FiPackage, FiUsers, FiDollarSign, FiBarChart2, FiBox, FiLogOut, FiMenu, FiArrowLeft, FiBell, FiTruck, FiBookOpen, FiFileText, FiDatabase, FiMap, FiShoppingBag, FiStar } from 'react-icons/fi';
+import logoImg from '../assets/logo.png';
 
 export default function AdminLayout() {
   const { user, logout } = useAuth();
@@ -48,7 +49,7 @@ export default function AdminLayout() {
         <div>
           <div className="flex items-center gap-3 px-6 py-5 border-b border-navy-800">
             <img
-              src="/logo.png"
+              src={logoImg}
               alt="Ganesh Trades Logo"
               className="w-12 h-12 object-contain drop-shadow-[0_4px_10px_rgba(52,211,153,0.3)]"
             />

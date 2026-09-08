@@ -6,6 +6,7 @@ import { getNotifications, markRead, markAllRead } from '../services/api';
 import { FiShoppingCart, FiUser, FiMenu, FiX, FiHome, FiPackage, FiLogOut, FiLogIn, FiClipboard, FiBell, FiCheck } from 'react-icons/fi';
 import { FaWhatsapp } from 'react-icons/fa';
 import ThemeToggle from '../components/common/ThemeToggle';
+import logoImg from '../assets/logo.png';
 
 export default function CustomerLayout() {
   const { user, logout } = useAuth();
@@ -77,7 +78,7 @@ export default function CustomerLayout() {
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2.5 group">
               <img
-                src="/logo.png"
+                src={logoImg}
                 alt="Ganesh Trades Logo"
                 className="w-12 h-12 object-contain drop-shadow-[0_4px_10px_rgba(52,211,153,0.3)] group-hover:scale-105 transition-transform"
               />
@@ -250,7 +251,7 @@ export default function CustomerLayout() {
             <div>
               <div className="flex items-center gap-2.5 mb-3">
                 <img
-                  src="/logo.png"
+                  src={logoImg}
                   alt="Ganesh Trades Logo"
                   className="w-11 h-11 object-contain drop-shadow-[0_2px_8px_rgba(52,211,153,0.3)]"
                 />
