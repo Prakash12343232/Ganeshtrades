@@ -147,7 +147,7 @@ export default function Register() {
           <img
             src="/logo.png"
             alt="Ganesh Trades Logo"
-            className="w-16 h-16 object-contain mx-auto mb-3 drop-shadow-[0_10px_25px_rgba(52,211,153,0.3)] hover:scale-105 transition-transform"
+            className="w-20 h-20 object-contain mx-auto mb-3 drop-shadow-[0_10px_25px_rgba(52,211,153,0.3)] hover:scale-105 transition-transform"
           />
           <h1 className="text-2xl font-extrabold text-white tracking-tight">Create Account</h1>
           <p className="text-mint-300/80 mt-1 text-sm">Join Ganesh Trades</p>

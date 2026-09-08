@@ -50,7 +50,7 @@ export default function AdminLayout() {
             <img
               src="/logo.png"
               alt="Ganesh Trades Logo"
-              className="w-10 h-10 object-contain drop-shadow-[0_4px_10px_rgba(52,211,153,0.3)]"
+              className="w-12 h-12 object-contain drop-shadow-[0_4px_10px_rgba(52,211,153,0.3)]"
             />
             <div>
               <h1 className="font-extrabold text-lg text-white">Ganesh Trades</h1>

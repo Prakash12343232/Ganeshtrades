@@ -45,7 +45,7 @@ export default function PaymentGatewayModal({ open, onClose, orderNumber, amount
             <img
               src="/logo.png"
               alt="Ganesh Trades Logo"
-              className="w-8 h-8 object-contain drop-shadow-[0_2px_8px_rgba(52,211,153,0.3)]"
+              className="w-10 h-10 object-contain drop-shadow-[0_2px_8px_rgba(52,211,153,0.3)]"
             />
             <div>
               <h3 className="font-bold text-white text-sm">Ganesh Trades Gateway</h3>

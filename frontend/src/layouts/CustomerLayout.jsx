@@ -79,7 +79,7 @@ export default function CustomerLayout() {
               <img
                 src="/logo.png"
                 alt="Ganesh Trades Logo"
-                className="w-10 h-10 object-contain drop-shadow-[0_4px_10px_rgba(52,211,153,0.3)] group-hover:scale-105 transition-transform"
+                className="w-12 h-12 object-contain drop-shadow-[0_4px_10px_rgba(52,211,153,0.3)] group-hover:scale-105 transition-transform"
               />
               <div className="hidden sm:block">
                 <h1 className="text-lg font-bold text-slate-900 dark:text-white leading-tight">Ganesh Trades</h1>
@@ -252,7 +252,7 @@ export default function CustomerLayout() {
                 <img
                   src="/logo.png"
                   alt="Ganesh Trades Logo"
-                  className="w-8 h-8 object-contain drop-shadow-[0_2px_8px_rgba(52,211,153,0.3)]"
+                  className="w-11 h-11 object-contain drop-shadow-[0_2px_8px_rgba(52,211,153,0.3)]"
                 />
                 <h3 className="text-xl font-bold text-white">Ganesh Trades</h3>
               </div>
