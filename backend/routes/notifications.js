@@ -6,10 +6,27 @@ const { pickFields } = require('../utils/security');
 
 const NOTIFICATION_FIELDS = ['title', 'message', 'type', 'recipient', 'recipientRole', 'link', 'metadata', 'priority'];
 
+function accessibleQuery(user) {
+  return { $or: [{ recipient: user._id }, { recipientRole: user.role }, { recipientRole: 'all' }] };
+}
+
 function userCanAccessNotification(user, notification) {
   if (notification.recipient && notification.recipient.toString() === user._id.toString()) return true;
   if (notification.recipientRole === 'all') return true;
   if (notification.recipientRole === user.role) return true;
+  return false;
+}
+
+// Whether this notification is read FOR the given user.
+// Targeted notifications (recipient set) use the shared isRead flag because they
+// belong to a single user; broadcasts use per-user readBy receipts so read state
+// never leaks across users.
+function isReadForUser(user, notification) {
+  if (!notification) return false;
+  if (notification.isRead === true) return true;
+  if (Array.isArray(notification.readBy)) {
+    return notification.readBy.some(id => id && String(id) === String(user._id));
+  }
   return false;
 }
 
@@ -21,11 +38,35 @@ router.get('/', protect, async (req, res) => {
     const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 50));
     const skip = (pageNum - 1) * limitNum;
 
-    const query = { $or: [{ recipient: req.user._id }, { recipientRole: req.user.role }, { recipientRole: 'all' }] };
+    const query = accessibleQuery(req.user);
     const total = await Notification.countDocuments(query);
     const notifications = await Notification.find(query).sort('-createdAt').skip(skip).limit(limitNum);
-    const unreadCount = await Notification.countDocuments({ ...query, isRead: false });
-    res.json({ success: true, data: notifications, unreadCount, pagination: { total, page: pageNum, pages: Math.ceil(total / limitNum) } });
+
+    // Resolve per-user read state so the shared isRead field stays compatible for
+    // the frontend while broadcasts keep independent receipts per user.
+    const data = notifications.map(n => ({
+      _id: n._id,
+      title: n.title,
+      message: n.message,
+      type: n.type,
+      priority: n.priority,
+      recipient: n.recipient,
+      recipientRole: n.recipientRole,
+      isRead: isReadForUser(req.user, n),
+      link: n.link,
+      metadata: n.metadata,
+      createdAt: n.createdAt,
+      updatedAt: n.updatedAt
+    }));
+
+    const unreadCount = await Notification.countDocuments({
+      $or: [
+        { recipient: req.user._id, isRead: false },
+        { recipientRole: req.user.role, readBy: { $ne: req.user._id } },
+        { recipientRole: 'all', readBy: { $ne: req.user._id } }
+      ]
+    });
+    res.json({ success: true, data, unreadCount, pagination: { total, page: pageNum, pages: Math.ceil(total / limitNum) } });
   } catch (error) { res.status(500).json({ success: false, message: error.message }); }
 });
 
@@ -37,7 +78,15 @@ router.put('/:id/read', protect, async (req, res) => {
     if (!userCanAccessNotification(req.user, notification)) {
       return res.status(403).json({ success: false, message: 'Not authorized to access this notification' });
     }
-    notification.isRead = true;
+    if (notification.recipient && notification.recipient.toString() === req.user._id.toString()) {
+      notification.isRead = true;
+    } else {
+      // Broadcast: mark read for THIS user only, never globally.
+      if (!Array.isArray(notification.readBy)) notification.readBy = [];
+      if (!notification.readBy.some(id => String(id) === String(req.user._id))) {
+        notification.readBy.push(req.user._id);
+      }
+    }
     await notification.save();
     res.json({ success: true });
   } catch (error) { res.status(500).json({ success: false, message: error.message }); }
@@ -46,10 +95,12 @@ router.put('/:id/read', protect, async (req, res) => {
 // PUT /api/notifications/read-all
 router.put('/read-all', protect, async (req, res) => {
   try {
-    // BUG-06 fix: also mark broadcast notifications (recipientRole:'all') as read
+    // Targeted notifications belong to this user alone — flip isRead directly.
+    await Notification.updateMany({ recipient: req.user._id }, { $set: { isRead: true } });
+    // Broadcasts are shared — add this user to readBy so others stay unaffected.
     await Notification.updateMany(
-      { $or: [{ recipient: req.user._id }, { recipientRole: req.user.role }, { recipientRole: 'all' }] },
-      { isRead: true }
+      { $or: [{ recipientRole: req.user.role }, { recipientRole: 'all' }] },
+      { $addToSet: { readBy: req.user._id } }
     );
     res.json({ success: true, message: 'All marked read' });
   } catch (error) { res.status(500).json({ success: false, message: error.message }); }
@@ -66,14 +117,12 @@ router.post('/', protect, authorize('admin', 'manager'), async (req, res) => {
 
 // BUG-04 fix: DELETE /clear-read MUST be registered before DELETE /:id
 // otherwise Express matches 'clear-read' as the :id param
-// DELETE /api/notifications/clear-read - Clear all read notifications for user
+// DELETE /api/notifications/clear-read - Clear read notifications for THIS user only.
+// Broadcasts are shared documents and must never be deleted on behalf of one user.
 router.delete('/clear-read', protect, async (req, res) => {
   try {
-    const result = await Notification.deleteMany({
-      $or: [{ recipient: req.user._id }, { recipientRole: req.user.role }, { recipientRole: 'all' }],
-      isRead: true
-    });
-    res.json({ success: true, message: `${result.deletedCount} read notifications cleared` });
+    const result = await Notification.deleteMany({ recipient: req.user._id, isRead: true });
+    res.json({ success: true, message: `${result.deletedCount} read notification(s) cleared` });
   } catch (error) { res.status(500).json({ success: false, message: error.message }); }
 });
 
@@ -82,7 +131,11 @@ router.delete('/:id', protect, async (req, res) => {
   try {
     const notification = await Notification.findById(req.params.id);
     if (!notification) return res.status(404).json({ success: false, message: 'Notification not found' });
-    if (!userCanAccessNotification(req.user, notification) && !['admin', 'manager'].includes(req.user.role)) {
+    // Admins/managers may delete any notification (intentional op). Other users may
+    // delete only notifications targeted at them individually — never shared broadcasts.
+    const isStaff = ['admin', 'manager'].includes(req.user.role);
+    const isOwnTargeted = notification.recipient && notification.recipient.toString() === req.user._id.toString();
+    if (!isStaff && !isOwnTargeted) {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
     await Notification.findByIdAndDelete(req.params.id);

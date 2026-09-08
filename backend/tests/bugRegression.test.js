@@ -37,16 +37,37 @@ describe('Bug Regression Tests', () => {
     });
   });
 
-  // BUG-06: read-all should also mark recipientRole:'all' notifications
-  describe('BUG-06: Mark-all-read includes broadcasts', () => {
-    it('marks recipientRole:all notifications as read', async () => {
+  // BUG-06: read-all must mark recipientRole:'all' notifications as read FOR THE REQUESTING
+  // USER ONLY — read state is per-user (readBy receipts), never a global isRead flip.
+  describe('BUG-06: Mark-all-read includes broadcasts (per-user read state)', () => {
+    it('marks broadcasts read for the caller without affecting other users', async () => {
+      const other = await User.create({ name: 'Other', mobile: '9000000202', password: 'password123', role: 'customer' });
+      const otherToken = generateTestToken(other._id);
       await Notification.create({ title: 'Broadcast', message: 'For everyone', type: 'general', recipientRole: 'all', isRead: false });
+
       const res = await request(app)
         .put('/api/notifications/read-all')
         .set('Authorization', `Bearer ${customerToken}`);
       expect(res.statusCode).toEqual(200);
-      const unread = await Notification.countDocuments({ recipientRole: 'all', isRead: false });
-      expect(unread).toEqual(0);
+
+      // The broadcast doc is shared and must NOT be globally marked read.
+      const broadcast = await Notification.findOne({ recipientRole: 'all' });
+      expect(broadcast.isRead).toBe(false);
+      expect(broadcast.readBy.map(id => String(id))).toContain(String(customer._id));
+
+      // Caller sees 0 unread.
+      const mine = await request(app)
+        .get('/api/notifications')
+        .set('Authorization', `Bearer ${customerToken}`);
+      expect(mine.body.unreadCount).toEqual(0);
+      expect(mine.body.data[0].isRead).toBe(true);
+
+      // Other user still sees it unread.
+      const theirs = await request(app)
+        .get('/api/notifications')
+        .set('Authorization', `Bearer ${otherToken}`);
+      expect(theirs.body.unreadCount).toEqual(1);
+      expect(theirs.body.data[0].isRead).toBe(false);
     });
   });
 
