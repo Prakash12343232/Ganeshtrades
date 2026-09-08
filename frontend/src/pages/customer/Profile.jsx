@@ -207,7 +207,25 @@ export default function Profile() {
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-1">New Password</label>
             <input type="password" value={passForm.newPassword} onChange={e => setPassForm({...passForm, newPassword: e.target.value})}
-              className="w-full px-4 py-3 bg-navy-950 border border-navy-700 text-slate-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-mint-500" required minLength={6} />
+              className="w-full px-4 py-3 bg-navy-950 border border-navy-700 text-slate-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-mint-500" required minLength={8} />
+            {passForm.newPassword && (
+              <div className="mt-1.5 space-y-1">
+                <div className="flex gap-1">
+                  {[
+                    passForm.newPassword.length >= 8,
+                    /[A-Z]/.test(passForm.newPassword),
+                    /[a-z]/.test(passForm.newPassword),
+                    /[0-9]/.test(passForm.newPassword),
+                    /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?`~]/.test(passForm.newPassword)
+                  ].map((passed, idx) => (
+                    <div key={idx} className={`h-1 flex-1 rounded-full transition-all ${passed ? 'bg-mint-400' : 'bg-navy-800'}`} />
+                  ))}
+                </div>
+                <p className="text-[10px] text-slate-400">
+                  Use 8+ chars with uppercase, lowercase, number & special symbol
+                </p>
+              </div>
+            )}
           </div>
           <button type="submit" className="w-full py-3 bg-mint-500 text-navy-950 rounded-xl font-bold hover:bg-mint-400 flex items-center justify-center gap-2 shadow-lg shadow-mint-500/20">
             <FiLock /> Change Password

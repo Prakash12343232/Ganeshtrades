@@ -446,6 +446,10 @@ router.put('/password', protect, async (req, res) => {
     if (!currentPassword || !newPassword) {
       return res.status(400).json({ success: false, message: 'Current and new password are required' });
     }
+    const pwCheck = validatePasswordStrength(newPassword);
+    if (!pwCheck.valid) {
+      return res.status(400).json({ success: false, message: 'Password too weak', errors: pwCheck.errors });
+    }
     const user = await User.findById(req.user._id).select('+password');
 
     const isMatch = await user.comparePassword(currentPassword);
