@@ -1,6 +1,8 @@
 const request = require('supertest');
 const app = require('../server');
 const User = require('../models/User');
+const Order = require('../models/Order');
+const Product = require('../models/Product');
 const Notification = require('../models/Notification');
 const AuditLog = require('../models/AuditLog');
 const { generateTestToken } = require('./setup');
@@ -50,11 +52,12 @@ describe('Bug Regression Tests', () => {
 
   // BUG-05: Settlement should reject over-balance amount
   describe('BUG-05: Settlement balance validation', () => {
-    it('rejects settlement exceeding max balance', async () => {
+    it('rejects settlement exceeding TOTAL outstanding (credit + pending)', async () => {
+      // customer has creditBalance 500 + pendingAmount 300 = 800 owed
       const res = await request(app)
         .post('/api/payments/settlement')
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ userId: customer._id, amount: 600, paymentMethod: 'cash' });
+        .send({ userId: customer._id, amount: 900, paymentMethod: 'cash' });
       expect(res.statusCode).toEqual(400);
       expect(res.body.message).toMatch(/exceeds/i);
     });
@@ -69,12 +72,48 @@ describe('Bug Regression Tests', () => {
       expect(res.body.message).toMatch(/no outstanding balance/i);
     });
 
-    it('allows valid settlement within balance', async () => {
+    it('applies settlement credit-first so total owed drops by exactly the paid amount', async () => {
+      // 500 credit + 300 pending = 800 owed; paying 600 must reduce total by 600
       const res = await request(app)
         .post('/api/payments/settlement')
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ userId: customer._id, amount: 400, paymentMethod: 'cash' });
+        .send({ userId: customer._id, amount: 600, paymentMethod: 'cash' });
       expect(res.statusCode).toEqual(201);
+      const u = await User.findById(customer._id);
+      expect(u.creditBalance).toEqual(0);   // 500 of 600 went to credit first
+      expect(u.pendingAmount).toEqual(200); // remaining 100 of 600 reduced pending
+    });
+
+    it('settling the full total outstanding clears both balances', async () => {
+      const res = await request(app)
+        .post('/api/payments/settlement')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ userId: customer._id, amount: 800, paymentMethod: 'upi' });
+      expect(res.statusCode).toEqual(201);
+      const u = await User.findById(customer._id);
+      expect(u.creditBalance + u.pendingAmount).toEqual(0);
+    });
+  });
+
+  describe('Cancelled-order payment integrity', () => {
+    it('rejects recording a payment against a cancelled order', async () => {
+      const product = await Product.create({ name: 'P', category: 'snacks', price: 100, stock: 10 });
+      const order = await Order.create({
+        user: customer._id,
+        items: [{ product: product._id, quantity: 1, price: 100, total: 100 }],
+        totalAmount: 100,
+        finalAmount: 100,
+        paymentMethod: 'cash',
+        orderStatus: 'cancelled',
+        cancelReason: 'Cancelled'
+      });
+
+      const res = await request(app)
+        .post('/api/payments')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ userId: customer._id, orderId: order._id, amount: 100, paymentMethod: 'cash' });
+      expect(res.statusCode).toEqual(400);
+      expect(res.body.message).toMatch(/cancelled/i);
     });
   });
 

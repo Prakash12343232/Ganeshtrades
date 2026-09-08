@@ -57,5 +57,6 @@ describe('Khata (Credit) Workflow', () => {
     expect(res.statusCode).toEqual(201);
     const u = await User.findById(customer._id);
     expect(u.creditBalance).toEqual(0);
+    expect(u.pendingAmount).toEqual(500); // credit-first: cash/pending debt untouched
   });
 });

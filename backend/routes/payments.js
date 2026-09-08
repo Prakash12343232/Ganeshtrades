@@ -16,6 +16,9 @@ router.post('/', protect, authorize('admin', 'manager'), async (req, res) => {
     const amount = parsePositiveNumber(req.body.amount, 'amount');
     const order = await Order.findById(orderId);
     if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+    if (order.orderStatus === 'cancelled') {
+      return res.status(400).json({ success: false, message: 'Order is cancelled and cannot receive payment' });
+    }
     if (order.user.toString() !== userId) {
       return res.status(400).json({ success: false, message: 'Payment user does not match order owner' });
     }
@@ -94,22 +97,24 @@ router.post('/settlement', protect, authorize('admin', 'manager'), async (req, r
     const amount = parsePositiveNumber(req.body.amount, 'amount');
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-    // BUG-05 fix: reject if amount exceeds whichever balance is larger
-    // (old: amount > creditBalance && amount > pendingAmount — allowed over-settlement)
-    const maxBalance = Math.max(user.creditBalance, user.pendingAmount);
-    if (maxBalance <= 0) {
+    // Outstanding balance is the SUM of credit + pending debt. A settlement
+    // payment must reduce total owed by exactly `amount` (credit-first),
+    // never both balances at once — the old max() logic wrote off money.
+    const totalOutstanding = (user.creditBalance || 0) + (user.pendingAmount || 0);
+    if (totalOutstanding <= 0) {
       return res.status(400).json({ success: false, message: 'Customer has no outstanding balance' });
     }
-    if (amount > maxBalance) {
-      return res.status(400).json({ success: false, message: `Settlement of ₹${amount} exceeds outstanding balance of ₹${maxBalance}` });
+    if (amount > totalOutstanding) {
+      return res.status(400).json({ success: false, message: `Settlement of ₹${amount} exceeds outstanding balance of ₹${totalOutstanding}` });
     }
 
     const settlement = await Settlement.create({
       user: userId, amount, paymentMethod, referenceNumber, notes, processedBy: req.user._id
     });
 
-    user.creditBalance = Math.max(0, user.creditBalance - amount);
-    user.pendingAmount = Math.max(0, user.pendingAmount - amount);
+    const creditPaid = Math.min(user.creditBalance || 0, amount);
+    user.creditBalance = Math.round(((user.creditBalance || 0) - creditPaid) * 100) / 100;
+    user.pendingAmount = Math.round(Math.max(0, (user.pendingAmount || 0) - (amount - creditPaid)) * 100) / 100;
     await user.save();
 
     await CreditTransaction.create({

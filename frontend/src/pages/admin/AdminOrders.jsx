@@ -75,6 +75,15 @@ export default function AdminOrders() {
     } catch (err) { toast.error(err.response?.data?.message || 'Failed'); }
   };
 
+  const handleCancelOrder = async (order) => {
+    if (!confirm(`Cancel order #${order.orderNumber}?`)) return;
+    try {
+      await updateOrderStatus(order._id, { orderStatus: 'cancelled' });
+      toast.success('Order cancelled');
+      fetchOrders();
+    } catch (err) { toast.error(err.response?.data?.message || 'Failed to cancel order'); }
+  };
+
   const handleReschedule = async () => {
     if (!reschedDate || !reschedSlot) return toast.error('Select both date and time slot');
     setRescheduling(true);
@@ -259,6 +268,9 @@ export default function AdminOrders() {
                         )}
                         {order.paymentStatus !== 'paid' && order.orderStatus !== 'cancelled' && (
                           <button onClick={() => openPayModal(order)} className="p-1.5 bg-green-50 text-green-600 rounded hover:bg-green-100" title="Record Payment"><FiDollarSign className="w-4 h-4" /></button>
+                        )}
+                        {!['delivered', 'cancelled'].includes(order.orderStatus) && (
+                          <button onClick={() => handleCancelOrder(order)} className="p-1.5 bg-red-50 text-red-600 rounded hover:bg-red-100" title="Cancel Order"><FiX className="w-4 h-4" /></button>
                         )}
                       </div>
                     </td>

@@ -15,7 +15,7 @@ vi.mock('react-hot-toast', () => ({
   default: { success: vi.fn(), error: vi.fn() }
 }));
 
-const { getOrders, assignDelivery, createPayment } = await import('../../services/api');
+const { getOrders, assignDelivery, createPayment, updateOrderStatus } = await import('../../services/api');
 const AdminOrders = (await import('./AdminOrders.jsx')).default;
 
 const baseOrders = [
@@ -236,6 +236,65 @@ describe('AdminOrders Record Payment', () => {
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith('Payment exceeds outstanding amount of ₹50');
+    });
+  });
+});
+
+describe('AdminOrders Cancel Order', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    getOrders.mockResolvedValue({ data: { data: baseOrders, pagination: { total: baseOrders.length, page: 1, pages: 1 } } });
+    updateOrderStatus.mockResolvedValue({ data: { success: true } });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('shows a Cancel Order button only for non-delivered non-cancelled orders', async () => {
+    render(<AdminOrders />);
+    await screen.findByText('#GT202500001');
+
+    const cancelButtons = screen.getAllByTitle('Cancel Order');
+    expect(cancelButtons).toHaveLength(2); // o1 (confirmed) + o2 (processing)
+  });
+
+  it('cancels an order via the status update API after confirmation', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    render(<AdminOrders />);
+    await screen.findByText('#GT202500001');
+
+    fireEvent.click(screen.getAllByTitle('Cancel Order')[0]);
+
+    await waitFor(() => {
+      expect(updateOrderStatus).toHaveBeenCalledWith('o1', { orderStatus: 'cancelled' });
+    });
+    expect(toast.success).toHaveBeenCalledWith('Order cancelled');
+    expect(getOrders).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not cancel when the admin dismisses the confirmation', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    render(<AdminOrders />);
+    await screen.findByText('#GT202500001');
+
+    fireEvent.click(screen.getAllByTitle('Cancel Order')[0]);
+
+    await waitFor(() => {
+      expect(updateOrderStatus).not.toHaveBeenCalled();
+    });
+  });
+
+  it('surfaces a backend cancellation rejection as an error toast', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    updateOrderStatus.mockRejectedValue({ response: { data: { message: 'Cannot cancel a delivered order' } } });
+    render(<AdminOrders />);
+    await screen.findByText('#GT202500001');
+
+    fireEvent.click(screen.getAllByTitle('Cancel Order')[0]);
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith('Cannot cancel a delivered order');
     });
   });
 });

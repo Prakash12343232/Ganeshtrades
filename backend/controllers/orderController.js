@@ -63,6 +63,27 @@ function parseSlotStartHour(slot) {
   return hour;
 }
 
+// Reverse the inventory + financial effects of cancelling an order so the
+// manual status path and the customer cancelOrder endpoint share semantics:
+// restore stock, and undo the pending/credit balance booked at creation.
+async function reverseOrderFinancials(order) {
+  for (const item of order.items) {
+    await Product.findByIdAndUpdate(item.product, { $inc: { stock: item.quantity, totalSold: -item.quantity } });
+  }
+  if (order.paymentMethod === 'credit') {
+    await User.findByIdAndUpdate(order.user, { $inc: { creditBalance: -order.finalAmount } });
+    await CreditTransaction.create({
+      user: order.user,
+      amount: order.finalAmount,
+      type: 'credit',
+      referenceOrder: order._id,
+      description: `Cancelled order #${order.orderNumber}`
+    });
+  } else if (order.paymentStatus !== 'paid') {
+    await User.findByIdAndUpdate(order.user, { $inc: { pendingAmount: -order.finalAmount } });
+  }
+}
+
 // ─── Controller Functions ───
 
 exports.createOrder = async (req, res) => {
@@ -435,6 +456,20 @@ exports.updateOrderStatus = async (req, res) => {
     }
     const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+
+    // Cancelling via the status path must reverse inventory + balances just
+    // like cancelOrder, and is only legal before the order is terminal.
+    if (orderStatus === 'cancelled') {
+      if (order.orderStatus === 'delivered') {
+        return res.status(400).json({ success: false, message: 'Cannot cancel a delivered order' });
+      }
+      if (order.orderStatus === 'cancelled') {
+        return res.status(400).json({ success: false, message: 'Order is already cancelled' });
+      }
+      order.cancelReason = note || 'Cancelled';
+      await reverseOrderFinancials(order);
+    }
+
     order.orderStatus = orderStatus;
     order.statusHistory.push({ status: orderStatus, note: note || '' });
     if (orderStatus === 'delivered') order.deliveredAt = new Date();
@@ -490,13 +525,11 @@ exports.cancelOrder = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Order can no longer be cancelled by customer' });
     }
 
-    for (const item of order.items) {
-      await Product.findByIdAndUpdate(item.product, { $inc: { stock: item.quantity, totalSold: -item.quantity } });
-    }
     order.orderStatus = 'cancelled';
     order.cancelReason = req.body.reason || 'Cancelled';
     order.statusHistory.push({ status: 'cancelled', note: order.cancelReason });
     await order.save();
+    await reverseOrderFinancials(order);
 
     // A cancelled order must not keep an active delivery in the dispatch queues.
     const delivery = await Delivery.findOne({ order: order._id });
@@ -504,19 +537,6 @@ exports.cancelOrder = async (req, res) => {
       delivery.status = 'failed';
       delivery.history.push({ status: 'failed', note: 'Order cancelled' });
       await delivery.save();
-    }
-
-    if (order.paymentMethod === 'credit') {
-      await User.findByIdAndUpdate(order.user, { $inc: { creditBalance: -order.finalAmount } });
-      await CreditTransaction.create({
-        user: order.user,
-        amount: order.finalAmount,
-        type: 'credit',
-        referenceOrder: order._id,
-        description: `Cancelled order #${order.orderNumber}`
-      });
-    } else if (order.paymentStatus !== 'paid') {
-      await User.findByIdAndUpdate(order.user, { $inc: { pendingAmount: -order.finalAmount } });
     }
 
     res.json({ success: true, message: 'Order cancelled', data: order });
