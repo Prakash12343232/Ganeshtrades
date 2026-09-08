@@ -68,27 +68,27 @@ export default function CustomerLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-primary-50">
+    <div className="min-h-screen bg-navy-950 text-slate-100 flex flex-col justify-between selection:bg-mint-500 selection:text-navy-950">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-primary-100 shadow-sm">
+      <header className="sticky top-0 z-50 bg-navy-900/90 backdrop-blur-lg border-b border-navy-800 shadow-lg shadow-black/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-2 group">
-              <div className="w-10 h-10 bg-gradient-to-br from-primary-600 to-primary-800 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg group-hover:shadow-primary-300 transition-shadow">
+            <Link to="/" className="flex items-center gap-2.5 group">
+              <div className="w-10 h-10 bg-gradient-to-br from-mint-400 to-mint-600 rounded-xl flex items-center justify-center text-navy-950 font-extrabold text-xl shadow-md shadow-mint-500/20 group-hover:scale-105 transition-all">
                 G
               </div>
               <div className="hidden sm:block">
-                <h1 className="text-lg font-bold gradient-text">Ganesh Trades</h1>
-                <p className="text-[10px] text-gray-400 -mt-1">Grocery & Wholesale</p>
+                <h1 className="text-lg font-bold gradient-text leading-tight">Ganesh Trades</h1>
+                <p className="text-[10px] text-mint-400/90 font-medium tracking-wide -mt-0.5">Grocery & Wholesale</p>
               </div>
             </Link>
 
             {/* Desktop Nav */}
-            <nav className="hidden md:flex items-center gap-1">
+            <nav className="hidden md:flex items-center gap-1.5">
               {navLinks.map(link => (
                 <Link key={link.path} to={link.path}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${isActive(link.path) ? 'bg-primary-100 text-primary-700' : 'text-gray-600 hover:bg-gray-100 hover:text-primary-600'}`}>
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${isActive(link.path) ? 'bg-mint-500/10 text-mint-400 border border-mint-500/30 shadow-sm' : 'text-slate-300 hover:bg-navy-800 hover:text-mint-300'}`}>
                   {link.icon} {link.label}
                 </Link>
               ))}
@@ -101,12 +101,12 @@ export default function CustomerLayout() {
                 <div className="relative">
                   <button
                     onClick={() => setNotifOpen(!notifOpen)}
-                    className="p-2 text-gray-600 hover:text-primary-600 transition-colors relative"
+                    className="p-2 text-slate-300 hover:text-mint-400 hover:bg-navy-800 rounded-xl transition-colors relative"
                     id="notif-bell-btn"
                   >
                     <FiBell className="w-5 h-5" />
                     {unreadCount > 0 && (
-                      <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">
+                      <span className="absolute top-0.5 right-0.5 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">
                         {unreadCount > 9 ? '9+' : unreadCount}
                       </span>
                     )}
@@ -114,38 +114,38 @@ export default function CustomerLayout() {
 
                   {/* Notification Dropdown */}
                   {notifOpen && (
-                    <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50 animate-fadeIn">
-                      <div className="p-4 bg-gradient-to-r from-primary-700 to-primary-800 text-white flex items-center justify-between">
+                    <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-navy-900 rounded-2xl shadow-2xl border border-navy-700 overflow-hidden z-50 animate-fadeIn">
+                      <div className="p-4 bg-navy-850 border-b border-navy-700 text-white flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <FiBell />
+                          <FiBell className="text-mint-400" />
                           <h3 className="font-bold text-sm">Notifications</h3>
                         </div>
                         {unreadCount > 0 && (
-                          <button onClick={handleMarkAllRead} className="text-xs text-primary-200 hover:text-white flex items-center gap-1">
+                          <button onClick={handleMarkAllRead} className="text-xs text-mint-400 hover:underline flex items-center gap-1">
                             <FiCheck /> Mark all read
                           </button>
                         )}
                       </div>
 
-                      <div className="max-h-80 overflow-y-auto divide-y divide-gray-100">
+                      <div className="max-h-80 overflow-y-auto divide-y divide-navy-800/60">
                         {notifications.length === 0 ? (
-                          <div className="p-6 text-center text-gray-400 text-sm">No notifications</div>
+                          <div className="p-6 text-center text-slate-400 text-sm">No notifications</div>
                         ) : (
                           notifications.map(n => (
                             <div
                               key={n._id}
                               onClick={() => handleMarkRead(n)}
-                              className={`p-3.5 hover:bg-gray-50 transition-colors cursor-pointer flex items-start gap-3 ${!n.isRead ? 'bg-primary-50/40' : ''}`}
+                              className={`p-3.5 hover:bg-navy-800/70 transition-colors cursor-pointer flex items-start gap-3 ${!n.isRead ? 'bg-mint-500/10' : ''}`}
                             >
                               <span className="text-lg flex-shrink-0 mt-0.5">
                                 {{ order: '📦', delivery: '🚚', payment: '💳', promotion: '🎉', new_product: '🆕', payment_reminder: '💰' }[n.type] || '📢'}
                               </span>
                               <div className="flex-1 min-w-0">
-                                <p className={`text-xs font-semibold ${!n.isRead ? 'text-primary-900' : 'text-gray-800'}`}>{n.title}</p>
-                                <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{n.message}</p>
-                                <span className="text-[10px] text-gray-400 mt-1 block">{new Date(n.createdAt).toLocaleDateString('en-IN', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}</span>
+                                <p className={`text-xs font-semibold ${!n.isRead ? 'text-mint-300' : 'text-slate-200'}`}>{n.title}</p>
+                                <p className="text-xs text-slate-400 mt-0.5 line-clamp-2">{n.message}</p>
+                                <span className="text-[10px] text-slate-500 mt-1 block">{new Date(n.createdAt).toLocaleDateString('en-IN', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}</span>
                               </div>
-                              {!n.isRead && <span className="w-2 h-2 bg-primary-600 rounded-full flex-shrink-0 mt-1.5" />}
+                              {!n.isRead && <span className="w-2 h-2 bg-mint-400 rounded-full flex-shrink-0 mt-1.5" />}
                             </div>
                           ))
                         )}
@@ -156,10 +156,10 @@ export default function CustomerLayout() {
               )}
 
               {/* Cart Button */}
-              <Link to="/cart" className="relative p-2 text-gray-600 hover:text-primary-600 transition-colors" id="cart-button">
+              <Link to="/cart" className="relative p-2 text-slate-300 hover:text-mint-400 hover:bg-navy-800 rounded-xl transition-colors" id="cart-button">
                 <FiShoppingCart className="w-5 h-5" />
                 {totalItems > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary-600 text-white text-xs rounded-full flex items-center justify-center animate-pulse-glow">
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-mint-500 text-navy-950 text-xs font-extrabold rounded-full flex items-center justify-center animate-pulse-glow">
                     {totalItems}
                   </span>
                 )}
@@ -167,26 +167,26 @@ export default function CustomerLayout() {
 
               {user ? (
                 <div className="hidden md:flex items-center gap-2">
-                  <Link to="/profile" className="flex items-center gap-2 px-3 py-2 bg-primary-50 rounded-lg text-primary-700 hover:bg-primary-100 transition-colors text-sm font-medium">
-                    <FiUser className="w-4 h-4" /> {user.name?.split(' ')[0]}
+                  <Link to="/profile" className="flex items-center gap-2 px-3.5 py-2 bg-navy-800 border border-navy-700 rounded-xl text-slate-200 hover:text-mint-300 hover:border-mint-500/30 transition-all text-sm font-medium">
+                    <FiUser className="w-4 h-4 text-mint-400" /> {user.name?.split(' ')[0]}
                   </Link>
                   {(user.role === 'admin' || user.role === 'manager') && (
-                    <Link to="/admin" className="px-3 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors">
+                    <Link to="/admin" className="px-3.5 py-2 bg-mint-500 text-navy-950 font-bold rounded-xl text-sm hover:bg-mint-400 transition-all shadow-md shadow-mint-500/20">
                       Dashboard
                     </Link>
                   )}
-                  <button onClick={handleLogout} className="p-2 text-gray-400 hover:text-red-500 transition-colors">
+                  <button onClick={handleLogout} className="p-2 text-slate-400 hover:text-red-400 hover:bg-navy-800 rounded-xl transition-colors">
                     <FiLogOut className="w-4 h-4" />
                   </button>
                 </div>
               ) : (
-                <Link to="/login" className="hidden md:flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors shadow-lg shadow-primary-200">
+                <Link to="/login" className="hidden md:flex items-center gap-2 px-4 py-2 bg-mint-500 text-navy-950 font-bold rounded-xl text-sm hover:bg-mint-400 transition-all shadow-md shadow-mint-500/20">
                   <FiLogIn className="w-4 h-4" /> Login
                 </Link>
               )}
 
-              <button onClick={() => setMenuOpen(!menuOpen)} className="md:hidden p-2 text-gray-600">
-                {menuOpen ? <FiX className="w-5 h-5" /> : <FiMenu className="w-5 h-5" />}
+              <button onClick={() => setMenuOpen(!menuOpen)} className="md:hidden p-2 text-slate-300 hover:text-mint-400">
+                {menuOpen ? <FiX className="w-6 h-6" /> : <FiMenu className="w-6 h-6" />}
               </button>
             </div>
           </div>
@@ -194,30 +194,30 @@ export default function CustomerLayout() {
 
         {/* Mobile Menu */}
         {menuOpen && (
-          <div className="md:hidden bg-white border-t border-gray-100 animate-fadeIn">
-            <div className="px-4 py-3 space-y-1">
+          <div className="md:hidden bg-navy-900 border-t border-navy-800 animate-fadeIn">
+            <div className="px-4 py-3 space-y-1.5">
               {navLinks.map(link => (
                 <Link key={link.path} to={link.path} onClick={() => setMenuOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium ${isActive(link.path) ? 'bg-primary-100 text-primary-700' : 'text-gray-600'}`}>
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium ${isActive(link.path) ? 'bg-mint-500/10 text-mint-400 border border-mint-500/30' : 'text-slate-300 hover:bg-navy-800'}`}>
                   {link.icon} {link.label}
                 </Link>
               ))}
               {user ? (
                 <>
-                  <Link to="/profile" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-600">
-                    <FiUser /> Profile
+                  <Link to="/profile" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-300 hover:bg-navy-800">
+                    <FiUser className="text-mint-400" /> Profile
                   </Link>
                   {(user.role === 'admin' || user.role === 'manager') && (
-                    <Link to="/admin" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-primary-600">
+                    <Link to="/admin" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-mint-400 hover:bg-navy-800">
                       <FiClipboard /> Admin Dashboard
                     </Link>
                   )}
-                  <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-red-500 w-full text-left">
+                  <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-400 hover:bg-navy-800 w-full text-left">
                     <FiLogOut /> Logout
                   </button>
                 </>
               ) : (
-                <Link to="/login" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-primary-600">
+                <Link to="/login" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-mint-400 hover:bg-navy-800">
                   <FiLogIn /> Login
                 </Link>
               )}
@@ -227,42 +227,45 @@ export default function CustomerLayout() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 flex-1 w-full">
         <Outlet />
       </main>
 
       {/* WhatsApp Button */}
       <a href="https://wa.me/918010412539?text=Hi%20Ganesh%20Trades!" target="_blank" rel="noopener noreferrer"
-        className="fixed bottom-6 right-6 w-14 h-14 bg-green-500 text-white rounded-full flex items-center justify-center shadow-2xl hover:bg-green-600 transition-all hover:scale-110 z-50" id="whatsapp-button">
+        className="fixed bottom-6 right-6 w-14 h-14 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-2xl hover:bg-emerald-400 hover:scale-110 transition-all z-50 border border-mint-400/40 shadow-mint-500/20" id="whatsapp-button">
         <FaWhatsapp className="w-7 h-7" />
       </a>
 
       {/* Footer */}
-      <footer className="bg-gradient-to-r from-primary-900 to-primary-800 text-white mt-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
+      <footer className="bg-gradient-to-b from-navy-900 via-navy-950 to-navy-950 border-t border-navy-800/80 text-slate-300 mt-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>
-              <h3 className="text-xl font-bold mb-3">Ganesh Trades</h3>
-              <p className="text-primary-200 text-sm">Your trusted grocery and wholesale shop. Quality products at the best prices.</p>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-7 h-7 bg-mint-500 rounded-lg flex items-center justify-center text-navy-950 font-bold text-sm">G</div>
+                <h3 className="text-xl font-bold gradient-text">Ganesh Trades</h3>
+              </div>
+              <p className="text-slate-400 text-sm leading-relaxed max-w-sm">Your trusted grocery and wholesale shop. Quality products at the best prices for homes, hotels and PGs.</p>
             </div>
             <div>
-              <h4 className="font-semibold mb-3">Quick Links</h4>
-              <div className="space-y-2 text-sm text-primary-200">
-                <Link to="/products" className="block hover:text-white transition-colors">Browse Products</Link>
-                <Link to="/orders" className="block hover:text-white transition-colors">My Orders</Link>
-                <Link to="/profile" className="block hover:text-white transition-colors">My Account</Link>
+              <h4 className="font-semibold text-white mb-3 text-sm uppercase tracking-wider text-mint-400">Quick Links</h4>
+              <div className="space-y-2 text-sm text-slate-400">
+                <Link to="/products" className="block hover:text-mint-400 transition-colors">Browse Products</Link>
+                <Link to="/orders" className="block hover:text-mint-400 transition-colors">My Orders</Link>
+                <Link to="/profile" className="block hover:text-mint-400 transition-colors">My Account</Link>
               </div>
             </div>
             <div>
-              <h4 className="font-semibold mb-3">Contact Us</h4>
-              <div className="space-y-2 text-sm text-primary-200">
-                <p>📞 +91 80104 12539</p>
-                <p>📧 info@ganeshtrades.com</p>
-                <p>📍 Main Market, Local</p>
+              <h4 className="font-semibold text-white mb-3 text-sm uppercase tracking-wider text-mint-400">Contact Us</h4>
+              <div className="space-y-2 text-sm text-slate-400">
+                <p className="flex items-center gap-2"><span>📞</span> +91 80104 12539</p>
+                <p className="flex items-center gap-2"><span>📧</span> info@ganeshtrades.com</p>
+                <p className="flex items-center gap-2"><span>📍</span> Main Market, Local</p>
               </div>
             </div>
           </div>
-          <div className="border-t border-primary-700 mt-8 pt-6 text-center text-sm text-primary-300">
+          <div className="border-t border-navy-800/80 mt-10 pt-6 text-center text-sm text-slate-500">
             © {new Date().getFullYear()} Ganesh Trades. All rights reserved.
           </div>
         </div>

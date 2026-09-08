@@ -94,8 +94,8 @@ export default function OrderDetail() {
     finally { setRescheduling(false); }
   };
 
-  if (loading) return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary-500"></div></div>;
-  if (!order) return <div className="text-center py-20 text-gray-500">Order not found</div>;
+  if (loading) return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-mint-400"></div></div>;
+  if (!order) return <div className="text-center py-20 text-slate-400">Order not found</div>;
 
   const currentStep = STATUS_STEPS.indexOf(order.orderStatus);
   const canReschedule = !['processing', 'out_for_delivery', 'delivered', 'cancelled'].includes(order.orderStatus);
@@ -124,35 +124,35 @@ export default function OrderDetail() {
   return (
     <div className="animate-fadeIn space-y-6">
       {/* Header */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-6">
+      <div className="bg-navy-900 rounded-2xl border border-navy-800 p-6">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">Order #{order.orderNumber}</h1>
+            <h1 className="text-2xl font-bold text-white">Order #{order.orderNumber}</h1>
             <div className="flex items-center gap-3 mt-1">
-              <p className="text-sm text-gray-400">{new Date(order.createdAt).toLocaleString('en-IN')}</p>
+              <p className="text-sm text-slate-400">{new Date(order.createdAt).toLocaleString('en-IN')}</p>
               {order.deliveryType === 'scheduled' && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary-100 text-primary-700 text-xs font-medium rounded-full">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-mint-500/10 border border-mint-500/30 text-mint-400 text-xs font-medium rounded-full">
                   <FiCalendar className="w-3 h-3" /> Scheduled
                 </span>
               )}
               {order.deliveryType === 'instant' && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-medium rounded-full">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-medium rounded-full">
                   <FiZap className="w-3 h-3" /> Instant
                 </span>
               )}
             </div>
           </div>
           <div className="flex gap-3">
-            <button onClick={handleDownloadInvoice} className="flex items-center gap-2 px-4 py-2 bg-primary-100 text-primary-700 rounded-lg text-sm font-medium hover:bg-primary-200 transition-all" id="download-invoice">
+            <button onClick={handleDownloadInvoice} className="flex items-center gap-2 px-4 py-2 bg-navy-800 text-mint-300 border border-mint-500/30 rounded-xl text-sm font-semibold hover:bg-navy-750 transition-all" id="download-invoice">
               <FiDownload /> Invoice
             </button>
             {canReschedule && (
-              <button onClick={() => setShowReschedule(!showReschedule)} className="flex items-center gap-2 px-4 py-2 bg-emerald-100 text-emerald-600 rounded-lg text-sm font-medium hover:bg-emerald-200 transition-all">
+              <button onClick={() => setShowReschedule(!showReschedule)} className="flex items-center gap-2 px-4 py-2 bg-mint-500/10 text-mint-400 border border-mint-500/30 rounded-xl text-sm font-semibold hover:bg-mint-500/20 transition-all">
                 <FiEdit3 /> Reschedule
               </button>
             )}
             {['pending', 'confirmed'].includes(order.orderStatus) && (
-              <button onClick={handleCancel} className="flex items-center gap-2 px-4 py-2 bg-red-100 text-red-600 rounded-lg text-sm font-medium hover:bg-red-200 transition-all">
+              <button onClick={handleCancel} className="flex items-center gap-2 px-4 py-2 bg-rose-500/10 text-rose-400 border border-rose-500/30 rounded-xl text-sm font-semibold hover:bg-rose-500/20 transition-all">
                 <FiX /> Cancel
               </button>
             )}
@@ -161,42 +161,42 @@ export default function OrderDetail() {
 
         {/* Reschedule Panel */}
         {showReschedule && (
-          <div className="mt-4 p-4 bg-emerald-50 rounded-xl border border-emerald-200 animate-fadeIn">
-            <h3 className="text-sm font-bold text-emerald-800 mb-3 flex items-center gap-2"><FiCalendar /> Reschedule Delivery</h3>
+          <div className="mt-4 p-4 bg-navy-950 rounded-xl border border-mint-500/30 animate-fadeIn">
+            <h3 className="text-sm font-bold text-mint-300 mb-3 flex items-center gap-2"><FiCalendar /> Reschedule Delivery</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-emerald-700 mb-1">New Date</label>
+                <label className="block text-xs font-medium text-slate-300 mb-1">New Date</label>
                 <input type="date" value={reschedDate} onChange={e => setReschedDate(e.target.value)} min={todayStr} max={maxDateStr}
-                  className="w-full px-3 py-2 border border-emerald-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+                  className="w-full px-3 py-2 bg-navy-900 border border-navy-700 text-slate-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-mint-500" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-emerald-700 mb-1">New Time Slot</label>
+                <label className="block text-xs font-medium text-slate-300 mb-1">New Time Slot</label>
                 <select value={reschedSlot} onChange={e => setReschedSlot(e.target.value)}
-                  className="w-full px-3 py-2 border border-emerald-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
+                  className="w-full px-3 py-2 bg-navy-900 border border-navy-700 text-slate-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-mint-500">
                   <option value="">Select slot</option>
                   {TIME_SLOTS.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
             </div>
             <div className="flex gap-2 mt-3">
-              <button onClick={handleReschedule} disabled={rescheduling} className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-50">
+              <button onClick={handleReschedule} disabled={rescheduling} className="px-4 py-2 bg-mint-500 text-navy-950 font-bold rounded-lg text-sm hover:bg-mint-400 disabled:opacity-50">
                 {rescheduling ? 'Rescheduling...' : 'Confirm Reschedule'}
               </button>
-              <button onClick={() => setShowReschedule(false)} className="px-4 py-2 text-emerald-600 text-sm font-medium hover:bg-emerald-100 rounded-lg">Cancel</button>
+              <button onClick={() => setShowReschedule(false)} className="px-4 py-2 text-slate-300 text-sm font-medium hover:bg-navy-800 rounded-lg">Cancel</button>
             </div>
           </div>
         )}
 
         {/* Estimated Delivery Time Banner */}
         {order.orderStatus !== 'cancelled' && (
-          <div className="mt-6 p-4 bg-gradient-to-r from-primary-500 to-primary-600 rounded-2xl text-white flex items-center justify-between flex-wrap gap-3 shadow-md">
+          <div className="mt-6 p-4 bg-gradient-to-r from-navy-850 via-navy-800 to-navy-900 border border-mint-500/30 rounded-2xl text-white flex items-center justify-between flex-wrap gap-3 shadow-xl">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center text-xl backdrop-blur-sm">
+              <div className="w-10 h-10 bg-mint-500/10 border border-mint-500/30 rounded-xl flex items-center justify-center text-xl text-mint-400">
                 <FiClock />
               </div>
               <div>
-                <p className="text-xs text-primary-100 font-medium">Estimated Delivery Time</p>
-                <p className="text-lg font-bold">
+                <p className="text-xs text-mint-300 font-medium">Estimated Delivery Time</p>
+                <p className="text-lg font-bold text-white">
                   {order.estimatedDeliveryTime
                     ? new Date(order.estimatedDeliveryTime).toLocaleString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
                     : order.scheduledDelivery
@@ -206,7 +206,7 @@ export default function OrderDetail() {
               </div>
             </div>
             {order.scheduledDelivery?.timeSlot && (
-              <span className="px-3 py-1 bg-white/20 rounded-full text-xs font-semibold backdrop-blur-sm">
+              <span className="px-3.5 py-1 bg-mint-500/10 border border-mint-500/30 text-mint-300 rounded-full text-xs font-semibold">
                 Slot: {order.scheduledDelivery.timeSlot}
               </span>
             )}
@@ -219,14 +219,14 @@ export default function OrderDetail() {
             <div className="flex items-center justify-between">
               {STATUS_STEPS.map((step, i) => (
                 <div key={step} className="flex flex-col items-center flex-1">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all ${i <= currentStep ? 'bg-primary-600 text-white shadow-lg ring-4 ring-primary-100' : 'bg-gray-200 text-gray-400'}`}>
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all ${i <= currentStep ? 'bg-mint-500 text-navy-950 shadow-lg shadow-mint-500/20 ring-4 ring-mint-500/20' : 'bg-navy-950 text-slate-600 border border-navy-800'}`}>
                     {STEP_ICONS[step]}
                   </div>
-                  <span className={`text-xs mt-2 text-center font-semibold ${i <= currentStep ? 'text-primary-700' : 'text-gray-400'}`}>
+                  <span className={`text-xs mt-2 text-center font-semibold ${i <= currentStep ? 'text-mint-300' : 'text-slate-500'}`}>
                     {STEP_LABELS[step]}
                   </span>
                   {i < STATUS_STEPS.length - 1 && (
-                    <div className={`h-0.5 w-full mt-[-22px] mb-[22px] ${i < currentStep ? 'bg-primary-600' : 'bg-gray-200'}`} style={{ position: 'absolute' }} />
+                    <div className={`h-0.5 w-full mt-[-22px] mb-[22px] ${i < currentStep ? 'bg-mint-500' : 'bg-navy-800'}`} style={{ position: 'absolute' }} />
                   )}
                 </div>
               ))}
@@ -234,32 +234,32 @@ export default function OrderDetail() {
           </div>
         )}
         {order.orderStatus === 'cancelled' && (
-          <div className="mt-4 p-3 bg-red-50 rounded-lg text-red-600 text-sm">❌ Order cancelled. {order.cancelReason && `Reason: ${order.cancelReason}`}</div>
+          <div className="mt-4 p-3 bg-rose-500/10 border border-rose-500/20 rounded-lg text-rose-300 text-sm">❌ Order cancelled. {order.cancelReason && `Reason: ${order.cancelReason}`}</div>
         )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Items */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 p-6">
-          <h2 className="font-bold text-gray-800 mb-4">Order Items</h2>
+        <div className="lg:col-span-2 bg-navy-900 rounded-2xl border border-navy-800 p-6">
+          <h2 className="font-bold text-white mb-4">Order Items</h2>
           <div className="space-y-3">
             {order.items?.map((item, i) => (
-              <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+              <div key={i} className="flex items-center justify-between p-3 bg-navy-950 rounded-xl border border-navy-800">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-white rounded-lg border border-gray-200 overflow-hidden flex-shrink-0">
+                  <div className="w-12 h-12 bg-navy-900 rounded-lg border border-navy-800 overflow-hidden flex-shrink-0">
                     <ProductImage src={item.product?.image || item.image} alt={item.name} showFallbackLabel={false} />
                   </div>
-                  <div><p className="font-medium text-sm">{item.name}</p><p className="text-xs text-gray-400">₹{item.price} × {item.quantity}</p></div>
+                  <div><p className="font-medium text-sm text-white">{item.name}</p><p className="text-xs text-slate-400">₹{item.price} × {item.quantity}</p></div>
                 </div>
-                <span className="font-bold text-gray-800">₹{item.total?.toFixed(2)}</span>
+                <span className="font-bold text-mint-400">₹{item.total?.toFixed(2)}</span>
               </div>
             ))}
           </div>
 
-          <div className="border-t mt-4 pt-4 space-y-2 text-sm">
-            <div className="flex justify-between text-gray-600"><span>Subtotal</span><span>₹{order.totalAmount?.toFixed(2)}</span></div>
-            {order.discount > 0 && <div className="flex justify-between text-green-600"><span>Discount</span><span>-₹{order.discount?.toFixed(2)}</span></div>}
-            <div className="flex justify-between font-bold text-lg text-gray-800 pt-2 border-t"><span>Total</span><span className="text-primary-600">₹{order.finalAmount?.toFixed(2)}</span></div>
+          <div className="border-t border-navy-800 mt-4 pt-4 space-y-2 text-sm">
+            <div className="flex justify-between text-slate-400"><span>Subtotal</span><span>₹{order.totalAmount?.toFixed(2)}</span></div>
+            {order.discount > 0 && <div className="flex justify-between text-mint-400"><span>Discount</span><span>-₹{order.discount?.toFixed(2)}</span></div>}
+            <div className="flex justify-between font-bold text-lg text-white pt-2 border-t border-navy-800"><span>Total</span><span className="text-mint-400">₹{order.finalAmount?.toFixed(2)}</span></div>
           </div>
         </div>
 
@@ -267,95 +267,95 @@ export default function OrderDetail() {
         <div className="space-y-4">
           {/* Scheduled Delivery Info */}
           {order.deliveryType === 'scheduled' && order.scheduledDelivery && (
-            <div className="bg-gradient-to-br from-primary-50 to-accent-50 rounded-2xl border border-primary-100 p-6">
-              <h3 className="font-bold text-primary-800 mb-3 flex items-center gap-2"><FiCalendar /> Scheduled Delivery</h3>
+            <div className="bg-navy-900 rounded-2xl border border-mint-500/30 p-6">
+              <h3 className="font-bold text-mint-300 mb-3 flex items-center gap-2"><FiCalendar className="text-mint-400" /> Scheduled Delivery</h3>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Date</span>
-                  <span className="font-medium text-primary-700">{new Date(order.scheduledDelivery.date).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                  <span className="text-slate-400">Date</span>
+                  <span className="font-medium text-mint-300">{new Date(order.scheduledDelivery.date).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Time Slot</span>
-                  <span className="font-medium text-primary-700">{order.scheduledDelivery.timeSlot}</span>
+                  <span className="text-slate-400">Time Slot</span>
+                  <span className="font-medium text-mint-300">{order.scheduledDelivery.timeSlot}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Scheduled At</span>
-                  <span className="text-gray-600 text-xs">{new Date(order.scheduledDelivery.scheduledAt).toLocaleString('en-IN')}</span>
+                  <span className="text-slate-400">Scheduled At</span>
+                  <span className="text-slate-400 text-xs">{new Date(order.scheduledDelivery.scheduledAt).toLocaleString('en-IN')}</span>
                 </div>
                 {order.scheduledDelivery.rescheduledAt && (
-                  <div className="pt-2 border-t border-primary-100">
-                    <p className="text-xs text-amber-600 font-medium">🔄 Rescheduled on {new Date(order.scheduledDelivery.rescheduledAt).toLocaleString('en-IN')}</p>
+                  <div className="pt-2 border-t border-navy-800">
+                    <p className="text-xs text-amber-300 font-medium">🔄 Rescheduled on {new Date(order.scheduledDelivery.rescheduledAt).toLocaleString('en-IN')}</p>
                     {order.scheduledDelivery.originalDate && (
-                      <p className="text-xs text-gray-400 mt-0.5">Original: {new Date(order.scheduledDelivery.originalDate).toLocaleDateString('en-IN')} ({order.scheduledDelivery.originalTimeSlot})</p>
+                      <p className="text-xs text-slate-500 mt-0.5">Original: {new Date(order.scheduledDelivery.originalDate).toLocaleDateString('en-IN')} ({order.scheduledDelivery.originalTimeSlot})</p>
                     )}
                   </div>
                 )}
               </div>
               {order.isDeliveryLate && (
-                <div className="mt-3 p-2 bg-red-100 rounded-lg text-xs text-red-700 font-medium">⚠️ This delivery is past its scheduled date!</div>
+                <div className="mt-3 p-2 bg-rose-500/10 border border-rose-500/20 rounded-lg text-xs text-rose-300 font-medium">⚠️ This delivery is past its scheduled date!</div>
               )}
             </div>
           )}
 
           {/* Instant delivery badge */}
           {order.deliveryType === 'instant' && (
-            <div className="bg-amber-50 rounded-2xl border border-amber-100 p-4 flex items-center gap-3">
-              <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center"><FiZap className="text-amber-600" /></div>
+            <div className="bg-navy-900 rounded-2xl border border-amber-500/30 p-4 flex items-center gap-3">
+              <div className="w-10 h-10 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center justify-center"><FiZap className="text-amber-400" /></div>
               <div>
-                <p className="text-sm font-semibold text-amber-800">Instant Delivery</p>
-                <p className="text-xs text-amber-600">Deliver as soon as possible</p>
+                <p className="text-sm font-semibold text-amber-300">Instant Delivery</p>
+                <p className="text-xs text-slate-400">Deliver as soon as possible</p>
               </div>
             </div>
           )}
 
-          <div className="bg-white rounded-2xl border border-gray-100 p-6">
-            <h3 className="font-bold text-gray-800 mb-3">Payment</h3>
+          <div className="bg-navy-900 rounded-2xl border border-navy-800 p-6">
+            <h3 className="font-bold text-white mb-3">Payment</h3>
             <div className="space-y-2 text-sm">
-              <div className="flex justify-between"><span className="text-gray-500">Method</span><span className="capitalize">{order.paymentMethod}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">Status</span>
-                <span className={`capitalize font-medium ${order.paymentStatus === 'paid' ? 'text-green-600' : 'text-orange-500'}`}>{order.paymentStatus}</span>
+              <div className="flex justify-between"><span className="text-slate-400">Method</span><span className="capitalize text-slate-200">{order.paymentMethod}</span></div>
+              <div className="flex justify-between"><span className="text-slate-400">Status</span>
+                <span className={`capitalize font-medium ${order.paymentStatus === 'paid' ? 'text-mint-400' : 'text-amber-400'}`}>{order.paymentStatus}</span>
               </div>
               {order.distanceFromShop > 0 && (
-                <div className="flex justify-between"><span className="text-gray-500">Distance</span><span>{order.distanceFromShop} KM</span></div>
+                <div className="flex justify-between"><span className="text-slate-400">Distance</span><span className="text-slate-200">{order.distanceFromShop} KM</span></div>
               )}
             </div>
           </div>
 
           {payableOnline && (
-            <div className="bg-amber-50 rounded-2xl border border-amber-200 p-6">
-              <h3 className="font-bold text-amber-800 mb-1">💳 Payment Required</h3>
-              <p className="text-xs text-amber-700 mb-4">Your order is on hold until payment is completed. Resume your payment to confirm it.</p>
+            <div className="bg-navy-900 rounded-2xl border border-mint-500/40 p-6">
+              <h3 className="font-bold text-mint-300 mb-1">💳 Payment Required</h3>
+              <p className="text-xs text-slate-400 mb-4">Your order is on hold until payment is completed. Resume your payment to confirm it.</p>
               <div className="grid grid-cols-2 gap-2 mb-4">
                 {PAYMENT_MODES.map(mode => (
                   <button key={mode.id} type="button" onClick={() => setPayingMode(mode.id)}
                     className={`p-2 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                      payingMode === mode.id ? 'bg-amber-600 text-white border-amber-600 shadow-sm' : 'bg-white text-gray-700 border-gray-200 hover:border-amber-300'
+                      payingMode === mode.id ? 'bg-mint-500 text-navy-950 border-mint-500 font-bold shadow-sm' : 'bg-navy-950 text-slate-300 border-navy-800 hover:border-mint-500/30'
                     }`}>
                     {mode.icon} {mode.label}
                   </button>
                 ))}
               </div>
               <button onClick={handlePayNow} disabled={payingLoading}
-                className={`w-full py-3 rounded-xl font-bold text-white bg-amber-600 hover:bg-amber-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-md`}>
-                {payingLoading ? <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-white"></span> : null}
+                className={`w-full py-3 rounded-xl font-bold text-navy-950 bg-mint-500 hover:bg-mint-400 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-mint-500/20`}>
+                {payingLoading ? <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-navy-950"></span> : null}
                 Pay Now ₹{order.finalAmount?.toFixed(2)}
               </button>
             </div>
           )}
 
           {order.deliveryAddress && (
-            <div className="bg-white rounded-2xl border border-gray-100 p-6">
-              <h3 className="font-bold text-gray-800 mb-3">Delivery Address</h3>
-              <p className="text-sm text-gray-600">
+            <div className="bg-navy-900 rounded-2xl border border-navy-800 p-6">
+              <h3 className="font-bold text-white mb-3">Delivery Address</h3>
+              <p className="text-sm text-slate-300">
                 {[order.deliveryAddress.street, order.deliveryAddress.area, order.deliveryAddress.city, order.deliveryAddress.pincode].filter(Boolean).join(', ')}
               </p>
             </div>
           )}
 
           {order.notes && (
-            <div className="bg-white rounded-2xl border border-gray-100 p-6">
-              <h3 className="font-bold text-gray-800 mb-2">Notes</h3>
-              <p className="text-sm text-gray-600">{order.notes}</p>
+            <div className="bg-navy-900 rounded-2xl border border-navy-800 p-6">
+              <h3 className="font-bold text-white mb-2">Notes</h3>
+              <p className="text-sm text-slate-300">{order.notes}</p>
             </div>
           )}
         </div>

@@ -33,17 +33,22 @@ export default function Home() {
   return (
     <div className="space-y-12 animate-fadeIn">
       {/* Hero */}
-      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-primary-700 via-primary-600 to-primary-500 text-white p-8 md:p-14">
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2260%22%20height%3D%2260%22%20viewBox%3D%220%200%2060%2060%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cg%20fill%3D%22none%22%20fill-rule%3D%22evenodd%22%3E%3Cg%20fill%3D%22%23ffffff%22%20fill-opacity%3D%220.05%22%3E%3Cpath%20d%3D%22M36%2034v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6%2034v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6%204V0H4v4H0v2h4v4h2V6h4V4H6z%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-30"></div>
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-navy-900 via-navy-850 to-navy-950 text-white p-8 md:p-14 border border-navy-700/80 shadow-2xl">
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2260%22%20height%3D%2260%22%20viewBox%3D%220%200%2060%2060%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cg%20fill%3D%22none%22%20fill-rule%3D%22evenodd%22%3E%3Cg%20fill%3D%22%2334d399%22%20fill-opacity%3D%220.05%22%3E%3Cpath%20d%3D%22M36%2034v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6%2034v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6%204V0H4v4H0v2h4v4h2V6h4V4H6z%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-40"></div>
         <div className="relative z-10 max-w-2xl">
-          <span className="inline-block px-3 py-1 bg-white/20 rounded-full text-xs font-semibold mb-4 backdrop-blur-sm">🛒 Fresh Groceries Delivered</span>
-          <h1 className="text-3xl md:text-5xl font-extrabold mb-4 leading-tight">Welcome to<br /><span className="text-yellow-300">Ganesh Trades</span></h1>
-          <p className="text-primary-100 text-lg mb-8 max-w-xl">Your trusted grocery and wholesale shop. Quality products at best prices for homes, hotels & PGs.</p>
+          <span className="inline-block px-3.5 py-1 bg-mint-500/10 border border-mint-500/30 rounded-full text-xs font-semibold text-mint-300 mb-4 backdrop-blur-md">🛒 Fresh Groceries Delivered</span>
+          <h1 className="text-3xl md:text-5xl font-extrabold mb-4 leading-tight">
+            Quality Groceries,<br />
+            <span className="mint-gradient-text">Delivered with Trust.</span>
+          </h1>
+          <p className="text-slate-300 text-lg mb-8 max-w-xl leading-relaxed">
+            Your trusted grocery and wholesale shop. Quality products at the best prices for homes, hotels and PGs.
+          </p>
           <div className="flex flex-wrap gap-3">
-            <Link to="/products" className="inline-flex items-center gap-2 px-6 py-3 bg-white text-primary-700 rounded-xl font-semibold hover:bg-gray-100 transition-all shadow-xl">
+            <Link to="/products" className="inline-flex items-center gap-2 px-6 py-3.5 bg-mint-500 text-navy-950 rounded-xl font-bold hover:bg-mint-400 transition-all shadow-lg shadow-mint-500/25">
               Browse Products <FiArrowRight />
             </Link>
-            <Link to="/register" className="inline-flex items-center gap-2 px-6 py-3 bg-white/20 text-white rounded-xl font-semibold hover:bg-white/30 transition-all backdrop-blur-sm border border-white/30">
+            <Link to="/register" className="inline-flex items-center gap-2 px-6 py-3.5 bg-navy-800/80 text-mint-300 rounded-xl font-semibold hover:bg-navy-700 transition-all backdrop-blur-sm border border-mint-500/30">
               Register Now
             </Link>
           </div>
@@ -57,11 +62,11 @@ export default function Home() {
           { icon: <FiShield className="w-6 h-6" />, title: 'Quality Products', desc: 'Only genuine and fresh items' },
           { icon: <FiClock className="w-6 h-6" />, title: 'Wholesale Prices', desc: 'Best prices for bulk orders' },
         ].map((f, i) => (
-          <div key={i} className="flex items-start gap-4 p-6 bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md hover:border-primary-200 transition-all group">
-            <div className="p-3 bg-primary-100 text-primary-600 rounded-xl group-hover:bg-primary-600 group-hover:text-white transition-all">{f.icon}</div>
+          <div key={i} className="flex items-start gap-4 p-6 bg-navy-900 rounded-2xl shadow-sm border border-navy-800 hover:border-mint-500/40 hover:shadow-lg hover:shadow-mint-500/10 transition-all group">
+            <div className="p-3 bg-mint-500/10 text-mint-400 rounded-xl group-hover:bg-mint-500 group-hover:text-navy-950 transition-all">{f.icon}</div>
             <div>
-              <h3 className="font-semibold text-gray-800">{f.title}</h3>
-              <p className="text-sm text-gray-500 mt-1">{f.desc}</p>
+              <h3 className="font-semibold text-white">{f.title}</h3>
+              <p className="text-sm text-slate-400 mt-1">{f.desc}</p>
             </div>
           </div>
         ))}
@@ -71,18 +76,18 @@ export default function Home() {
       {categories.length > 0 && (
         <section>
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-800">Shop by Category</h2>
-            <Link to="/products" className="text-primary-600 hover:text-primary-700 font-medium text-sm flex items-center gap-1">View All <FiArrowRight /></Link>
+            <h2 className="text-2xl font-bold text-white">Shop by Category</h2>
+            <Link to="/products" className="text-mint-400 hover:text-mint-300 font-medium text-sm flex items-center gap-1">View All <FiArrowRight /></Link>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {categories.slice(0, 12).map((cat) => (
               <Link key={cat._id} to={`/products?category=${cat._id}`}
-                className="flex flex-col items-center p-4 bg-white rounded-2xl border border-gray-100 hover:border-primary-300 hover:shadow-lg transition-all group text-center">
+                className="flex flex-col items-center p-4 bg-navy-900 rounded-2xl border border-navy-800 hover:border-mint-500/40 hover:shadow-lg hover:shadow-mint-500/10 transition-all group text-center">
                 <span className="text-3xl mb-2">{CATEGORY_LABELS[cat._id]?.split(' ')[0] || '📦'}</span>
-                <span className="text-sm font-medium text-gray-700 group-hover:text-primary-600">
+                <span className="text-sm font-medium text-slate-200 group-hover:text-mint-400">
                   {CATEGORY_LABELS[cat._id]?.slice(2)?.trim() || cat._id}
                 </span>
-                <span className="text-xs text-gray-400 mt-1">{cat.count} items</span>
+                <span className="text-xs text-slate-400 mt-1">{cat.count} items</span>
               </Link>
             ))}
           </div>
@@ -94,35 +99,35 @@ export default function Home() {
         <section>
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
-              <h2 className="text-2xl font-bold text-gray-800">Featured Products</h2>
-              <span className="px-2.5 py-0.5 bg-amber-100 text-amber-700 text-xs font-semibold rounded-full flex items-center gap-1">
+              <h2 className="text-2xl font-bold text-white">Featured Products</h2>
+              <span className="px-2.5 py-0.5 bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-semibold rounded-full flex items-center gap-1">
                 <FiAward /> Handpicked
               </span>
             </div>
-            <Link to="/products" className="text-primary-600 hover:text-primary-700 font-medium text-sm flex items-center gap-1">See All <FiArrowRight /></Link>
+            <Link to="/products" className="text-mint-400 hover:text-mint-300 font-medium text-sm flex items-center gap-1">See All <FiArrowRight /></Link>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {featuredProducts.map(product => (
-              <div key={product._id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-xl hover:border-primary-200 transition-all group relative flex flex-col justify-between">
+              <div key={product._id} className="bg-navy-900 rounded-2xl border border-navy-800/80 overflow-hidden hover:shadow-xl hover:border-mint-500/40 hover:shadow-mint-500/10 transition-all group relative flex flex-col justify-between">
                 {product.isFeatured && (
-                  <span className="absolute top-2 left-2 z-10 px-2 py-0.5 bg-amber-500 text-white text-[10px] font-bold rounded-full shadow-md">
+                  <span className="absolute top-2 left-2 z-10 px-2 py-0.5 bg-mint-500 text-navy-950 text-[10px] font-extrabold rounded-full shadow-md">
                     Featured
                   </span>
                 )}
                 <Link to={`/products/${product._id}`}>
-                  <div className="h-44 bg-gray-50 flex items-center justify-center p-2 relative overflow-hidden">
-                  <ProductImage src={product.image} alt={product.name} />
+                  <div className="h-44 bg-navy-950 flex items-center justify-center p-2 relative overflow-hidden border-b border-navy-800/60">
+                    <ProductImage src={product.image} alt={product.name} />
                   </div>
                 </Link>
                 <div className="p-4 flex-1 flex flex-col justify-between">
                   <div>
                     <Link to={`/products/${product._id}`}>
-                      <h3 className="font-semibold text-gray-800 text-sm line-clamp-1 group-hover:text-primary-600 transition-colors">{product.name}</h3>
+                      <h3 className="font-semibold text-slate-100 text-sm line-clamp-1 group-hover:text-mint-400 transition-colors">{product.name}</h3>
                     </Link>
                     <div className="flex items-center justify-between mt-1">
-                      <p className="text-xs text-gray-400 capitalize">{product.category?.replace(/_/g, ' ')}</p>
+                      <p className="text-xs text-slate-400 capitalize">{product.category?.replace(/_/g, ' ')}</p>
                       {product.avgRating > 0 && (
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-500">
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-400">
                           <FiStar className="fill-amber-400 w-3 h-3" /> {product.avgRating}
                         </span>
                       )}
@@ -131,19 +136,19 @@ export default function Home() {
                   <div className="mt-3">
                     <div className="flex items-center justify-between">
                       <div>
-                        <span className="text-lg font-bold text-primary-600">₹{product.price}</span>
-                        <span className="text-xs text-gray-400 ml-1">/{product.unit}</span>
+                        <span className="text-lg font-bold text-mint-400">₹{product.price}</span>
+                        <span className="text-xs text-slate-400 ml-1">/{product.unit}</span>
                       </div>
                       <button onClick={() => addToCart(product)}
-                        className="p-2 bg-primary-100 text-primary-600 rounded-lg hover:bg-primary-600 hover:text-white transition-all disabled:opacity-50"
+                        className="p-2 bg-mint-500 text-navy-950 font-bold rounded-lg hover:bg-mint-400 transition-all disabled:opacity-40"
                         disabled={product.stock === 0}>
                         <FiShoppingCart className="w-4 h-4" />
                       </button>
                     </div>
                     {product.stock <= product.minStock && product.stock > 0 && (
-                      <p className="text-xs text-orange-500 mt-2">⚠️ Low stock ({product.stock} left)</p>
+                      <p className="text-xs text-amber-400 mt-2">⚠️ Low stock ({product.stock} left)</p>
                     )}
-                    {product.stock === 0 && <p className="text-xs text-red-500 mt-2">Out of stock</p>}
+                    {product.stock === 0 && <p className="text-xs text-rose-400 mt-2">Out of stock</p>}
                   </div>
                 </div>
               </div>
@@ -154,4 +159,5 @@ export default function Home() {
     </div>
   );
 }
+
 

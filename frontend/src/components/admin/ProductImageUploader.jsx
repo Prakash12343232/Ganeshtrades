@@ -134,28 +134,28 @@ export default function ProductImageUploader({ productId, existingImages = [], p
       {/* Existing Photographs Grid */}
       {existingImages.length > 0 && (
         <div>
-          <label className="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">
+          <label className="block text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wide">
             Current Product Photographs ({existingImages.length})
           </label>
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
             {existingImages.map((imgUrl, idx) => {
               const isPrimary = imgUrl === primaryImage;
               return (
-                <div key={idx} className={`relative group rounded-lg overflow-hidden border-2 transition-all ${isPrimary ? 'border-primary-500 shadow-md ring-2 ring-primary-100' : 'border-gray-200 hover:border-gray-300'}`}>
-                  <div className="h-24 bg-gray-50">
+                <div key={idx} className={`relative group rounded-xl overflow-hidden border-2 transition-all ${isPrimary ? 'border-mint-500 shadow-lg shadow-mint-500/10 ring-2 ring-mint-500/20' : 'border-navy-800 hover:border-navy-700'}`}>
+                  <div className="h-24 bg-navy-950">
                     <ProductImage src={imgUrl} alt={`Product photo ${idx + 1}`} showFallbackLabel={false} />
                   </div>
                   {isPrimary && (
-                    <span className="absolute top-1 left-1 bg-primary-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow flex items-center gap-1">
+                    <span className="absolute top-1 left-1 bg-mint-500 text-navy-950 text-[10px] font-extrabold px-1.5 py-0.5 rounded shadow flex items-center gap-1">
                       <Star className="w-3 h-3 fill-current" /> Main Photo
                     </span>
                   )}
-                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 p-1">
+                  <div className="absolute inset-0 bg-navy-950/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 p-1">
                     {!isPrimary && (
                       <button
                         type="button"
                         onClick={() => handleSetPrimary(imgUrl)}
-                        className="p-1.5 bg-white text-gray-800 rounded-full hover:bg-primary-50 hover:text-primary-600 transition"
+                        className="p-1.5 bg-navy-900 text-mint-400 border border-mint-500/30 rounded-full hover:bg-mint-500 hover:text-navy-950 transition"
                         title="Set as Main Image"
                       >
                         <Star className="w-4 h-4" />
@@ -164,7 +164,7 @@ export default function ProductImageUploader({ productId, existingImages = [], p
                     <button
                       type="button"
                       onClick={() => handleDeleteExistingImage(imgUrl)}
-                      className="p-1.5 bg-white text-red-600 rounded-full hover:bg-red-50 transition"
+                      className="p-1.5 bg-navy-900 text-rose-400 border border-rose-500/30 rounded-full hover:bg-rose-500 hover:text-white transition"
                       title="Delete Image"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -179,8 +179,8 @@ export default function ProductImageUploader({ productId, existingImages = [], p
 
       {/* Drag & Drop Upload Zone */}
       <div
-        className={`border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer ${
-          isDragOver ? 'border-primary-500 bg-primary-50/50 scale-[1.01]' : 'border-gray-300 hover:border-primary-400 bg-gray-50/50'
+        className={`border-2 border-dashed rounded-2xl p-6 text-center transition-all cursor-pointer ${
+          isDragOver ? 'border-mint-500 bg-mint-500/10 scale-[1.01]' : 'border-navy-700 hover:border-mint-500/50 bg-navy-950/60'
         }`}
         onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
         onDragLeave={() => setIsDragOver(false)}
@@ -196,14 +196,14 @@ export default function ProductImageUploader({ productId, existingImages = [], p
           className="hidden"
         />
         <div className="flex flex-col items-center justify-center space-y-2">
-          <div className="w-12 h-12 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center shadow-inner">
+          <div className="w-12 h-12 rounded-2xl bg-mint-500/10 border border-mint-500/30 text-mint-400 flex items-center justify-center shadow-inner">
             <Upload className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-gray-800">
+            <p className="text-sm font-bold text-white">
               Click or drag real product photographs here
             </p>
-            <p className="text-xs text-gray-500 mt-0.5">
+            <p className="text-xs text-slate-400 mt-0.5">
               Supports JPG, JPEG, PNG, and WebP (Max 10MB each)
             </p>
           </div>
@@ -213,29 +213,29 @@ export default function ProductImageUploader({ productId, existingImages = [], p
       {/* Upload Progress Bar */}
       {uploading && (
         <div className="space-y-1.5">
-          <div className="flex justify-between text-xs font-medium text-gray-600">
+          <div className="flex justify-between text-xs font-medium text-slate-300">
             <span>Optimizing & Uploading...</span>
-            <span>{progress}%</span>
+            <span className="text-mint-400">{progress}%</span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-            <div className="bg-primary-600 h-2 rounded-full transition-all duration-300" style={{ width: `${progress}%` }}></div>
+          <div className="w-full bg-navy-950 rounded-full h-2 overflow-hidden border border-navy-800">
+            <div className="bg-mint-500 h-2 rounded-full transition-all duration-300" style={{ width: `${progress}%` }}></div>
           </div>
         </div>
       )}
 
       {/* New Image Previews Before Saving */}
       {previews.length > 0 && (
-        <div className="space-y-3 bg-amber-50/60 border border-amber-200 rounded-xl p-4">
+        <div className="space-y-3 bg-navy-950 border border-mint-500/30 rounded-2xl p-4">
           <div className="flex items-center justify-between">
-            <h4 className="text-xs font-bold text-amber-900 uppercase tracking-wide flex items-center gap-1.5">
-              <ImageIcon className="w-4 h-4 text-amber-600" /> Previews Ready to Upload ({previews.length})
+            <h4 className="text-xs font-bold text-mint-300 uppercase tracking-wide flex items-center gap-1.5">
+              <ImageIcon className="w-4 h-4 text-mint-400" /> Previews Ready to Upload ({previews.length})
             </h4>
             {productId && (
               <button
                 type="button"
                 onClick={handleUploadNewImages}
                 disabled={uploading}
-                className="bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg shadow-sm flex items-center gap-1.5 disabled:opacity-50"
+                className="bg-mint-500 hover:bg-mint-400 text-navy-950 text-xs font-extrabold px-3 py-1.5 rounded-lg shadow-md flex items-center gap-1.5 disabled:opacity-50"
               >
                 <CheckCircle2 className="w-4 h-4" /> Upload Now
               </button>
@@ -244,17 +244,17 @@ export default function ProductImageUploader({ productId, existingImages = [], p
 
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
             {previews.map((item, idx) => (
-              <div key={idx} className="relative group rounded-lg overflow-hidden border border-amber-300 bg-white shadow-sm">
+              <div key={idx} className="relative group rounded-xl overflow-hidden border border-navy-700 bg-navy-900 shadow-sm">
                 <img src={item.url} alt={item.name} className="h-20 w-full object-cover" />
                 <button
                   type="button"
                   onClick={() => handleRemovePreview(idx)}
-                  className="absolute top-1 right-1 p-1 bg-red-600 text-white rounded-full hover:bg-red-700 shadow"
+                  className="absolute top-1 right-1 p-1 bg-rose-500 text-white rounded-full hover:bg-rose-600 shadow"
                   title="Remove"
                 >
                   <X className="w-3 h-3" />
                 </button>
-                <div className="p-1 bg-white/90 text-[10px] text-gray-600 truncate border-t border-gray-100">
+                <div className="p-1 bg-navy-950 text-[10px] text-slate-400 truncate border-t border-navy-800">
                   {item.name} ({item.size}MB)
                 </div>
               </div>

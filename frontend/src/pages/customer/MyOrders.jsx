@@ -4,9 +4,9 @@ import { getOrders } from '../../services/api';
 import { FiEye, FiPackage, FiCalendar, FiZap, FiClock } from 'react-icons/fi';
 
 const STATUS_COLORS = {
-  pending: 'bg-yellow-100 text-yellow-700', confirmed: 'bg-blue-100 text-blue-700',
-  processing: 'bg-emerald-100 text-emerald-700', out_for_delivery: 'bg-orange-100 text-orange-700',
-  delivered: 'bg-green-100 text-green-700', cancelled: 'bg-red-100 text-red-700'
+  pending: 'bg-amber-500/10 text-amber-300 border border-amber-500/30', confirmed: 'bg-blue-500/10 text-blue-300 border border-blue-500/30',
+  processing: 'bg-cyan-500/10 text-cyan-300 border border-cyan-500/30', out_for_delivery: 'bg-purple-500/10 text-purple-300 border border-purple-500/30',
+  delivered: 'bg-mint-500/10 text-mint-300 border border-mint-500/30', cancelled: 'bg-rose-500/10 text-rose-300 border border-rose-500/30'
 };
 
 const STATUS_LABELS = {
@@ -49,18 +49,18 @@ export default function MyOrders() {
     fetchOrders(page + 1, true);
   };
 
-  if (loading) return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary-500"></div></div>;
+  if (loading) return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-mint-400"></div></div>;
 
   return (
     <div className="animate-fadeIn">
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">My Orders</h1>
+      <h1 className="text-2xl font-bold text-white mb-6">My Orders</h1>
 
       {/* Filters */}
       <div className="space-y-3 mb-6">
         <div className="flex gap-2 overflow-x-auto pb-2">
           {['', 'pending', 'confirmed', 'processing', 'out_for_delivery', 'delivered', 'cancelled'].map(s => (
             <button key={s} onClick={() => setFilter(s)}
-              className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all ${filter === s ? 'bg-primary-600 text-white shadow-md' : 'bg-white text-gray-600 border border-gray-200'}`}>
+              className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all ${filter === s ? 'bg-mint-500 text-navy-950 font-bold shadow-md shadow-mint-500/20' : 'bg-navy-900 text-slate-300 border border-navy-800 hover:border-mint-500/30'}`}>
               {STATUS_LABELS[s] || 'All'}
             </button>
           ))}
@@ -68,7 +68,7 @@ export default function MyOrders() {
         <div className="flex gap-2">
           {[{ v: '', l: 'All Types', icon: null }, { v: 'instant', l: 'Instant', icon: <FiZap className="w-3 h-3" /> }, { v: 'scheduled', l: 'Scheduled', icon: <FiCalendar className="w-3 h-3" /> }].map(dt => (
             <button key={dt.v} onClick={() => setDeliveryFilter(dt.v)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${deliveryFilter === dt.v ? 'bg-primary-100 text-primary-700 border border-primary-200' : 'bg-white text-gray-500 border border-gray-200'}`}>
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${deliveryFilter === dt.v ? 'bg-mint-500/10 text-mint-400 border border-mint-500/30 font-semibold' : 'bg-navy-900 text-slate-400 border border-navy-800'}`}>
               {dt.icon} {dt.l}
             </button>
           ))}
@@ -76,45 +76,45 @@ export default function MyOrders() {
       </div>
 
       {orders.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-2xl border border-gray-100"><span className="text-5xl mb-4 block">📦</span><p className="text-gray-500">No orders found</p>
-          <Link to="/products" className="inline-block mt-4 px-6 py-3 bg-primary-600 text-white rounded-xl font-semibold hover:bg-primary-700 shadow-md">Shop Now</Link>
+        <div className="text-center py-16 bg-navy-900 rounded-2xl border border-navy-800"><span className="text-5xl mb-4 block">📦</span><p className="text-slate-400">No orders found</p>
+          <Link to="/products" className="inline-block mt-4 px-6 py-3 bg-mint-500 text-navy-950 rounded-xl font-bold hover:bg-mint-400 shadow-lg shadow-mint-500/20">Shop Now</Link>
         </div>
       ) : (
         <div className="space-y-4">
           {orders.map(order => (
             <Link key={order._id} to={`/orders/${order._id}`}
-              className="block bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-md hover:border-primary-200 transition-all">
+              className="block bg-navy-900 rounded-2xl border border-navy-800 p-5 hover:border-mint-500/40 hover:shadow-xl hover:shadow-mint-500/10 transition-all">
               <div className="flex items-center justify-between flex-wrap gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-primary-50 rounded-xl flex items-center justify-center text-primary-600"><FiPackage className="w-5 h-5" /></div>
+                  <div className="w-10 h-10 bg-mint-500/10 border border-mint-500/20 rounded-xl flex items-center justify-center text-mint-400"><FiPackage className="w-5 h-5" /></div>
                   <div>
-                    <p className="font-semibold text-gray-800">Order #{order.orderNumber}</p>
-                    <p className="text-xs text-gray-400">{new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                    <p className="font-semibold text-white">Order #{order.orderNumber}</p>
+                    <p className="text-xs text-slate-400">{new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   {order.deliveryType === 'scheduled' && (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-primary-50 text-primary-600 text-xs font-medium rounded-full">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-mint-500/10 border border-mint-500/20 text-mint-400 text-xs font-medium rounded-full">
                       <FiCalendar className="w-3 h-3" /> Scheduled
                     </span>
                   )}
                   <span className={`px-3 py-1 rounded-full text-xs font-semibold ${STATUS_COLORS[order.orderStatus]}`}>
                     {STATUS_LABELS[order.orderStatus] || order.orderStatus}
                   </span>
-                  <span className="font-bold text-primary-600">₹{order.finalAmount?.toFixed(2)}</span>
-                  <FiEye className="text-gray-400" />
+                  <span className="font-bold text-mint-400">₹{order.finalAmount?.toFixed(2)}</span>
+                  <FiEye className="text-slate-400" />
                 </div>
               </div>
-              <div className="mt-3 flex items-center justify-between flex-wrap gap-2 text-xs text-gray-500 pt-3 border-t border-gray-50">
+              <div className="mt-3 flex items-center justify-between flex-wrap gap-2 text-xs text-slate-400 pt-3 border-t border-navy-800">
                 <div className="flex items-center gap-3">
                   <span>{order.items?.length} item(s)</span>
-                  <span className={`font-semibold capitalize ${order.paymentStatus === 'paid' ? 'text-green-600' : 'text-orange-500'}`}>
+                  <span className={`font-semibold capitalize ${order.paymentStatus === 'paid' ? 'text-mint-400' : 'text-amber-400'}`}>
                     Payment: {order.paymentStatus}
                   </span>
                 </div>
                 {order.estimatedDeliveryTime && order.orderStatus !== 'cancelled' && order.orderStatus !== 'delivered' && (
-                  <span className="flex items-center gap-1 text-primary-700 font-semibold bg-primary-50 px-2.5 py-1 rounded-md">
-                    <FiClock className="w-3 h-3" />
+                  <span className="flex items-center gap-1 text-mint-300 font-semibold bg-mint-500/10 border border-mint-500/20 px-2.5 py-1 rounded-md">
+                    <FiClock className="w-3 h-3 text-mint-400" />
                     ETA: {new Date(order.estimatedDeliveryTime).toLocaleString('en-IN', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}
                   </span>
                 )}
@@ -128,7 +128,7 @@ export default function MyOrders() {
           <button
             onClick={loadMore}
             disabled={loadingMore}
-            className="px-6 py-2.5 bg-white border border-primary-200 text-primary-600 rounded-xl text-sm font-semibold hover:bg-primary-50 disabled:opacity-50 transition-all"
+            className="px-6 py-2.5 bg-navy-900 border border-mint-500/40 text-mint-400 rounded-xl text-sm font-semibold hover:bg-mint-500/10 disabled:opacity-50 transition-all"
           >
             {loadingMore ? 'Loading...' : 'Load More Orders'}
           </button>

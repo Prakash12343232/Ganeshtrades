@@ -38,50 +38,50 @@ export default function PaymentGatewayModal({ open, onClose, orderNumber, amount
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fadeIn">
-      <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-5 border border-gray-100">
-        <div className="flex items-center justify-between border-b pb-3">
+    <div className="fixed inset-0 bg-navy-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fadeIn">
+      <div className="bg-navy-900 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-5 border border-navy-700 text-slate-100">
+        <div className="flex items-center justify-between border-b border-navy-800 pb-3">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center text-white font-bold">G</div>
+            <div className="w-8 h-8 bg-mint-500 rounded-lg flex items-center justify-center text-navy-950 font-bold">G</div>
             <div>
-              <h3 className="font-bold text-gray-800 text-sm">Ganesh Trades Gateway</h3>
-              <p className="text-[10px] text-gray-400">Order #{orderNumber}</p>
+              <h3 className="font-bold text-white text-sm">Ganesh Trades Gateway</h3>
+              <p className="text-[10px] text-slate-400">Order #{orderNumber}</p>
             </div>
           </div>
-          <span className="text-lg font-bold text-primary-600">₹{amount?.toFixed(2)}</span>
+          <span className="text-lg font-bold text-mint-400">₹{amount?.toFixed(2)}</span>
         </div>
 
         <div className="space-y-4">
-          <div className="bg-gray-50 p-3 rounded-xl border border-gray-200 text-xs flex justify-between">
-            <span className="text-gray-500">Selected Mode:</span>
-            <span className="font-bold capitalize text-primary-700">{MODE_LABELS[paymentMode] || paymentMode?.replace('_', ' ')}</span>
+          <div className="bg-navy-950 p-3 rounded-xl border border-navy-800 text-xs flex justify-between">
+            <span className="text-slate-400">Selected Mode:</span>
+            <span className="font-bold capitalize text-mint-400">{MODE_LABELS[paymentMode] || paymentMode?.replace('_', ' ')}</span>
           </div>
 
           {paymentMode === 'upi' && (
             <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1">Enter VPA / UPI ID</label>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">Enter VPA / UPI ID</label>
               <input type="text" value={upiId} onChange={e => setUpiId(e.target.value)} placeholder="username@upi or mobile@paytm"
-                className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-400" />
+                className="w-full px-3 py-2 bg-navy-950 border border-navy-700 text-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-mint-500 placeholder-slate-500" />
             </div>
           )}
 
           {(paymentMode === 'debit_card' || paymentMode === 'credit_card') && (
             <div className="space-y-2">
               <input type="text" placeholder="Card Number (16 digits)" value={cardForm.number} onChange={e => setCardForm({...cardForm, number: e.target.value})}
-                className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-400" maxLength={16} />
+                className="w-full px-3 py-2 bg-navy-950 border border-navy-700 text-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-mint-500 placeholder-slate-500" maxLength={16} />
               <div className="grid grid-cols-2 gap-2">
                 <input type="text" placeholder="MM/YY" value={cardForm.expiry} onChange={e => setCardForm({...cardForm, expiry: e.target.value})}
-                  className="px-3 py-2 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-400" maxLength={5} />
+                  className="px-3 py-2 bg-navy-950 border border-navy-700 text-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-mint-500 placeholder-slate-500" maxLength={5} />
                 <input type="password" placeholder="CVV" value={cardForm.cvv} onChange={e => setCardForm({...cardForm, cvv: e.target.value})}
-                  className="px-3 py-2 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-400" maxLength={4} />
+                  className="px-3 py-2 bg-navy-950 border border-navy-700 text-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-mint-500 placeholder-slate-500" maxLength={4} />
               </div>
             </div>
           )}
 
           {paymentMode === 'net_banking' && (
             <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1">Select Bank</label>
-              <select value={selectedBank} onChange={e => setSelectedBank(e.target.value)} className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-400">
+              <label className="block text-xs font-semibold text-slate-300 mb-1">Select Bank</label>
+              <select value={selectedBank} onChange={e => setSelectedBank(e.target.value)} className="w-full px-3 py-2 bg-navy-950 border border-navy-700 text-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-mint-500">
                 <option value="">Choose Bank</option>
                 <option value="sbi">State Bank of India</option>
                 <option value="hdfc">HDFC Bank</option>
@@ -94,15 +94,15 @@ export default function PaymentGatewayModal({ open, onClose, orderNumber, amount
 
         <div className="space-y-2 pt-2">
           <button onClick={handleAuthorize} disabled={paymentProcessing}
-            className="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl text-sm transition-all shadow-lg shadow-green-200 flex items-center justify-center gap-2">
+            className="w-full py-3 bg-mint-500 hover:bg-mint-400 text-navy-950 font-extrabold rounded-xl text-sm transition-all shadow-lg shadow-mint-500/20 flex items-center justify-center gap-2">
             {paymentProcessing ? (
-              <span className="flex items-center gap-2"><span className="animate-spin rounded-full h-4 w-4 border-t-2 border-white"></span> Processing Payment...</span>
+              <span className="flex items-center gap-2"><span className="animate-spin rounded-full h-4 w-4 border-t-2 border-navy-950"></span> Processing Payment...</span>
             ) : (
               <><FiCheck /> Authorize Payment of ₹{amount?.toFixed(2)}</>
             )}
           </button>
           <button onClick={onClose} disabled={paymentProcessing}
-            className="w-full py-2 text-gray-400 hover:text-gray-600 text-xs text-center">
+            className="w-full py-2 text-slate-400 hover:text-slate-200 text-xs text-center">
             Cancel Transaction
           </button>
         </div>

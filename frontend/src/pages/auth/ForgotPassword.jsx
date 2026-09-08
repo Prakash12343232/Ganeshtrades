@@ -64,14 +64,17 @@ export default function ForgotPassword() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-900 via-primary-800 to-primary-950 flex items-center justify-center px-4">
-      <div className="w-full max-w-md animate-fadeIn">
+    <div className="min-h-screen bg-gradient-to-br from-navy-950 via-navy-900 to-navy-950 flex items-center justify-center px-4 relative overflow-hidden">
+      <div className="absolute -top-32 -left-32 w-96 h-96 bg-mint-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-navy-800/30 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="w-full max-w-md animate-fadeIn relative z-10 my-8">
         <div className="text-center mb-8">
-          <div className="w-20 h-20 bg-white/10 backdrop-blur-lg rounded-2xl flex items-center justify-center mx-auto mb-4 border border-white/20">
-            <FiLock className="text-3xl text-white" />
+          <div className="w-20 h-20 bg-navy-900/90 backdrop-blur-xl rounded-2xl flex items-center justify-center mx-auto mb-4 border border-mint-500/30 shadow-xl shadow-mint-500/5">
+            <FiLock className="text-3xl text-mint-400" />
           </div>
-          <h1 className="text-3xl font-bold text-white">Reset Password</h1>
-          <p className="text-primary-200 mt-2">
+          <h1 className="text-3xl font-extrabold text-white tracking-tight">Reset Password</h1>
+          <p className="text-mint-300/80 mt-2 text-sm">
             {step === 1 && 'Enter your mobile number'}
             {step === 2 && 'Verify your identity'}
             {step === 3 && 'Create a strong new password'}
@@ -82,28 +85,28 @@ export default function ForgotPassword() {
         <div className="flex items-center justify-center gap-2 mb-6">
           {[1, 2, 3].map(s => (
             <div key={s} className={`flex items-center gap-2`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${step >= s ? 'bg-primary-500 text-white' : 'bg-white/10 text-primary-300'}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-extrabold transition-all ${step >= s ? 'bg-mint-500 text-navy-950 shadow-md shadow-mint-500/20' : 'bg-navy-950 text-slate-500 border border-navy-800'}`}>
                 {step > s ? <FiCheck /> : s}
               </div>
-              {s < 3 && <div className={`w-8 h-0.5 ${step > s ? 'bg-primary-500' : 'bg-white/10'}`} />}
+              {s < 3 && <div className={`w-8 h-0.5 ${step > s ? 'bg-mint-500' : 'bg-navy-800'}`} />}
             </div>
           ))}
         </div>
 
-        <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20 shadow-2xl space-y-5">
+        <div className="bg-navy-900/90 backdrop-blur-xl rounded-3xl p-8 border border-navy-700/80 shadow-2xl space-y-5">
           {step === 1 && (
             <div className="space-y-4 animate-fadeIn">
               <div>
-                <label className="block text-sm font-medium text-primary-100 mb-2">Mobile Number</label>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Mobile Number</label>
                 <div className="relative">
-                  <FiPhone className="absolute left-4 top-1/2 -translate-y-1/2 text-primary-300" />
+                  <FiPhone className="absolute left-4 top-1/2 -translate-y-1/2 text-mint-400" />
                   <input type="tel" value={mobile} onChange={e => setMobile(e.target.value)}
-                    className="w-full pl-11 pr-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-400 transition-all"
+                    className="w-full pl-11 pr-4 py-3 bg-navy-950 border border-navy-700 text-slate-100 placeholder-slate-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-mint-500 transition-all"
                     placeholder="10-digit mobile" maxLength={10} />
                 </div>
               </div>
               <button onClick={handleSendOtp} disabled={loading}
-                className="w-full py-3 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-xl font-semibold hover:from-primary-600 hover:to-primary-700 transition-all shadow-lg disabled:opacity-50">
+                className="w-full py-3 bg-mint-500 hover:bg-mint-400 text-navy-950 rounded-xl font-extrabold transition-all shadow-lg shadow-mint-500/20 disabled:opacity-50">
                 {loading ? 'Sending...' : 'Send OTP'}
               </button>
             </div>
@@ -112,22 +115,22 @@ export default function ForgotPassword() {
           {step === 2 && (
             <div className="space-y-4 animate-fadeIn">
               <div>
-                <label className="block text-sm font-medium text-primary-100 mb-2">Enter OTP sent to {mobile}</label>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Enter OTP sent to {mobile}</label>
                 <div className="relative">
-                  <FiKey className="absolute left-4 top-1/2 -translate-y-1/2 text-primary-300" />
+                  <FiKey className="absolute left-4 top-1/2 -translate-y-1/2 text-mint-400" />
                   <input type="text" value={otp} onChange={e => setOtp(e.target.value)}
-                    className="w-full pl-11 pr-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-400 transition-all tracking-widest text-lg text-center"
+                    className="w-full pl-11 pr-4 py-3 bg-navy-950 border border-navy-700 text-slate-100 placeholder-slate-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-mint-500 transition-all tracking-widest text-lg text-center"
                     placeholder="------" maxLength={6} />
                 </div>
                 <div className="text-right mt-2">
                   <button type="button" onClick={handleSendOtp} disabled={countdown > 0}
-                    className="text-xs font-medium text-primary-300 hover:text-white disabled:opacity-50">
+                    className="text-xs font-medium text-mint-400 hover:text-mint-300 disabled:opacity-50">
                     {countdown > 0 ? `Resend in ${countdown}s` : 'Resend OTP'}
                   </button>
                 </div>
               </div>
               <button onClick={handleVerifyOtp}
-                className="w-full py-3 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-xl font-semibold hover:from-primary-600 hover:to-primary-700 transition-all shadow-lg">
+                className="w-full py-3 bg-mint-500 hover:bg-mint-400 text-navy-950 rounded-xl font-extrabold transition-all shadow-lg shadow-mint-500/20">
                 Verify OTP
               </button>
             </div>
@@ -136,13 +139,13 @@ export default function ForgotPassword() {
           {step === 3 && (
             <form onSubmit={handleResetPassword} className="space-y-4 animate-fadeIn">
               <div>
-                <label className="block text-sm font-medium text-primary-100 mb-2">New Password</label>
+                <label className="block text-sm font-medium text-slate-300 mb-2">New Password</label>
                 <div className="relative">
-                  <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-primary-300" />
+                  <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-mint-400" />
                   <input type={showPass ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)}
-                    className="w-full pl-11 pr-12 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-400 transition-all"
+                    className="w-full pl-11 pr-12 py-3 bg-navy-950 border border-navy-700 text-slate-100 placeholder-slate-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-mint-500 transition-all"
                     placeholder="New password" required minLength={8} />
-                  <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-4 top-1/2 -translate-y-1/2 text-primary-300 hover:text-white">
+                  <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-mint-400">
                     {showPass ? <FiEyeOff /> : <FiEye />}
                   </button>
                 </div>
@@ -152,17 +155,17 @@ export default function ForgotPassword() {
                   <div className="mt-3 space-y-2">
                     <div className="flex gap-1">
                       {[1, 2, 3, 4, 5].map(i => (
-                        <div key={i} className={`h-1 flex-1 rounded-full transition-all ${i <= passedCount ? strengthColor[strength] : 'bg-white/10'}`} />
+                        <div key={i} className={`h-1 flex-1 rounded-full transition-all ${i <= passedCount ? strengthColor[strength] : 'bg-navy-950'}`} />
                       ))}
                     </div>
-                    <p className={`text-xs font-medium ${strength === 'strong' ? 'text-green-400' : strength === 'medium' ? 'text-amber-400' : 'text-red-400'}`}>
+                    <p className={`text-xs font-medium ${strength === 'strong' ? 'text-mint-400' : strength === 'medium' ? 'text-amber-400' : 'text-rose-400'}`}>
                       Password strength: {strength}
                     </p>
                     <div className="space-y-1">
                       {checks.map((c, i) => (
                         <div key={i} className="flex items-center gap-2 text-xs">
-                          {c.pass ? <FiCheck className="text-green-400 w-3 h-3" /> : <FiX className="text-red-400 w-3 h-3" />}
-                          <span className={c.pass ? 'text-green-300' : 'text-primary-300'}>{c.label}</span>
+                          {c.pass ? <FiCheck className="text-mint-400 w-3 h-3" /> : <FiX className="text-rose-400 w-3 h-3" />}
+                          <span className={c.pass ? 'text-mint-300' : 'text-slate-400'}>{c.label}</span>
                         </div>
                       ))}
                     </div>
@@ -171,27 +174,27 @@ export default function ForgotPassword() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-primary-100 mb-2">Confirm Password</label>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Confirm Password</label>
                 <div className="relative">
-                  <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-primary-300" />
+                  <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-mint-400" />
                   <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
-                    className="w-full pl-11 pr-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-400 transition-all"
+                    className="w-full pl-11 pr-4 py-3 bg-navy-950 border border-navy-700 text-slate-100 placeholder-slate-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-mint-500 transition-all"
                     placeholder="Confirm password" required />
                 </div>
                 {confirmPassword && confirmPassword !== password && (
-                  <p className="text-xs text-red-400 mt-1">Passwords do not match</p>
+                  <p className="text-xs text-rose-400 mt-1">Passwords do not match</p>
                 )}
               </div>
 
               <button type="submit" disabled={loading || strength === 'weak'}
-                className="w-full py-3 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-xl font-semibold hover:from-primary-600 hover:to-primary-700 transition-all shadow-lg disabled:opacity-50">
+                className="w-full py-3 bg-mint-500 hover:bg-mint-400 text-navy-950 rounded-xl font-extrabold transition-all shadow-lg shadow-mint-500/20 disabled:opacity-50">
                 {loading ? 'Resetting...' : 'Reset Password'}
               </button>
             </form>
           )}
 
-          <p className="text-center text-primary-200 text-sm pt-2">
-            <Link to="/login" className="text-white font-semibold hover:underline flex items-center justify-center gap-1">
+          <p className="text-center text-slate-400 text-sm pt-2">
+            <Link to="/login" className="text-mint-400 font-bold hover:underline flex items-center justify-center gap-1">
               <FiArrowLeft className="w-3 h-3" /> Back to Login
             </Link>
           </p>

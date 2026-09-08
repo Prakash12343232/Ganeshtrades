@@ -138,52 +138,55 @@ export default function Register() {
   const isOutOfRange = serviceInfo && !serviceInfo.serviceable;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-900 via-primary-800 to-primary-950 flex items-center justify-center px-4 py-8">
-      <div className="w-full max-w-lg animate-fadeIn mt-10">
+    <div className="min-h-screen bg-gradient-to-br from-navy-950 via-navy-900 to-navy-950 flex items-center justify-center px-4 py-8 relative overflow-hidden">
+      <div className="absolute -top-32 -left-32 w-96 h-96 bg-mint-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-navy-800/30 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="w-full max-w-lg animate-fadeIn relative z-10 mt-10">
         <div className="text-center mb-6">
-          <div className="w-16 h-16 bg-white/10 backdrop-blur-lg rounded-2xl flex items-center justify-center mx-auto mb-3 border border-white/20">
-            <span className="text-3xl font-bold text-white">G</span>
+          <div className="w-16 h-16 bg-navy-900/90 backdrop-blur-xl rounded-2xl flex items-center justify-center mx-auto mb-3 border border-mint-500/30 shadow-xl shadow-mint-500/5">
+            <span className="text-3xl font-extrabold text-mint-400">G</span>
           </div>
-          <h1 className="text-2xl font-bold text-white">Create Account</h1>
-          <p className="text-primary-200 mt-1 text-sm">Join Ganesh Trades</p>
+          <h1 className="text-2xl font-extrabold text-white tracking-tight">Create Account</h1>
+          <p className="text-mint-300/80 mt-1 text-sm">Join Ganesh Trades</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 space-y-4 shadow-2xl relative overflow-hidden">
+        <form onSubmit={handleSubmit} className="bg-navy-900/90 backdrop-blur-xl rounded-3xl p-6 border border-navy-700/80 space-y-4 shadow-2xl relative overflow-hidden">
           
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-primary-100 mb-1">Full Name</label>
+              <label className="block text-xs font-medium text-slate-300 mb-1">Full Name</label>
               <div className="relative">
-                <FiUser className="absolute left-3 top-1/2 -translate-y-1/2 text-primary-300 text-sm" />
+                <FiUser className="absolute left-3 top-1/2 -translate-y-1/2 text-mint-400 text-sm" />
                 <input type="text" value={form.name} onChange={e => updateField('name', e.target.value)} disabled={otpSent}
-                  className="w-full pl-9 pr-3 py-2.5 bg-white/10 border border-white/20 rounded-lg text-white placeholder-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-400 text-sm disabled:opacity-50" placeholder="Your name" required />
+                  className="w-full pl-9 pr-3 py-2.5 bg-navy-950 border border-navy-700 text-slate-100 placeholder-slate-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-mint-500 text-sm disabled:opacity-50" placeholder="Your name" required />
               </div>
             </div>
             <div>
-              <label className="block text-xs font-medium text-primary-100 mb-1">Mobile</label>
+              <label className="block text-xs font-medium text-slate-300 mb-1">Mobile</label>
               <div className="relative">
-                <FiPhone className="absolute left-3 top-1/2 -translate-y-1/2 text-primary-300 text-sm" />
+                <FiPhone className="absolute left-3 top-1/2 -translate-y-1/2 text-mint-400 text-sm" />
                 <input type="tel" value={form.mobile} onChange={e => updateField('mobile', e.target.value)} disabled={otpSent}
-                  className="w-full pl-9 pr-3 py-2.5 bg-white/10 border border-white/20 rounded-lg text-white placeholder-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-400 text-sm disabled:opacity-50" placeholder="10-digit mobile" required maxLength={10} />
+                  className="w-full pl-9 pr-3 py-2.5 bg-navy-950 border border-navy-700 text-slate-100 placeholder-slate-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-mint-500 text-sm disabled:opacity-50" placeholder="10-digit mobile" required maxLength={10} />
               </div>
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-primary-100 mb-1">Email (Optional)</label>
+              <label className="block text-xs font-medium text-slate-300 mb-1">Email (Optional)</label>
               <div className="relative">
-                <FiMail className="absolute left-3 top-1/2 -translate-y-1/2 text-primary-300 text-sm" />
+                <FiMail className="absolute left-3 top-1/2 -translate-y-1/2 text-mint-400 text-sm" />
                 <input type="email" value={form.email} onChange={e => updateField('email', e.target.value)} disabled={otpSent}
-                  className="w-full pl-9 pr-3 py-2.5 bg-white/10 border border-white/20 rounded-lg text-white placeholder-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-400 text-sm disabled:opacity-50" placeholder="Email" />
+                  className="w-full pl-9 pr-3 py-2.5 bg-navy-950 border border-navy-700 text-slate-100 placeholder-slate-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-mint-500 text-sm disabled:opacity-50" placeholder="Email" />
               </div>
             </div>
             <div>
-              <label className="block text-xs font-medium text-primary-100 mb-1">Password</label>
+              <label className="block text-xs font-medium text-slate-300 mb-1">Password</label>
               <div className="relative">
-                <FiLock className="absolute left-3 top-1/2 -translate-y-1/2 text-primary-300 text-sm" />
+                <FiLock className="absolute left-3 top-1/2 -translate-y-1/2 text-mint-400 text-sm" />
                 <input type="password" value={form.password} onChange={e => updateField('password', e.target.value)} disabled={otpSent}
-                  className="w-full pl-9 pr-3 py-2.5 bg-white/10 border border-white/20 rounded-lg text-white placeholder-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-400 text-sm disabled:opacity-50" placeholder="Min 8 chars" required minLength={8} />
+                  className="w-full pl-9 pr-3 py-2.5 bg-navy-950 border border-navy-700 text-slate-100 placeholder-slate-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-mint-500 text-sm disabled:opacity-50" placeholder="Min 8 chars" required minLength={8} />
               </div>
               {form.password && (
                 <div className="mt-1.5 space-y-1">
@@ -195,10 +198,10 @@ export default function Register() {
                       /[0-9]/.test(form.password),
                       /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?`~]/.test(form.password)
                     ].map((passed, idx) => (
-                      <div key={idx} className={`h-1 flex-1 rounded-full transition-all ${passed ? 'bg-green-400' : 'bg-white/20'}`} />
+                      <div key={idx} className={`h-1 flex-1 rounded-full transition-all ${passed ? 'bg-mint-400' : 'bg-navy-800'}`} />
                     ))}
                   </div>
-                  <p className="text-[10px] text-primary-200">
+                  <p className="text-[10px] text-slate-400">
                     Use 8+ chars with uppercase, lowercase, number & special symbol
                   </p>
                 </div>
@@ -207,50 +210,50 @@ export default function Register() {
           </div>
 
           <div className={`transition-all duration-300 ${otpSent ? 'opacity-50 pointer-events-none hidden' : 'block'}`}>
-            <label className="block text-xs font-medium text-primary-100 mb-1">Customer Type</label>
+            <label className="block text-xs font-medium text-slate-300 mb-1">Customer Type</label>
             <select value={form.customerType} onChange={e => updateField('customerType', e.target.value)}
-              className="w-full px-3 py-2.5 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-400 text-sm">
-              <option value="public" className="text-gray-900">Public Customer</option>
-              <option value="hotel" className="text-gray-900">Hotel Customer</option>
-              <option value="pg_hostel" className="text-gray-900">PG / Hostel</option>
+              className="w-full px-3 py-2.5 bg-navy-950 border border-navy-700 text-slate-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-mint-500 text-sm">
+              <option value="public" className="bg-navy-950 text-slate-100">Public Customer</option>
+              <option value="hotel" className="bg-navy-950 text-slate-100">Hotel Customer</option>
+              <option value="pg_hostel" className="bg-navy-950 text-slate-100">PG / Hostel</option>
             </select>
           </div>
 
           <div className={`transition-all duration-300 ${otpSent ? 'opacity-50 pointer-events-none hidden' : 'block'}`}>
-            <label className="block text-xs font-medium text-primary-100 mb-1">Address</label>
+            <label className="block text-xs font-medium text-slate-300 mb-1">Address</label>
             <div className="grid grid-cols-2 gap-3 mb-3">
               <input type="text" value={form.address.street} onChange={e => updateAddress('street', e.target.value)}
-                className="px-3 py-2.5 bg-white/10 border border-white/20 rounded-lg text-white placeholder-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-400 text-sm" placeholder="Street" />
+                className="px-3 py-2.5 bg-navy-950 border border-navy-700 text-slate-100 placeholder-slate-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-mint-500 text-sm" placeholder="Street" />
               <input type="text" value={form.address.area} onChange={e => updateAddress('area', e.target.value)}
-                className="px-3 py-2.5 bg-white/10 border border-white/20 rounded-lg text-white placeholder-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-400 text-sm" placeholder="Area" />
+                className="px-3 py-2.5 bg-navy-950 border border-navy-700 text-slate-100 placeholder-slate-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-mint-500 text-sm" placeholder="Area" />
               <input type="text" value={form.address.city} onChange={e => updateAddress('city', e.target.value)}
-                className="px-3 py-2.5 bg-white/10 border border-white/20 rounded-lg text-white placeholder-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-400 text-sm" placeholder="City" />
+                className="px-3 py-2.5 bg-navy-950 border border-navy-700 text-slate-100 placeholder-slate-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-mint-500 text-sm" placeholder="City" />
               <input type="text" value={form.address.pincode} onChange={e => updateAddress('pincode', e.target.value)}
-                className="px-3 py-2.5 bg-white/10 border border-white/20 rounded-lg text-white placeholder-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-400 text-sm" placeholder="Pincode" />
+                className="px-3 py-2.5 bg-navy-950 border border-navy-700 text-slate-100 placeholder-slate-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-mint-500 text-sm" placeholder="Pincode" />
             </div>
 
             {/* Location Detection */}
             <div className="space-y-2">
-              <div className="flex items-center justify-between bg-white/5 p-3 rounded-lg border border-white/10">
+              <div className="flex items-center justify-between bg-navy-950 p-3 rounded-xl border border-navy-800">
                 <div className="flex items-center gap-2">
-                  <FiMapPin className="text-primary-300" />
-                  <span className="text-sm text-white">{locationStatus || 'Delivery Radius Check Required'}</span>
+                  <FiMapPin className="text-mint-400" />
+                  <span className="text-xs text-slate-300">{locationStatus || 'Delivery Radius Check Required'}</span>
                 </div>
                 <button type="button" onClick={detectLocation} disabled={locating}
-                  className="flex items-center gap-1 px-3 py-1.5 bg-primary-600 hover:bg-primary-500 rounded text-xs text-white font-medium transition-colors disabled:opacity-50 shadow-md">
+                  className="flex items-center gap-1 px-3 py-1.5 bg-mint-500 hover:bg-mint-400 rounded-lg text-xs text-navy-950 font-bold transition-colors disabled:opacity-50 shadow-md">
                   <FiCrosshair className={locating ? 'animate-spin' : ''} /> {locating ? 'Detecting...' : 'Detect Location'}
                 </button>
               </div>
 
               {serviceInfo && (
-                <div className={`p-3 rounded-lg border ${serviceInfo.serviceable ? 'bg-green-500/10 border-green-500/30' : 'bg-red-500/10 border-red-500/30'} transition-all duration-300`}>
+                <div className={`p-3 rounded-xl border ${serviceInfo.serviceable ? 'bg-mint-500/10 border-mint-500/30' : 'bg-rose-500/10 border-rose-500/30'} transition-all duration-300`}>
                   <div className="flex items-start gap-2">
-                    {serviceInfo.serviceable ? <FiCheckCircle className="text-green-400 mt-0.5 flex-shrink-0" /> : <FiXCircle className="text-red-400 mt-0.5 flex-shrink-0" />}
+                    {serviceInfo.serviceable ? <FiCheckCircle className="text-mint-400 mt-0.5 flex-shrink-0" /> : <FiXCircle className="text-rose-400 mt-0.5 flex-shrink-0" />}
                     <div className="flex-1">
-                      <p className={`text-sm font-medium ${serviceInfo.serviceable ? 'text-green-300' : 'text-red-300'}`}>
+                      <p className={`text-sm font-medium ${serviceInfo.serviceable ? 'text-mint-300' : 'text-rose-300'}`}>
                         {serviceInfo.serviceable ? 'Delivery Available!' : 'Outside Service Area'}
                       </p>
-                      <p className="text-xs text-white/70 mt-0.5">{serviceInfo.message}</p>
+                      <p className="text-xs text-slate-400 mt-0.5">{serviceInfo.message}</p>
                     </div>
                   </div>
                 </div>
@@ -260,17 +263,17 @@ export default function Register() {
 
           {/* OTP Section (Visible after clicking Verify Mobile) */}
           {otpSent && (
-            <div className="animate-fadeIn bg-primary-900/50 p-4 rounded-xl border border-primary-500/30 mt-4">
-              <label className="block text-sm font-medium text-white mb-2 text-center">Enter the OTP sent to {form.mobile}</label>
+            <div className="animate-fadeIn bg-navy-950 p-4 rounded-xl border border-mint-500/30 mt-4">
+              <label className="block text-sm font-medium text-slate-200 mb-2 text-center">Enter the OTP sent to {form.mobile}</label>
               <div className="relative max-w-[200px] mx-auto">
-                <FiKey className="absolute left-4 top-1/2 -translate-y-1/2 text-primary-300" />
+                <FiKey className="absolute left-4 top-1/2 -translate-y-1/2 text-mint-400" />
                 <input type="text" value={form.otp} onChange={e => updateField('otp', e.target.value)}
-                  className="w-full pl-11 pr-4 py-3 bg-white/10 border border-primary-500/50 rounded-xl text-white placeholder-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent transition-all tracking-widest text-xl text-center font-bold"
+                  className="w-full pl-11 pr-4 py-3 bg-navy-900 border border-mint-500/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-mint-500 focus:border-transparent transition-all tracking-widest text-xl text-center font-bold"
                   placeholder="------" required maxLength={6} />
               </div>
               <div className="text-center mt-3">
                 <button type="button" onClick={handleSendOtp} disabled={countdown > 0}
-                  className="text-xs font-medium text-primary-300 hover:text-white transition-colors disabled:opacity-50">
+                  className="text-xs font-medium text-mint-400 hover:text-mint-300 transition-colors disabled:opacity-50">
                   {countdown > 0 ? `Resend OTP in ${countdown}s` : 'Didn\'t receive? Resend OTP'}
                 </button>
               </div>
@@ -278,17 +281,17 @@ export default function Register() {
           )}
 
           <button type="submit" disabled={loading || isOutOfRange}
-            className={`w-full py-3.5 rounded-xl font-bold transition-all shadow-lg text-sm mt-4 disabled:opacity-50 flex justify-center items-center gap-2 ${
+            className={`w-full py-3.5 rounded-xl font-extrabold transition-all shadow-lg text-sm mt-4 disabled:opacity-50 flex justify-center items-center gap-2 ${
               isOutOfRange
-                ? 'bg-red-600/50 text-red-200 cursor-not-allowed'
-                : 'bg-gradient-to-r from-primary-500 to-primary-600 text-white hover:from-primary-600 hover:to-primary-700'
+                ? 'bg-rose-500/50 text-rose-200 cursor-not-allowed'
+                : 'bg-mint-500 text-navy-950 hover:bg-mint-400 shadow-mint-500/20'
             }`}>
-            {loading ? <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-white"></span> : null}
+            {loading ? <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-navy-950"></span> : null}
             {isOutOfRange ? 'Outside Service Area' : otpSent ? 'Verify & Create Account' : 'Verify Mobile Number'}
           </button>
 
-          <p className="text-center text-primary-200 text-sm mt-4">
-            Already have an account? <Link to="/login" className="text-white font-semibold hover:underline">Login</Link>
+          <p className="text-center text-slate-400 text-sm mt-4">
+            Already have an account? <Link to="/login" className="text-mint-400 font-bold hover:underline">Login</Link>
           </p>
         </form>
       </div>

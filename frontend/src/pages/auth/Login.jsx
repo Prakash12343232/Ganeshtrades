@@ -84,57 +84,60 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-900 via-primary-800 to-primary-950 flex items-center justify-center px-4">
-      <div className="w-full max-w-md animate-fadeIn">
+    <div className="min-h-screen bg-gradient-to-br from-navy-950 via-navy-900 to-navy-950 flex items-center justify-center px-4 relative overflow-hidden">
+      <div className="absolute -top-32 -left-32 w-96 h-96 bg-mint-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-navy-800/30 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="w-full max-w-md animate-fadeIn relative z-10 my-8">
         <div className="text-center mb-8">
-          <div className="w-20 h-20 bg-white/10 backdrop-blur-lg rounded-2xl flex items-center justify-center mx-auto mb-4 border border-white/20">
-            <span className="text-4xl font-bold text-white">G</span>
+          <div className="w-20 h-20 bg-navy-900/90 backdrop-blur-xl rounded-2xl flex items-center justify-center mx-auto mb-4 border border-mint-500/30 shadow-xl shadow-mint-500/5">
+            <span className="text-4xl font-extrabold text-mint-400">G</span>
           </div>
-          <h1 className="text-3xl font-bold text-white">Welcome Back</h1>
-          <p className="text-primary-200 mt-2">Login to Ganesh Trades</p>
+          <h1 className="text-3xl font-extrabold text-white tracking-tight">Welcome Back</h1>
+          <p className="text-mint-300/80 mt-2 text-sm">Login to Ganesh Trades</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20 space-y-5 shadow-2xl">
+        <form onSubmit={handleSubmit} className="bg-navy-900/90 backdrop-blur-xl rounded-3xl p-8 border border-navy-700/80 space-y-5 shadow-2xl">
           
           {/* Method Selector */}
-          <div className="flex bg-white/5 rounded-xl p-1 border border-white/10">
+          <div className="flex bg-navy-950 rounded-xl p-1 border border-navy-800">
             <button type="button" 
               onClick={() => { setLoginMethod('password'); setOtpSent(false); }}
-              className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${loginMethod === 'password' ? 'bg-primary-600 text-white shadow' : 'text-primary-300 hover:text-white'}`}>
+              className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${loginMethod === 'password' ? 'bg-mint-500 text-navy-950 shadow-md shadow-mint-500/20' : 'text-slate-400 hover:text-white'}`}>
               Password
             </button>
             <button type="button" 
               onClick={() => setLoginMethod('otp')}
-              className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${loginMethod === 'otp' ? 'bg-primary-600 text-white shadow' : 'text-primary-300 hover:text-white'}`}>
+              className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${loginMethod === 'otp' ? 'bg-mint-500 text-navy-950 shadow-md shadow-mint-500/20' : 'text-slate-400 hover:text-white'}`}>
               OTP
             </button>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-primary-100 mb-2">Mobile Number</label>
+            <label className="block text-sm font-medium text-slate-300 mb-2">Mobile Number</label>
             <div className="relative">
-              <FiPhone className="absolute left-4 top-1/2 -translate-y-1/2 text-primary-300" />
+              <FiPhone className="absolute left-4 top-1/2 -translate-y-1/2 text-mint-400" />
               <input type="tel" value={form.mobile} onChange={e => setForm({...form, mobile: e.target.value})}
                 disabled={otpSent}
-                className="w-full pl-11 pr-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent transition-all disabled:opacity-50"
+                className="w-full pl-11 pr-4 py-3 bg-navy-950 border border-navy-700 text-slate-100 rounded-xl placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-mint-500 focus:border-transparent transition-all disabled:opacity-50"
                 placeholder="10-digit mobile" required maxLength={10} />
             </div>
           </div>
 
           {loginMethod === 'password' && (
             <div className="animate-fadeIn">
-              <label className="block text-sm font-medium text-primary-100 mb-2">Password</label>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Password</label>
               <div className="relative">
-                <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-primary-300" />
+                <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-mint-400" />
                 <input type={showPass ? 'text' : 'password'} value={form.password} onChange={e => setForm({...form, password: e.target.value})}
-                  className="w-full pl-11 pr-12 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent transition-all"
+                  className="w-full pl-11 pr-12 py-3 bg-navy-950 border border-navy-700 text-slate-100 rounded-xl placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-mint-500 focus:border-transparent transition-all"
                   placeholder="Enter password" required={loginMethod === 'password'} />
-                <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-4 top-1/2 -translate-y-1/2 text-primary-300 hover:text-white">
+                <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-mint-400">
                   {showPass ? <FiEyeOff /> : <FiEye />}
                 </button>
               </div>
-              <div className="text-right mt-1.5">
-                <Link to="/forgot-password" className="text-xs font-medium text-primary-300 hover:text-white transition-colors">
+              <div className="text-right mt-2">
+                <Link to="/forgot-password" className="text-xs font-medium text-mint-400 hover:text-mint-300 transition-colors">
                   Forgot Password?
                 </Link>
               </div>
@@ -143,16 +146,16 @@ export default function Login() {
 
           {loginMethod === 'otp' && otpSent && (
             <div className="animate-fadeIn">
-              <label className="block text-sm font-medium text-primary-100 mb-2">Enter OTP</label>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Enter OTP</label>
               <div className="relative">
-                <FiKey className="absolute left-4 top-1/2 -translate-y-1/2 text-primary-300" />
+                <FiKey className="absolute left-4 top-1/2 -translate-y-1/2 text-mint-400" />
                 <input type="text" value={form.otp} onChange={e => setForm({...form, otp: e.target.value})}
-                  className="w-full pl-11 pr-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent transition-all tracking-widest text-lg"
+                  className="w-full pl-11 pr-4 py-3 bg-navy-950 border border-navy-700 text-slate-100 rounded-xl placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-mint-500 focus:border-transparent transition-all tracking-widest text-lg"
                   placeholder="------" required={loginMethod === 'otp' && otpSent} maxLength={6} />
               </div>
               <div className="text-right mt-2">
                 <button type="button" onClick={handleSendOtp} disabled={countdown > 0}
-                  className="text-xs font-medium text-primary-300 hover:text-white disabled:opacity-50">
+                  className="text-xs font-medium text-mint-400 hover:text-mint-300 disabled:opacity-50">
                   {countdown > 0 ? `Resend OTP in ${countdown}s` : 'Resend OTP'}
                 </button>
               </div>
@@ -160,9 +163,9 @@ export default function Login() {
           )}
 
           <button type="submit" disabled={loading}
-            className="w-full py-3 flex items-center justify-center gap-2 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-xl font-semibold hover:from-primary-600 hover:to-primary-700 transition-all shadow-lg shadow-primary-900/50 disabled:opacity-50">
+            className="w-full py-3.5 flex items-center justify-center gap-2 bg-mint-500 hover:bg-mint-400 text-navy-950 rounded-xl font-extrabold transition-all shadow-lg shadow-mint-500/20 disabled:opacity-50 text-base">
             {loading ? (
-              <span className="flex items-center justify-center gap-2"><span className="animate-spin rounded-full h-5 w-5 border-t-2 border-white"></span> Processing...</span>
+              <span className="flex items-center justify-center gap-2"><span className="animate-spin rounded-full h-5 w-5 border-t-2 border-navy-950"></span> Processing...</span>
             ) : loginMethod === 'otp' && !otpSent ? (
               <>Send OTP <FiArrowRight /></>
             ) : (
@@ -170,8 +173,8 @@ export default function Login() {
             )}
           </button>
 
-          <p className="text-center text-primary-200 text-sm">
-            Don't have an account? <Link to="/register" className="text-white font-semibold hover:underline">Register</Link>
+          <p className="text-center text-slate-400 text-sm">
+            Don't have an account? <Link to="/register" className="text-mint-400 font-bold hover:underline">Register</Link>
           </p>
         </form>
       </div>
