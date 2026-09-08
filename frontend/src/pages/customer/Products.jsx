@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { getProducts } from '../../services/api';
 import { useCart } from '../../context/CartContext';
 import { FiSearch, FiShoppingCart, FiFilter, FiStar, FiX } from 'react-icons/fi';
 import ProductImage from '../../components/common/ProductImage';
+import toast from 'react-hot-toast';
 
 const CATEGORIES = [
   { value: '', label: 'All Categories' },
@@ -14,9 +15,14 @@ const CATEGORIES = [
   { value: 'flour', label: '🌾 Flour' },
   { value: 'sugar_jaggery', label: '🍬 Sugar & Jaggery' },
   { value: 'tea_coffee', label: '☕ Tea & Coffee' },
+  { value: 'snacks', label: '🍿 Snacks' },
+  { value: 'beverages', label: '🥤 Beverages' },
+  { value: 'dairy', label: '🥛 Dairy' },
   { value: 'dry_fruits', label: '🥜 Dry Fruits' },
   { value: 'cleaning', label: '🧹 Cleaning' },
+  { value: 'personal_care', label: '🧴 Personal Care' },
   { value: 'packaged_food', label: '📦 Packaged Food' },
+  { value: 'other', label: '📋 Other' },
 ];
 
 const SORT_OPTIONS = [
@@ -34,44 +40,55 @@ export default function Products() {
 
   // Filters state initialized from URL search params
   const [search, setSearch] = useState(searchParams.get('search') || '');
+  const [debouncedSearch, setDebouncedSearch] = useState(searchParams.get('search') || '');
   const [category, setCategory] = useState(searchParams.get('category') || '');
   const [minPrice, setMinPrice] = useState(searchParams.get('minPrice') || '');
   const [maxPrice, setMaxPrice] = useState(searchParams.get('maxPrice') || '');
   const [minRating, setMinRating] = useState(searchParams.get('minRating') || '');
   const [availability, setAvailability] = useState(searchParams.get('availability') || '');
   const [sort, setSort] = useState(searchParams.get('sort') || '-createdAt');
+  const fetchRef = useRef(0);
 
   const [pagination, setPagination] = useState({ total: 0, page: 1, pages: 1 });
   const { addToCart } = useCart();
 
   const fetchProducts = useCallback(async (page = 1) => {
     setLoading(true);
+    const requestId = ++fetchRef.current;
     try {
       const params = { page, limit: 16, sort };
       if (category) params.category = category;
-      if (search) params.search = search;
+      if (debouncedSearch) params.search = debouncedSearch;
       if (minPrice) params.minPrice = minPrice;
       if (maxPrice) params.maxPrice = maxPrice;
       if (minRating) params.minRating = minRating;
       if (availability) params.availability = availability;
 
       const { data } = await getProducts(params);
+      if (requestId !== fetchRef.current) return; // ignore stale responses
       setProducts(data.data);
       setPagination(data.pagination);
-    } catch (err) {
-      console.error(err);
+    } catch {
+      if (requestId !== fetchRef.current) return;
+      toast.error('Failed to load products');
     } finally {
-      setLoading(false);
+      if (requestId === fetchRef.current) setLoading(false);
     }
-  }, [category, search, minPrice, maxPrice, minRating, availability, sort]);
+  }, [category, debouncedSearch, minPrice, maxPrice, minRating, availability, sort]);
 
   useEffect(() => {
     fetchProducts(1);
   }, [fetchProducts]);
 
+  // Debounce live search so typing doesn't fire an API request per keystroke.
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 400);
+    return () => clearTimeout(timer);
+  }, [search]);
+
   const handleSearchSubmit = (e) => {
     e.preventDefault();
-    fetchProducts(1);
+    setDebouncedSearch(search);
   };
 
   const clearAllFilters = () => {

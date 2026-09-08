@@ -167,11 +167,18 @@ export default function Cart() {
               <div className="flex-1 min-w-0">
                 <h3 className="font-semibold text-white text-sm truncate">{item.name}</h3>
                 <p className="text-mint-400 font-bold">₹{item.price}</p>
+                {item.stock != null && item.quantity >= item.stock && item.stock > 0 && (
+                  <p className="text-[11px] text-amber-400 mt-0.5">Max available stock reached ({item.stock})</p>
+                )}
               </div>
               <div className="flex items-center border border-navy-700 rounded-lg overflow-hidden bg-navy-950">
                 <button onClick={() => updateQuantity(item.product, item.quantity - 1)} className="p-2 hover:bg-navy-800 text-slate-300"><FiMinus className="w-3 h-3" /></button>
                 <span className="px-3 text-sm font-bold text-white">{item.quantity}</span>
-                <button onClick={() => updateQuantity(item.product, item.quantity + 1)} className="p-2 hover:bg-navy-800 text-slate-300"><FiPlus className="w-3 h-3" /></button>
+                <button
+                  onClick={() => updateQuantity(item.product, item.quantity + 1)}
+                  disabled={item.stock != null && item.quantity >= item.stock}
+                  className="p-2 hover:bg-navy-800 text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed"
+                ><FiPlus className="w-3 h-3" /></button>
               </div>
               <span className="font-bold text-mint-400 w-20 text-right">₹{(item.price * item.quantity).toFixed(2)}</span>
               <button onClick={() => removeFromCart(item.product)} className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"><FiTrash2 className="w-4 h-4" /></button>

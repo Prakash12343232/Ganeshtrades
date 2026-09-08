@@ -30,7 +30,7 @@ vi.mock('../../context/AuthContext', () => ({
   useAuth: () => mockUseAuth()
 }));
 
-const { getProduct, getProductReviews, getAllReviews, updateReview, deleteReview, createReview } = await import('../../services/api');
+const { getProduct, getProductReviews, getAllReviews, updateReview, deleteReview, createReview, markReviewHelpful } = await import('../../services/api');
 const toast = (await import('react-hot-toast')).default;
 const ProductDetail = (await import('./ProductDetail.jsx')).default;
 
@@ -90,6 +90,23 @@ describe('ProductDetail Reviews Pagination', () => {
     await screen.findByText('Great rice!');
     expect(screen.getByRole('button', { name: 'Load More Reviews' })).toBeInTheDocument();
     expect(getProductReviews).toHaveBeenCalledWith('p1', { page: 1, limit: 10 });
+  });
+
+  it('omits the Helpful button for logged-out guests', async () => {
+    render(<ProductDetail />);
+    await screen.findByText('Great rice!');
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: /Helpful/ })).not.toBeInTheDocument();
+    });
+    expect(markReviewHelpful).not.toHaveBeenCalled();
+  });
+
+  it('shows the Helpful button for logged-in users and uses a normalized user id for the my-review lookup', async () => {
+    mockUseAuth.mockReturnValue({ user: { id: 'u1', name: 'Test User' } });
+    getAllReviews.mockResolvedValue({ data: { data: [] } });
+    render(<ProductDetail />);
+    expect(await screen.findByRole('button', { name: /Helpful/ })).toBeInTheDocument();
+    expect(getAllReviews).toHaveBeenCalledWith({ product: 'p1', user: 'u1', limit: 1 });
   });
 
   it('appends the next page of reviews when Load More is clicked and hides the button on the last page', async () => {

@@ -7,6 +7,21 @@ const Order = require('../models/Order');
 const Payment = require('../models/Payment');
 const { generateTestToken } = require('./setup');
 
+describe('Product List Honors Large Admin Limits', () => {
+  it('returns more than the default 100-row cap when a large limit is requested', async () => {
+    const bulk = [];
+    for (let i = 0; i < 120; i++) {
+      bulk.push({ name: `Bulk Product ${i}`, category: 'rice_grains', price: 10 + i, stock: 5 });
+    }
+    await Product.insertMany(bulk);
+
+    const res = await request(app).get('/api/products?status=all&limit=200');
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.data.length).toEqual(120);
+    expect(res.body.pagination.total).toEqual(120);
+  });
+});
+
 describe('Product Catalog Status Filter', () => {
   beforeEach(async () => {
     await Product.create({ name: 'Active Rice', category: 'rice_grains', price: 100, stock: 50, status: 'active' });

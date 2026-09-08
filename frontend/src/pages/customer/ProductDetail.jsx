@@ -60,7 +60,9 @@ export default function ProductDetail() {
       return;
     }
     try {
-      const res = await getAllReviews({ product: id, user: user._id, limit: 1 });
+      // Normalize the user id: login response uses `id`, getMe() uses `_id`.
+      const userId = user._id || user.id;
+      const res = await getAllReviews({ product: id, user: userId, limit: 1 });
       const mine = res.data?.data?.[0] || null;
       setMyReview(mine);
       setReviewForm(mine ? { rating: mine.rating, comment: mine.comment || '' } : { rating: 5, comment: '' });
@@ -464,15 +466,17 @@ export default function ProductDetail() {
                     </div>
                   )}
 
-                  {/* Helpful Button */}
-                  <div className="flex justify-end pr-2">
-                    <button
-                      onClick={() => handleHelpful(review._id)}
-                      className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-mint-400 font-medium transition-colors"
-                    >
-                      <FiThumbsUp /> Helpful ({review.helpfulCount || 0})
-                    </button>
-                  </div>
+                  {/* Helpful Button — requires login; the backend endpoint is protect-guarded */}
+                  {user && (
+                    <div className="flex justify-end pr-2">
+                      <button
+                        onClick={() => handleHelpful(review._id)}
+                        className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-mint-400 font-medium transition-colors"
+                      >
+                        <FiThumbsUp /> Helpful ({review.helpfulCount || 0})
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
               {reviewHasMore && (

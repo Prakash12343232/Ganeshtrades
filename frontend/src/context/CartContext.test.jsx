@@ -5,6 +5,7 @@ import { CartProvider, useCart } from './CartContext';
 const wrapper = ({ children }) => <CartProvider>{children}</CartProvider>;
 
 const product = { _id: 'p1', name: 'Sugar', price: 50, image: 'sugar.jpg' };
+const limitedProduct = { _id: 'p2', name: 'Rice', price: 80, image: 'rice.jpg', stock: 4 };
 
 const renderCart = () => renderHook(() => useCart(), { wrapper });
 
@@ -89,5 +90,34 @@ describe('CartContext', () => {
     localStorage.setItem('gt_cart', JSON.stringify({ not: 'an array' }));
     const { result } = renderCart();
     expect(result.current.items).toEqual([]);
+  });
+
+  it('clamps the first add to the product stock', () => {
+    const { result } = renderCart();
+    act(() => result.current.addToCart(limitedProduct, 10));
+    expect(result.current.items[0].quantity).toBe(4);
+    expect(result.current.totalAmount).toBe(320);
+  });
+
+  it('clamps merged quantities to the product stock', () => {
+    const { result } = renderCart();
+    act(() => result.current.addToCart(limitedProduct, 3));
+    act(() => result.current.addToCart(limitedProduct, 5));
+    expect(result.current.items).toHaveLength(1);
+    expect(result.current.items[0].quantity).toBe(4);
+  });
+
+  it('clamps updateQuantity to the product stock', () => {
+    const { result } = renderCart();
+    act(() => result.current.addToCart(limitedProduct, 2));
+    act(() => result.current.updateQuantity('p2', 99));
+    expect(result.current.items[0].quantity).toBe(4);
+  });
+
+  it('keeps quantities unbounded for products without a stock field', () => {
+    const { result } = renderCart();
+    act(() => result.current.addToCart(product, 5));
+    act(() => result.current.updateQuantity('p1', 25));
+    expect(result.current.items[0].quantity).toBe(25);
   });
 });

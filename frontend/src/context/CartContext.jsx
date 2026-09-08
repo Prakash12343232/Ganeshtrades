@@ -25,13 +25,25 @@ export const CartProvider = ({ children }) => {
 
   const addToCart = (product, quantity = 1) => {
     setItems(prev => {
+      const stock = product.stock != null ? product.stock : Infinity;
+      const clampedQty = Math.max(1, Math.min(quantity, stock));
       const existing = prev.find(i => i.product === product._id);
       if (existing) {
-        toast.success(`Updated ${product.name} quantity`);
-        return prev.map(i => i.product === product._id ? { ...i, quantity: i.quantity + quantity } : i);
+        const nextQty = Math.min(existing.quantity + clampedQty, existing.stock != null ? existing.stock : Infinity);
+        if (nextQty !== existing.quantity + clampedQty) {
+          toast.success(`${product.name} limited to ${nextQty} — only ${existing.stock} in stock`);
+        } else {
+          toast.success(`Updated ${product.name} quantity`);
+        }
+        return prev.map(i => i.product === product._id ? { ...i, quantity: nextQty, stock: existing.stock ?? stock } : i);
       }
-      toast.success(`${product.name} added to cart`);
-      return [...prev, { product: product._id, name: product.name, price: product.price, image: product.image, quantity, stock: product.stock }];
+      if (clampedQty < quantity) {
+        toast.success(`${product.name} limited to ${clampedQty} — only ${stock} in stock`);
+      } else {
+        toast.success(`${product.name} added to cart`);
+      }
+      if (clampedQty === 0) return prev;
+      return [...prev, { product: product._id, name: product.name, price: product.price, image: product.image, quantity: clampedQty, stock }];
     });
   };
 
@@ -42,7 +54,11 @@ export const CartProvider = ({ children }) => {
 
   const updateQuantity = (productId, quantity) => {
     if (quantity < 1) return removeFromCart(productId);
-    setItems(prev => prev.map(i => i.product === productId ? { ...i, quantity } : i));
+    setItems(prev => prev.map(i => {
+      if (i.product !== productId) return i;
+      const maxQty = i.stock != null ? i.stock : Infinity;
+      return { ...i, quantity: Math.min(quantity, maxQty) };
+    }));
   };
 
   const clearCart = () => { setItems([]); localStorage.removeItem('gt_cart'); };

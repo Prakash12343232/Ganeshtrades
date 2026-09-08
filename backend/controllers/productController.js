@@ -64,7 +64,9 @@ exports.getProducts = async (req, res) => {
       if (maxPrice) query.price.$lte = parseNonNegativeNumber(maxPrice, 'maxPrice');
     }
 
-    const paging = parsePagination(page, limit);
+    // Higher cap than other collections: the admin tooling (bulk image manager,
+    // supplier PO item picker) intentionally requests full catalogs (limit up to 500).
+    const paging = parsePagination(page, limit, 1000);
     const safeSort = sanitizeSort(sort, '-createdAt', ['createdAt', 'name', 'price', 'stock', 'totalSold', 'avgRating']);
     const total = await Product.countDocuments(query);
     const products = await Product.find(query)
