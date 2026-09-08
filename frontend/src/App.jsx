@@ -11,6 +11,9 @@ import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import ForgotPassword from './pages/auth/ForgotPassword';
 
+// Fallback Page
+import NotFound from './pages/NotFound';
+
 // Customer Pages
 import Home from './pages/customer/Home';
 import Products from './pages/customer/Products';
@@ -103,7 +106,7 @@ function App() {
           <Route index element={<ManagerDashboard />} />
         </Route>
 
-        <Route path="*" element={<Navigate to="/" />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>
   );
