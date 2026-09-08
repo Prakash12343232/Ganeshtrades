@@ -17,7 +17,7 @@ L.Icon.Default.mergeOptions({
 // Custom shop icon
 const shopIcon = new L.DivIcon({
   className: 'custom-shop-icon',
-  html: '<div style="background:#7e22ce;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);font-size:16px;">🏪</div>',
+  html: '<div style="background:#16a34a;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);font-size:16px;">🏪</div>',
   iconSize: [32, 32],
   iconAnchor: [16, 16],
 });
@@ -281,7 +281,7 @@ export default function AdminCoverage() {
           <div className="bg-white rounded-xl p-3 border border-gray-100 flex items-center justify-between">
             <div className="flex items-center gap-4 text-xs">
               <span className="flex items-center gap-1.5">
-                <span className="w-3 h-3 bg-purple-600 rounded-full inline-block"></span>
+                <span className="w-3 h-3 bg-green-600 rounded-full inline-block"></span>
                 Shop ({settings.shopPlusCode || 'HW4C+XJ'})
               </span>
               <span className="flex items-center gap-1.5">

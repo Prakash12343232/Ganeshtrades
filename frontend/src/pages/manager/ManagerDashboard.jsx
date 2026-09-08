@@ -73,7 +73,7 @@ export default function ManagerDashboard() {
             { label: 'Total Revenue', value: `₹${(stats.totalRevenue || 0).toLocaleString()}`, color: 'bg-primary-600' },
             { label: 'Total Orders', value: stats.totalOrders, color: 'bg-blue-600' },
             { label: 'Customers', value: stats.totalCustomers, color: 'bg-green-600' },
-            { label: 'Products', value: stats.totalProducts, color: 'bg-indigo-600' },
+            { label: 'Products', value: stats.totalProducts, color: 'bg-teal-600' },
             { label: 'Pending Orders', value: stats.pendingOrders, color: 'bg-yellow-600' },
             { label: 'Delivered', value: stats.deliveredOrders, color: 'bg-emerald-600' },
             { label: 'Cancelled', value: stats.cancelledOrders, color: 'bg-red-600' },
@@ -98,7 +98,7 @@ export default function ManagerDashboard() {
                 <XAxis dataKey="date" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip />
-                <Line type="monotone" dataKey="revenue" stroke="#7e22ce" strokeWidth={3} dot={{ fill: '#7e22ce', r: 5 }} />
+                <Line type="monotone" dataKey="revenue" stroke="#16a34a" strokeWidth={3} dot={{ fill: '#16a34a', r: 5 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -110,7 +110,7 @@ export default function ManagerDashboard() {
                 <XAxis dataKey="date" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip />
-                <Bar dataKey="orders" fill="#a855f7" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="orders" fill="#f97316" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

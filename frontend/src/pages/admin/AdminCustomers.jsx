@@ -6,7 +6,7 @@ import { FiSearch, FiUsers, FiUserCheck, FiUserX, FiUserPlus } from 'react-icons
 const STAT_COLORS = [
   { label: 'Public', bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-100' },
   { label: 'Hotel / Restaurants', bg: 'bg-amber-50', text: 'text-amber-600', border: 'border-amber-100' },
-  { label: 'PG / Hostel', bg: 'bg-purple-50', text: 'text-purple-600', border: 'border-purple-100' }
+  { label: 'PG / Hostel', bg: 'bg-orange-50', text: 'text-orange-600', border: 'border-orange-100' }
 ];
 
 export default function AdminCustomers() {

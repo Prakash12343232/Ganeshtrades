@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { FiShoppingBag, FiClock, FiTruck, FiXCircle, FiDollarSign, FiUsers, FiPackage, FiAlertTriangle, FiArrowRight, FiRefreshCw, FiCalendar } from 'react-icons/fi';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
-const COLORS = ['#7e22ce', '#a855f7', '#c084fc', '#e9d5ff'];
+const COLORS = ['#16a34a', '#22c55e', '#f97316', '#fb923c'];
 
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
@@ -32,7 +32,7 @@ export default function Dashboard() {
     { label: 'Cancelled', value: stats?.cancelledOrders || 0, icon: <FiXCircle />, color: 'from-red-500 to-red-600', link: '/admin/orders' },
     { label: 'Revenue', value: `₹${(stats?.totalRevenue || 0).toLocaleString('en-IN')}`, icon: <FiDollarSign />, color: 'from-primary-500 to-primary-700', link: '/admin/reports' },
     { label: 'Pending Payments', value: `₹${(stats?.totalPending || 0).toLocaleString('en-IN')}`, icon: <FiDollarSign />, color: 'from-orange-500 to-amber-600', link: '/admin/payments' },
-    { label: 'Customers', value: stats?.totalCustomers || 0, icon: <FiUsers />, color: 'from-indigo-500 to-indigo-600', link: '/admin/customers' },
+    { label: 'Customers', value: stats?.totalCustomers || 0, icon: <FiUsers />, color: 'from-emerald-600 to-emerald-700', link: '/admin/customers' },
     { label: 'Products', value: stats?.totalProducts || 0, icon: <FiPackage />, color: 'from-teal-500 to-teal-600', link: '/admin/products' },
   ];
 
@@ -47,9 +47,9 @@ export default function Dashboard() {
           
           <div className="flex gap-3 ml-auto">
             {stats?.todayScheduled > 0 && (
-              <Link to="/admin/deliveries" className="flex items-center gap-2 bg-indigo-500/30 hover:bg-indigo-500/50 transition-colors rounded-xl px-4 py-2">
-                <FiCalendar className="text-indigo-200" />
-                <div><p className="text-sm font-bold text-white leading-tight">{stats.todayScheduled}</p><p className="text-[10px] text-indigo-100 uppercase tracking-wider">Scheduled Today</p></div>
+              <Link to="/admin/deliveries" className="flex items-center gap-2 bg-emerald-500/30 hover:bg-emerald-500/50 transition-colors rounded-xl px-4 py-2">
+                <FiCalendar className="text-emerald-200" />
+                <div><p className="text-sm font-bold text-white leading-tight">{stats.todayScheduled}</p><p className="text-[10px] text-emerald-100 uppercase tracking-wider">Scheduled Today</p></div>
               </Link>
             )}
             {stats?.lateScheduled > 0 && (
@@ -92,7 +92,7 @@ export default function Dashboard() {
               <XAxis dataKey="date" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} />
               <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid #e5e7eb' }} />
-              <Bar dataKey="revenue" fill="#7e22ce" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="revenue" fill="#16a34a" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>

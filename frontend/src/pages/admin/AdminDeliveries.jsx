@@ -11,7 +11,7 @@ const TIME_SLOTS = [
 const HISTORY_STATUS_COLORS = {
   assigned: 'bg-blue-100 text-blue-700',
   picked_up: 'bg-amber-100 text-amber-700',
-  on_the_way: 'bg-purple-100 text-purple-700',
+  on_the_way: 'bg-orange-100 text-orange-700',
   delivered: 'bg-green-100 text-green-700',
   failed: 'bg-red-100 text-red-700'
 };
@@ -19,29 +19,25 @@ const HISTORY_STATUS_COLORS = {
 export default function AdminDeliveries() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState('today'); // late, today, instant, future
-  const [view, setView] = useState('priority'); // priority | history
+  const [tab, setTab] = useState('today');
+  const [view, setView] = useState('priority');
 
-  // History view state
+  // History filters & state
   const [historyData, setHistoryData] = useState([]);
+  const [historyPagination, setHistoryPagination] = useState({ page: 1, pages: 1, total: 0 });
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [historyPagination, setHistoryPagination] = useState({ page: 1, pages: 1 });
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [dateFilter, setDateFilter] = useState('');
   const [slotFilter, setSlotFilter] = useState('');
 
-  const fetchDeliveries = () => {
-    getTodayPriority().then(res => {
-      setData(res.data.data);
-      if (res.data.data.stats.lateCount > 0) setTab('late');
-      else if (res.data.data.stats.todayCount > 0) setTab('today');
-      else if (res.data.data.stats.instantCount > 0) setTab('instant');
-      else setTab('future');
-    }).catch(() => {}).finally(() => setLoading(false));
-  };
-
-  useEffect(() => { fetchDeliveries(); }, []);
+  const fetchPriority = useCallback(() => {
+    setLoading(true);
+    getTodayPriority()
+      .then(res => setData(res.data.data))
+      .catch(() => toast.error('Failed to load priority deliveries'))
+      .finally(() => setLoading(false));
+  }, []);
 
   const fetchHistory = useCallback((page = 1) => {
     setHistoryLoading(true);
@@ -50,25 +46,20 @@ export default function AdminDeliveries() {
     if (typeFilter) params.deliveryType = typeFilter;
     if (dateFilter) params.scheduledDate = dateFilter;
     if (slotFilter) params.timeSlot = slotFilter;
-    getDeliveries(params).then(res => {
-      setHistoryData(res.data.data);
-      setHistoryPagination(res.data.pagination);
-    }).catch(() => toast.error('Failed to load delivery history'))
+
+    getDeliveries(params)
+      .then(res => {
+        setHistoryData(res.data.data);
+        setHistoryPagination(res.data.pagination);
+      })
+      .catch(() => toast.error('Failed to load delivery history'))
       .finally(() => setHistoryLoading(false));
   }, [statusFilter, typeFilter, dateFilter, slotFilter]);
 
   useEffect(() => {
-    if (view === 'history') fetchHistory(1);
-  }, [view, fetchHistory]);
-
-  const handleUpdate = async (id, status) => {
-    try {
-      await updateDeliveryStatus(id, { status });
-      toast.success('Status updated');
-      fetchDeliveries();
-      if (view === 'history') fetchHistory(historyPagination.page || 1);
-    } catch { toast.error('Failed to update'); }
-  };
+    if (view === 'priority') fetchPriority();
+    else fetchHistory(1);
+  }, [view, fetchPriority, fetchHistory]);
 
   const resetHistoryFilters = () => {
     setStatusFilter('');
@@ -77,11 +68,22 @@ export default function AdminDeliveries() {
     setSlotFilter('');
   };
 
+  const handleUpdate = async (id, status) => {
+    try {
+      await updateDeliveryStatus(id, { status });
+      toast.success('Status updated');
+      if (view === 'priority') fetchPriority();
+      else fetchHistory(historyPagination.page);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update delivery');
+    }
+  };
+
   const statusActions = (d) => (
     d.status !== 'delivered' && d.status !== 'failed' && (
       <div className="flex flex-wrap gap-2">
         {d.status === 'assigned' && <button onClick={() => handleUpdate(d._id, 'picked_up')} className="flex-1 min-w-[110px] py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-medium hover:bg-blue-100 transition-colors">Mark Picked Up</button>}
-        {d.status === 'picked_up' && <button onClick={() => handleUpdate(d._id, 'on_the_way')} className="flex-1 min-w-[110px] py-1.5 bg-purple-50 text-purple-600 rounded-lg text-xs font-medium hover:bg-purple-100 transition-colors">On The Way</button>}
+        {d.status === 'picked_up' && <button onClick={() => handleUpdate(d._id, 'on_the_way')} className="flex-1 min-w-[110px] py-1.5 bg-orange-50 text-orange-600 rounded-lg text-xs font-medium hover:bg-orange-100 transition-colors">On The Way</button>}
         {d.status === 'on_the_way' && <button onClick={() => handleUpdate(d._id, 'delivered')} className="flex-1 min-w-[110px] py-1.5 bg-green-50 text-green-600 rounded-lg text-xs font-medium hover:bg-green-100 transition-colors">Mark Delivered</button>}
       </div>
     )
@@ -122,13 +124,13 @@ export default function AdminDeliveries() {
                 <p className={`text-xs mt-1 ${tab === 'late' ? 'text-red-100' : 'text-gray-500'}`}>Scheduled date passed</p>
               </button>
 
-              <button onClick={() => setTab('today')} className={`p-4 rounded-xl border text-left transition-all ${tab === 'today' ? 'bg-indigo-600 border-indigo-700 text-white shadow-lg' : 'bg-white border-indigo-100 hover:border-indigo-300'}`}>
+              <button onClick={() => setTab('today')} className={`p-4 rounded-xl border text-left transition-all ${tab === 'today' ? 'bg-emerald-600 border-emerald-700 text-white shadow-lg' : 'bg-white border-emerald-100 hover:border-emerald-300'}`}>
                 <div className="flex items-center justify-between mb-2">
-                  <FiCalendar className={tab === 'today' ? 'text-indigo-200' : 'text-indigo-500'} />
-                  <span className={`text-2xl font-bold ${tab === 'today' ? 'text-white' : 'text-indigo-600'}`}>{data?.stats?.todayCount || 0}</span>
+                  <FiCalendar className={tab === 'today' ? 'text-emerald-200' : 'text-emerald-500'} />
+                  <span className={`text-2xl font-bold ${tab === 'today' ? 'text-white' : 'text-emerald-600'}`}>{data?.stats?.todayCount || 0}</span>
                 </div>
                 <p className={`font-semibold ${tab === 'today' ? 'text-white' : 'text-gray-800'}`}>Today's Schedule</p>
-                <p className={`text-xs mt-1 ${tab === 'today' ? 'text-indigo-100' : 'text-gray-500'}`}>High priority slots</p>
+                <p className={`text-xs mt-1 ${tab === 'today' ? 'text-emerald-100' : 'text-gray-500'}`}>High priority slots</p>
               </button>
 
               <button onClick={() => setTab('instant')} className={`p-4 rounded-xl border text-left transition-all ${tab === 'instant' ? 'bg-amber-500 border-amber-600 text-white shadow-lg' : 'bg-white border-amber-100 hover:border-amber-300'}`}>
@@ -154,7 +156,7 @@ export default function AdminDeliveries() {
               {(data[tab] || []).map(d => (
                 <div key={d._id} className={`bg-white rounded-2xl border-2 p-5 shadow-sm transition-all hover:shadow-md ${
                   tab === 'late' ? 'border-red-200' :
-                  tab === 'today' ? 'border-indigo-200' :
+                  tab === 'today' ? 'border-emerald-200' :
                   tab === 'instant' ? 'border-amber-200' : 'border-gray-100'
                 }`}>
                   <div className="flex justify-between items-start mb-4">
@@ -166,7 +168,7 @@ export default function AdminDeliveries() {
                         {d.order?.deliveryType === 'scheduled' ? (
                           <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${
                             tab === 'late' ? 'bg-red-100 text-red-700' :
-                            tab === 'today' ? 'bg-indigo-100 text-indigo-700' :
+                            tab === 'today' ? 'bg-emerald-100 text-emerald-700' :
                             'bg-blue-100 text-blue-700'
                           }`}>
                             <FiCalendar /> {new Date(d.order.scheduledDelivery?.date).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })} • {d.order.scheduledDelivery?.timeSlot}
@@ -210,7 +212,7 @@ export default function AdminDeliveries() {
                   {d.status !== 'delivered' && d.status !== 'failed' && (
                     <div className="flex gap-2 pt-4 border-t border-gray-100">
                       {d.status === 'assigned' && <button onClick={() => handleUpdate(d._id, 'picked_up')} className="flex-1 py-2 bg-blue-50 text-blue-600 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors">Mark Picked Up</button>}
-                      {d.status === 'picked_up' && <button onClick={() => handleUpdate(d._id, 'on_the_way')} className="flex-1 py-2 bg-purple-50 text-purple-600 rounded-lg text-sm font-medium hover:bg-purple-100 transition-colors">On The Way</button>}
+                      {d.status === 'picked_up' && <button onClick={() => handleUpdate(d._id, 'on_the_way')} className="flex-1 py-2 bg-orange-50 text-orange-600 rounded-lg text-sm font-medium hover:bg-orange-100 transition-colors">On The Way</button>}
                       {d.status === 'on_the_way' && <button onClick={() => handleUpdate(d._id, 'delivered')} className="flex-1 py-2 bg-green-50 text-green-600 rounded-lg text-sm font-medium hover:bg-green-100 transition-colors">Mark Delivered</button>}
                     </div>
                   )}

@@ -7,7 +7,7 @@ const TYPES = ['general', 'promotion', 'new_product', 'payment_reminder', 'order
 const TYPE_COLORS = {
   general: 'bg-blue-100 text-blue-700', order: 'bg-primary-100 text-primary-700',
   payment: 'bg-green-100 text-green-700', stock: 'bg-amber-100 text-amber-700',
-  promotion: 'bg-pink-100 text-pink-700', delivery: 'bg-indigo-100 text-indigo-700',
+  promotion: 'bg-pink-100 text-pink-700', delivery: 'bg-emerald-100 text-emerald-700',
   new_product: 'bg-teal-100 text-teal-700', payment_reminder: 'bg-orange-100 text-orange-700',
   system: 'bg-gray-100 text-gray-700'
 };

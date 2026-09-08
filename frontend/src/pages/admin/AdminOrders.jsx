@@ -5,7 +5,7 @@ import { FiCheck, FiTruck, FiX, FiCalendar, FiZap, FiEdit3, FiUser, FiDollarSign
 
 const STATUS_COLORS = {
   pending: 'bg-yellow-100 text-yellow-700', confirmed: 'bg-blue-100 text-blue-700',
-  processing: 'bg-indigo-100 text-indigo-700', out_for_delivery: 'bg-purple-100 text-purple-700',
+  processing: 'bg-emerald-100 text-emerald-700', out_for_delivery: 'bg-orange-100 text-orange-700',
   delivered: 'bg-green-100 text-green-700', cancelled: 'bg-red-100 text-red-700'
 };
 
@@ -172,7 +172,7 @@ export default function AdminOrders() {
           <div className="flex gap-2">
             <button onClick={() => setDeliveryFilter('')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${deliveryFilter === '' ? 'bg-primary-100 text-primary-700' : 'bg-gray-50 text-gray-600'}`}>All Types</button>
             <button onClick={() => setDeliveryFilter('instant')} className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1 transition-all ${deliveryFilter === 'instant' ? 'bg-amber-100 text-amber-700' : 'bg-gray-50 text-gray-600'}`}><FiZap /> Instant</button>
-            <button onClick={() => setDeliveryFilter('scheduled')} className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1 transition-all ${deliveryFilter === 'scheduled' ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-50 text-gray-600'}`}><FiCalendar /> Scheduled</button>
+            <button onClick={() => setDeliveryFilter('scheduled')} className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1 transition-all ${deliveryFilter === 'scheduled' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-50 text-gray-600'}`}><FiCalendar /> Scheduled</button>
           </div>
 
           {deliveryFilter === 'scheduled' && (
@@ -213,7 +213,7 @@ export default function AdminOrders() {
                     <td className="py-3 px-4">
                       {order.deliveryType === 'scheduled' ? (
                         <div>
-                          <span className="inline-flex items-center gap-1 text-indigo-600 font-medium text-xs bg-indigo-50 px-2 py-0.5 rounded-full mb-1">
+                          <span className="inline-flex items-center gap-1 text-emerald-600 font-medium text-xs bg-emerald-50 px-2 py-0.5 rounded-full mb-1">
                             <FiCalendar className="w-3 h-3" /> Scheduled
                           </span>
                           {order.scheduledDelivery?.date && (
@@ -246,10 +246,10 @@ export default function AdminOrders() {
                           <button onClick={() => handleStatusUpdate(order._id, 'confirmed')} className="p-1.5 bg-blue-50 text-blue-600 rounded hover:bg-blue-100" title="Confirm"><FiCheck className="w-4 h-4" /></button>
                         )}
                         {order.orderStatus === 'confirmed' && (
-                          <button onClick={() => handleStatusUpdate(order._id, 'processing')} className="p-1.5 bg-indigo-50 text-indigo-600 rounded hover:bg-indigo-100" title="Process"><FiCheck className="w-4 h-4" /></button>
+                          <button onClick={() => handleStatusUpdate(order._id, 'processing')} className="p-1.5 bg-emerald-50 text-emerald-600 rounded hover:bg-emerald-100" title="Process"><FiCheck className="w-4 h-4" /></button>
                         )}
                         {order.orderStatus === 'processing' && (
-                          <button onClick={() => handleStatusUpdate(order._id, 'out_for_delivery')} className="p-1.5 bg-purple-50 text-purple-600 rounded hover:bg-purple-100" title="Out for Delivery"><FiTruck className="w-4 h-4" /></button>
+                          <button onClick={() => handleStatusUpdate(order._id, 'out_for_delivery')} className="p-1.5 bg-orange-50 text-orange-600 rounded hover:bg-orange-100" title="Out for Delivery"><FiTruck className="w-4 h-4" /></button>
                         )}
                         {order.orderStatus === 'out_for_delivery' && (
                           <button onClick={() => handleStatusUpdate(order._id, 'delivered')} className="p-1.5 bg-green-50 text-green-600 rounded hover:bg-green-100" title="Delivered"><FiCheck className="w-4 h-4" /></button>

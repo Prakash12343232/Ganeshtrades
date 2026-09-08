@@ -147,7 +147,7 @@ export default function OrderDetail() {
               <FiDownload /> Invoice
             </button>
             {canReschedule && (
-              <button onClick={() => setShowReschedule(!showReschedule)} className="flex items-center gap-2 px-4 py-2 bg-indigo-100 text-indigo-600 rounded-lg text-sm font-medium hover:bg-indigo-200 transition-all">
+              <button onClick={() => setShowReschedule(!showReschedule)} className="flex items-center gap-2 px-4 py-2 bg-emerald-100 text-emerald-600 rounded-lg text-sm font-medium hover:bg-emerald-200 transition-all">
                 <FiEdit3 /> Reschedule
               </button>
             )}
@@ -161,28 +161,28 @@ export default function OrderDetail() {
 
         {/* Reschedule Panel */}
         {showReschedule && (
-          <div className="mt-4 p-4 bg-indigo-50 rounded-xl border border-indigo-200 animate-fadeIn">
-            <h3 className="text-sm font-bold text-indigo-800 mb-3 flex items-center gap-2"><FiCalendar /> Reschedule Delivery</h3>
+          <div className="mt-4 p-4 bg-emerald-50 rounded-xl border border-emerald-200 animate-fadeIn">
+            <h3 className="text-sm font-bold text-emerald-800 mb-3 flex items-center gap-2"><FiCalendar /> Reschedule Delivery</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-indigo-700 mb-1">New Date</label>
+                <label className="block text-xs font-medium text-emerald-700 mb-1">New Date</label>
                 <input type="date" value={reschedDate} onChange={e => setReschedDate(e.target.value)} min={todayStr} max={maxDateStr}
-                  className="w-full px-3 py-2 border border-indigo-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+                  className="w-full px-3 py-2 border border-emerald-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-indigo-700 mb-1">New Time Slot</label>
+                <label className="block text-xs font-medium text-emerald-700 mb-1">New Time Slot</label>
                 <select value={reschedSlot} onChange={e => setReschedSlot(e.target.value)}
-                  className="w-full px-3 py-2 border border-indigo-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                  className="w-full px-3 py-2 border border-emerald-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
                   <option value="">Select slot</option>
                   {TIME_SLOTS.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
             </div>
             <div className="flex gap-2 mt-3">
-              <button onClick={handleReschedule} disabled={rescheduling} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50">
+              <button onClick={handleReschedule} disabled={rescheduling} className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-50">
                 {rescheduling ? 'Rescheduling...' : 'Confirm Reschedule'}
               </button>
-              <button onClick={() => setShowReschedule(false)} className="px-4 py-2 text-indigo-600 text-sm font-medium hover:bg-indigo-100 rounded-lg">Cancel</button>
+              <button onClick={() => setShowReschedule(false)} className="px-4 py-2 text-emerald-600 text-sm font-medium hover:bg-emerald-100 rounded-lg">Cancel</button>
             </div>
           </div>
         )}
@@ -267,7 +267,7 @@ export default function OrderDetail() {
         <div className="space-y-4">
           {/* Scheduled Delivery Info */}
           {order.deliveryType === 'scheduled' && order.scheduledDelivery && (
-            <div className="bg-gradient-to-br from-primary-50 to-indigo-50 rounded-2xl border border-primary-100 p-6">
+            <div className="bg-gradient-to-br from-primary-50 to-accent-50 rounded-2xl border border-primary-100 p-6">
               <h3 className="font-bold text-primary-800 mb-3 flex items-center gap-2"><FiCalendar /> Scheduled Delivery</h3>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">

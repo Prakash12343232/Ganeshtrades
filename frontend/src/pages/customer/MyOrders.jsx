@@ -5,7 +5,7 @@ import { FiEye, FiPackage, FiCalendar, FiZap, FiClock } from 'react-icons/fi';
 
 const STATUS_COLORS = {
   pending: 'bg-yellow-100 text-yellow-700', confirmed: 'bg-blue-100 text-blue-700',
-  processing: 'bg-indigo-100 text-indigo-700', out_for_delivery: 'bg-purple-100 text-purple-700',
+  processing: 'bg-emerald-100 text-emerald-700', out_for_delivery: 'bg-orange-100 text-orange-700',
   delivered: 'bg-green-100 text-green-700', cancelled: 'bg-red-100 text-red-700'
 };
 

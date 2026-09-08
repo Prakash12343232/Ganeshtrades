@@ -100,7 +100,7 @@ export default function AdminReports() {
               </div>
               <div className="bg-white rounded-2xl border border-gray-100 p-6">
                 <p className="text-sm text-gray-500">Avg Order Value</p>
-                <p className="text-3xl font-bold text-indigo-600 mt-2">₹{report.totalOrders ? Math.round(report.totalRevenue / report.totalOrders) : 0}</p>
+                <p className="text-3xl font-bold text-emerald-600 mt-2">₹{report.totalOrders ? Math.round(report.totalRevenue / report.totalOrders) : 0}</p>
               </div>
             </div>
           )}
