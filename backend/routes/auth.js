@@ -68,12 +68,13 @@ router.post('/send-otp', otpLimiter, async (req, res) => {
 
     const existingUser = await User.findOne({ mobile: normMobile });
 
-    if (purpose === 'register' && existingUser) {
-      return res.status(400).json({ success: false, message: 'An account with this mobile number already exists. Please login.' });
-    }
-
-    if ((purpose === 'login' || purpose === 'password_reset') && !existingUser) {
-      return res.status(404).json({ success: false, message: 'No account found with this mobile number. Please register first.' });
+    // Anti-enumeration: return the same generic success body regardless of
+    // whether the mobile is registered, and dispatch no OTP in the "wrong
+    // purpose" branches — mirroring /forgot-password below. A client can no
+    // longer probe which numbers have accounts via distinct status codes or
+    // messages. Genuine users reach OTP dispatch for their correct purpose.
+    if ((purpose === 'register' && existingUser) || ((purpose === 'login' || purpose === 'password_reset') && !existingUser)) {
+      return res.json({ success: true, message: 'OTP sent successfully' });
     }
 
     if (existingUser) {
@@ -122,7 +123,7 @@ router.post('/send-otp', otpLimiter, async (req, res) => {
       });
     }
 
-    res.json({ success: true, message: 'OTP sent successfully to your mobile number' });
+    res.json({ success: true, message: 'OTP sent successfully' });
   } catch (error) {
     console.error('❌ send-otp route error:', error.message);
     res.status(500).json({ success: false, message: error.message || 'An error occurred while processing OTP request.' });

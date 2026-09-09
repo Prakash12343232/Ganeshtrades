@@ -4,6 +4,7 @@ const User = require('../models/User');
 const Product = require('../models/Product');
 const Order = require('../models/Order');
 const Review = require('../models/Review');
+const Otp = require('../models/Otp');
 const { validateBackupFilename } = require('../utils/security');
 const { generateTestToken } = require('./setup');
 
@@ -131,5 +132,37 @@ describe('Security regressions', () => {
       .set('Authorization', `Bearer ${generateTestToken(customer._id)}`);
     expect(others.statusCode).toEqual(200);
     expect(others.body.data.filter(r => r.status !== 'approved')).toHaveLength(0);
+  });
+
+  it('does not reveal account existence via send-otp across register/login/reset purposes', async () => {
+    // Existing number with a register purpose: identical generic 200, no OTP record.
+    const reg = await request(app)
+      .post('/api/auth/send-otp')
+      .send({ mobile: customer.mobile, purpose: 'register' });
+    expect(reg.statusCode).toEqual(200);
+    expect(reg.body.success).toEqual(true);
+    expect(await Otp.findOne({ mobile: customer.mobile, purpose: 'register' })).toBeNull();
+
+    // Unknown number with a login purpose: identical generic 200, no OTP record.
+    const login = await request(app)
+      .post('/api/auth/send-otp')
+      .send({ mobile: '9999800001', purpose: 'login' });
+    expect(login.statusCode).toEqual(200);
+    expect(login.body.success).toEqual(true);
+    expect(await Otp.findOne({ mobile: '9999800001', purpose: 'login' })).toBeNull();
+
+    // Unknown number with a password_reset purpose: identical generic 200, no OTP record.
+    const reset = await request(app)
+      .post('/api/auth/send-otp')
+      .send({ mobile: '9999800002', purpose: 'password_reset' });
+    expect(reset.statusCode).toEqual(200);
+    expect(reset.body.success).toEqual(true);
+    expect(await Otp.findOne({ mobile: '9999800002', purpose: 'password_reset' })).toBeNull();
+
+    // A bad purpose still fails (input validation is preserved).
+    const bad = await request(app)
+      .post('/api/auth/send-otp')
+      .send({ mobile: customer.mobile, purpose: 'spam' });
+    expect(bad.statusCode).toEqual(400);
   });
 });
