@@ -141,8 +141,12 @@ router.post('/verify-otp', authLimiter, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Please provide mobile, OTP, and purpose' });
     }
 
-    // Forward to independent OTP Server if configured
-    if (OtpClient.isConfigured()) {
+    // Forward to independent OTP Server if configured.
+    // Password-reset OTPs are created in THIS server's Otp collection and
+    // delivered by its own SMS gateway (see /forgot-password), so they are
+    // always verified locally — the remote otp-server has no such record.
+    const REMOTE_OTP_PURPOSES = ['register', 'login'];
+    if (OtpClient.isConfigured() && REMOTE_OTP_PURPOSES.includes(purpose)) {
       console.log(`[BACKEND -> OTP SERVER] Forwarding verify-otp request for ${normMobile} (${purpose})`);
       const otpResult = await OtpClient.verifyOtp(normMobile, otp, purpose);
       if (otpResult.verified || otpResult.success) {
@@ -533,21 +537,28 @@ router.post('/reset-password', authLimiter, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Password too weak', errors: pwCheck.errors });
     }
 
-    // Verify OTP
-    const otpRecord = await Otp.findOne({ mobile: normMobile, purpose: 'password_reset', verified: false });
+    // Verify OTP. The record may have already been confirmed by a prior
+    // /verify-otp call (purpose 'password_reset'), in which case re-checking
+    // the code is skipped — lookups accept both verified and unverified records.
+    const otpRecord = await Otp.findOne({ mobile: normMobile, purpose: 'password_reset' });
     if (!otpRecord) {
       return res.status(400).json({ success: false, message: 'Invalid or expired OTP. Please request a new one.' });
     }
 
-    otpRecord.attempts += 1;
-    if (otpRecord.attempts > 3) {
-      await Otp.deleteOne({ _id: otpRecord._id });
-      return res.status(400).json({ success: false, message: 'Maximum attempts reached. Please request a new OTP.' });
-    }
+    if (!otpRecord.verified) {
+      otpRecord.attempts += 1;
+      if (otpRecord.attempts > 3) {
+        await Otp.deleteOne({ _id: otpRecord._id });
+        return res.status(400).json({ success: false, message: 'Maximum attempts reached. Please request a new OTP.' });
+      }
 
-    if (otpRecord.otp !== String(otp).trim()) {
+      if (otpRecord.otp !== String(otp).trim()) {
+        await otpRecord.save();
+        return res.status(400).json({ success: false, message: 'Incorrect OTP' });
+      }
+
+      otpRecord.verified = true;
       await otpRecord.save();
-      return res.status(400).json({ success: false, message: 'Incorrect OTP' });
     }
 
     // OTP is correct — find user and reset password

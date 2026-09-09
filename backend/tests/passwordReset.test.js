@@ -102,4 +102,49 @@ describe('OTP SMS delivery + password reset flow', () => {
       expect(login.body.token).toBeDefined();
     });
   });
+
+  describe('verify-otp integration with password reset', () => {
+    it('marks the reset OTP verified, then reset-password with the same OTP still succeeds', async () => {
+      await User.create({ name: 'Reset Verify User', mobile: '9876533333', password: 'OldPass@123' });
+      await request(app).post('/api/auth/forgot-password').send({ mobile: '9876533333' });
+
+      const otp = await Otp.findOne({ mobile: '9876533333', purpose: 'password_reset' });
+      expect(otp).toBeTruthy();
+
+      const verify = await request(app)
+        .post('/api/auth/verify-otp')
+        .send({ mobile: '9876533333', otp: otp.otp, purpose: 'password_reset' });
+      expect(verify.statusCode).toEqual(200);
+
+      const stored = await Otp.findOne({ mobile: '9876533333', purpose: 'password_reset' });
+      expect(stored.verified).toBe(true);
+
+      // Previously reset-password only looked up verified:false records, so a
+      // record already confirmed by /verify-otp returned 'Invalid or expired OTP'.
+      const reset = await request(app)
+        .post('/api/auth/reset-password')
+        .send({ mobile: '9876533333', otp: otp.otp, newPassword: 'NewPass@12345' });
+      expect(reset.statusCode).toEqual(200);
+
+      const login = await request(app)
+        .post('/api/auth/login')
+        .send({ mobile: '9876533333', password: 'NewPass@12345' });
+      expect(login.statusCode).toEqual(200);
+    });
+
+    it('rejects a wrong OTP at the verify step and counts the attempt', async () => {
+      await User.create({ name: 'Reset Wrong User', mobile: '9876544444', password: 'OldPass@123' });
+      await request(app).post('/api/auth/forgot-password').send({ mobile: '9876544444' });
+
+      const bad = await request(app)
+        .post('/api/auth/verify-otp')
+        .send({ mobile: '9876544444', otp: '000000', purpose: 'password_reset' });
+      expect(bad.statusCode).toEqual(400);
+      expect(bad.body.message).toContain('Incorrect OTP');
+
+      const rec = await Otp.findOne({ mobile: '9876544444', purpose: 'password_reset' });
+      expect(rec.attempts).toBe(1);
+      expect(rec.verified).toBe(false);
+    });
+  });
 });

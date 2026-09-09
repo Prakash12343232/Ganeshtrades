@@ -109,4 +109,38 @@ describe('OTP split architecture (OTP_SERVICE_URL configured)', () => {
       });
     expect(regRes.statusCode).toBe(401);
   });
+
+  it('verifies a password-reset OTP against the local store even in split mode', async () => {
+    process.env.OTP_SERVICE_URL = 'http://otp.local';
+    process.env.OTP_SERVICE_API_KEY = 'test-key';
+
+    // forgot-password writes the OTP into the local Otp collection and the
+    // backend's own SMS gateway delivers it — never the remote otp-server. So
+    // /verify-otp for purpose 'password_reset' must NOT be forwarded, otherwise
+    // the mocked remote (which auto-confirms everything) would accept a wrong code.
+    const User = require('../models/User');
+    await User.create({ name: 'Split Reset User', mobile: '9876000004', password: 'OldPass@123' });
+
+    await request(app).post('/api/auth/forgot-password').send({ mobile: '9876000004' });
+    const otp = await Otp.findOne({ mobile: '9876000004', purpose: 'password_reset' });
+    expect(otp).toBeTruthy();
+
+    const wrongVerify = await request(app)
+      .post('/api/auth/verify-otp')
+      .send({ mobile: '9876000004', otp: '000000', purpose: 'password_reset' });
+    expect(wrongVerify.statusCode).toBe(400);
+
+    const verify = await request(app)
+      .post('/api/auth/verify-otp')
+      .send({ mobile: '9876000004', otp: otp.otp, purpose: 'password_reset' });
+    expect(verify.statusCode).toBe(200);
+
+    const stored = await Otp.findOne({ mobile: '9876000004', purpose: 'password_reset' });
+    expect(stored.verified).toBe(true);
+
+    const reset = await request(app)
+      .post('/api/auth/reset-password')
+      .send({ mobile: '9876000004', otp: otp.otp, newPassword: 'NewPass@12345' });
+    expect(reset.statusCode).toBe(200);
+  });
 });

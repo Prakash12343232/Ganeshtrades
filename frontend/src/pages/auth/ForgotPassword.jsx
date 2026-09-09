@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { forgotPassword, resetPassword } from '../../services/api';
+import { forgotPassword, resetPassword, verifyOtp } from '../../services/api';
 import toast from 'react-hot-toast';
 import { FiPhone, FiKey, FiLock, FiArrowLeft, FiEye, FiEyeOff, FiCheck, FiX } from 'react-icons/fi';
 
@@ -47,7 +47,16 @@ export default function ForgotPassword() {
 
   const handleVerifyOtp = async () => {
     if (!otp || otp.length < 6) return toast.error('Enter 6-digit OTP');
-    setStep(3);
+    setLoading(true);
+    try {
+      await verifyOtp({ mobile, otp, purpose: 'password_reset' });
+      setStep(3);
+      toast.success('OTP verified');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Verification failed');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleResetPassword = async (e) => {
@@ -129,9 +138,9 @@ export default function ForgotPassword() {
                   </button>
                 </div>
               </div>
-              <button onClick={handleVerifyOtp}
-                className="w-full py-3 bg-mint-500 hover:bg-mint-400 text-navy-950 rounded-xl font-extrabold transition-all shadow-lg shadow-mint-500/20">
-                Verify OTP
+              <button onClick={handleVerifyOtp} disabled={loading}
+                className="w-full py-3 bg-mint-500 hover:bg-mint-400 text-navy-950 rounded-xl font-extrabold transition-all shadow-lg shadow-mint-500/20 disabled:opacity-50">
+                {loading ? 'Verifying...' : 'Verify OTP'}
               </button>
             </div>
           )}

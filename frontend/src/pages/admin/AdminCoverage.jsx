@@ -56,10 +56,22 @@ export default function AdminCoverage() {
     deliveryFeePerKm: 0,
     freeDeliveryWithinKm: 5
   });
+  // Raw input strings for the numeric fields: keeping them as strings means a
+  // cleared/incomplete field can never become NaN (which would crash Leaflet
+  // and the whole error-bounded admin app), and saving validates before sending.
+  const [latStr, setLatStr] = useState('');
+  const [lngStr, setLngStr] = useState('');
+  const [radiusStr, setRadiusStr] = useState('');
   const [coverageStats, setCoverageStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showCustomers, setShowCustomers] = useState(true);
+
+  const toFinite = (str) => {
+    if (typeof str !== 'string' || str.trim() === '') return null;
+    const n = Number(str);
+    return Number.isFinite(n) ? n : null;
+  };
 
   useEffect(() => {
     loadData();
@@ -71,7 +83,11 @@ export default function AdminCoverage() {
         getSettings(),
         getCoverageStats().catch(() => null)
       ]);
-      setSettings(settingsRes.data.data);
+      const s = settingsRes.data.data;
+      setSettings(s);
+      setLatStr(String(s.shopLocation?.lat ?? ''));
+      setLngStr(String(s.shopLocation?.lng ?? ''));
+      setRadiusStr(String(s.deliveryRadiusKm ?? ''));
       if (statsRes) setCoverageStats(statsRes.data.data);
     } catch {
       toast.error('Failed to load coverage data');
@@ -82,15 +98,26 @@ export default function AdminCoverage() {
 
   const handleSave = async (e) => {
     e.preventDefault();
+    const lat = toFinite(latStr);
+    const lng = toFinite(lngStr);
+    const radius = toFinite(radiusStr);
+    if (lat === null || lng === null || radius === null || radius <= 0) {
+      toast.error('Enter valid latitude, longitude and delivery radius values');
+      return;
+    }
     setSaving(true);
     try {
-      await updateSettings(settings);
+      await updateSettings({
+        ...settings,
+        deliveryRadiusKm: radius,
+        shopLocation: { ...settings.shopLocation, lat, lng }
+      });
       toast.success('Coverage settings updated successfully');
       // Reload stats
       const statsRes = await getCoverageStats().catch(() => null);
       if (statsRes) setCoverageStats(statsRes.data.data);
-    } catch {
-      toast.error('Failed to update coverage settings');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update coverage settings');
     } finally {
       setSaving(false);
     }
@@ -98,7 +125,12 @@ export default function AdminCoverage() {
 
   if (loading) return <div className="p-8 text-center">Loading...</div>;
 
-  const center = [settings.shopLocation.lat, settings.shopLocation.lng];
+  // Prefer the up-to-date typed value, falling back to the last saved value so
+  // the map always renders finite coordinates.
+  const lat = toFinite(latStr) ?? settings.shopLocation?.lat ?? 0;
+  const lng = toFinite(lngStr) ?? settings.shopLocation?.lng ?? 0;
+  const radiusKm = toFinite(radiusStr) ?? settings.deliveryRadiusKm ?? 0;
+  const center = [lat, lng];
   const stats = coverageStats?.stats;
   const buckets = coverageStats?.distanceBuckets || [];
   const customers = coverageStats?.customerMarkers || [];
@@ -164,8 +196,8 @@ export default function AdminCoverage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Delivery Radius (KM)</label>
                 <input 
                   type="number" 
-                  value={settings.deliveryRadiusKm} 
-                  onChange={e => setSettings({ ...settings, deliveryRadiusKm: parseFloat(e.target.value) })}
+                  value={radiusStr} 
+                  onChange={e => setRadiusStr(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                   min="1"
                   max="100"
@@ -216,8 +248,8 @@ export default function AdminCoverage() {
                     <label className="block text-xs text-gray-500 mb-1">Latitude</label>
                     <input 
                       type="number" 
-                      value={settings.shopLocation.lat} 
-                      onChange={e => setSettings({ ...settings, shopLocation: { ...settings.shopLocation, lat: parseFloat(e.target.value) } })}
+                      value={latStr} 
+                      onChange={e => setLatStr(e.target.value)}
                       className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                       step="0.000001"
                       required
@@ -227,8 +259,8 @@ export default function AdminCoverage() {
                     <label className="block text-xs text-gray-500 mb-1">Longitude</label>
                     <input 
                       type="number" 
-                      value={settings.shopLocation.lng} 
-                      onChange={e => setSettings({ ...settings, shopLocation: { ...settings.shopLocation, lng: parseFloat(e.target.value) } })}
+                      value={lngStr} 
+                      onChange={e => setLngStr(e.target.value)}
                       className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                       step="0.000001"
                       required
@@ -309,7 +341,7 @@ export default function AdminCoverage() {
               {/* Delivery Radius Circle */}
               <Circle 
                 center={center} 
-                radius={settings.deliveryRadiusKm * 1000}
+                radius={radiusKm * 1000}
                 pathOptions={{ fillColor: '#8b5cf6', color: '#6d28d9', weight: 2, fillOpacity: 0.12, dashArray: '8 4' }}
               />
               
