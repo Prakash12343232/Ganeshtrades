@@ -2,6 +2,7 @@ const Order = require('../models/Order');
 const Product = require('../models/Product');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
+const Payment = require('../models/Payment');
 const CreditTransaction = require('../models/CreditTransaction');
 const Delivery = require('../models/Delivery');
 const { createAuditLog } = require('../utils/auditLogger');
@@ -65,22 +66,35 @@ function parseSlotStartHour(slot) {
 
 // Reverse the inventory + financial effects of cancelling an order so the
 // manual status path and the customer cancelOrder endpoint share semantics:
-// restore stock, and undo the pending/credit balance booked at creation.
+// restore stock, and undo the unpaid portion of the pending/credit balance
+// booked at creation. Money already collected on the order (recorded/verified
+// payments) reduced the customer's ledger when it happened, so only the
+// still-owed remainder is reversed — reversing the full finalAmount would
+// double-decrement and could push creditBalance/pendingAmount negative.
 async function reverseOrderFinancials(order) {
   for (const item of order.items) {
     await Product.findByIdAndUpdate(item.product, { $inc: { stock: item.quantity, totalSold: -item.quantity } });
   }
+
+  const paidAgg = await Payment.aggregate([
+    { $match: { order: order._id, paymentStatus: 'completed' } },
+    { $group: { _id: null, total: { $sum: '$amount' } } }
+  ]);
+  const alreadyPaid = paidAgg[0]?.total || 0;
+  const stillOwed = Math.max(0, order.finalAmount - alreadyPaid);
+  if (stillOwed <= 0) return;
+
   if (order.paymentMethod === 'credit') {
-    await User.findByIdAndUpdate(order.user, { $inc: { creditBalance: -order.finalAmount } });
+    await User.findByIdAndUpdate(order.user, { $inc: { creditBalance: -stillOwed } });
     await CreditTransaction.create({
       user: order.user,
-      amount: order.finalAmount,
+      amount: stillOwed,
       type: 'credit',
       referenceOrder: order._id,
       description: `Cancelled order #${order.orderNumber}`
     });
-  } else if (order.paymentStatus !== 'paid') {
-    await User.findByIdAndUpdate(order.user, { $inc: { pendingAmount: -order.finalAmount } });
+  } else {
+    await User.findByIdAndUpdate(order.user, { $inc: { pendingAmount: -stillOwed } });
   }
 }
 
@@ -457,15 +471,19 @@ exports.updateOrderStatus = async (req, res) => {
     const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
 
+    // Terminal states are permanent: a delivered or cancelled order must never
+    // be moved backward (e.g. delivered -> pending), which would re-run the
+    // reversal logic and double-restore stock / balances.
+    if (order.orderStatus === 'delivered' && orderStatus !== 'delivered') {
+      return res.status(400).json({ success: false, message: 'Cannot change status of a delivered order' });
+    }
+    if (order.orderStatus === 'cancelled') {
+      return res.status(400).json({ success: false, message: 'Order is already cancelled' });
+    }
+
     // Cancelling via the status path must reverse inventory + balances just
     // like cancelOrder, and is only legal before the order is terminal.
     if (orderStatus === 'cancelled') {
-      if (order.orderStatus === 'delivered') {
-        return res.status(400).json({ success: false, message: 'Cannot cancel a delivered order' });
-      }
-      if (order.orderStatus === 'cancelled') {
-        return res.status(400).json({ success: false, message: 'Order is already cancelled' });
-      }
       order.cancelReason = note || 'Cancelled';
       await reverseOrderFinancials(order);
     }

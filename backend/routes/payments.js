@@ -231,10 +231,25 @@ router.post('/verify', protect, async (req, res) => {
       order.paymentStatus = totalPaid >= order.finalAmount ? 'paid' : 'partial';
       await order.save();
 
-      // Update user pending amount
+      // Update the customer's ledger. Gateway payments on credit (Khata) orders
+      // reduce creditBalance (credit orders never book pendingAmount); every
+      // other method reduces pendingAmount. If the order was already cancelled,
+      // the still-owed balance was removed at cancellation time, so the verified
+      // amount must not be subtracted a second time.
       const user = await User.findById(req.user._id);
-      if (user) {
-        user.pendingAmount = Math.max(0, user.pendingAmount - payment.amount);
+      if (user && order.orderStatus !== 'cancelled') {
+        if (order.paymentMethod === 'credit') {
+          user.creditBalance = Math.max(0, user.creditBalance - payment.amount);
+          await CreditTransaction.create({
+            user: req.user._id,
+            amount: payment.amount,
+            type: 'credit',
+            referenceOrder: order._id,
+            description: `Online payment for order #${order.orderNumber}`
+          });
+        } else {
+          user.pendingAmount = Math.max(0, user.pendingAmount - payment.amount);
+        }
         await user.save();
       }
     }
