@@ -147,6 +147,7 @@ export const createSupplierPayment = (data) => API.post('/suppliers/payment', da
 // Expenses
 export const createExpense = (data) => API.post('/expenses', data);
 export const getExpenses = (params) => API.get('/expenses', { params });
+export const updateExpense = (id, data) => API.put(`/expenses/${id}`, data);
 export const deleteExpense = (id) => API.delete(`/expenses/${id}`);
 
 // Deliveries

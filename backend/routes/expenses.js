@@ -47,6 +47,28 @@ router.get('/', async (req, res) => {
   } catch (error) { res.status(500).json({ success: false, message: error.message }); }
 });
 
+// PUT /api/expenses/:id
+router.put('/:id', async (req, res) => {
+  try {
+    const existing = await Expense.findById(req.params.id);
+    if (!existing) return res.status(404).json({ success: false, message: 'Expense not found' });
+
+    const expenseData = pickFields(req.body, EXPENSE_FIELDS);
+    if (expenseData.amount !== undefined) {
+      expenseData.amount = parsePositiveNumber(expenseData.amount, 'amount');
+    }
+
+    const expense = await Expense.findByIdAndUpdate(
+      req.params.id,
+      expenseData,
+      { new: true, runValidators: true }
+    ).populate('loggedBy', 'name');
+
+    await createAuditLog(req.user._id, 'expense_update', 'expense', expense._id, { amount: expense.amount, category: expense.category }, req);
+    res.json({ success: true, message: 'Expense updated', data: expense });
+  } catch (error) { res.status(400).json({ success: false, message: error.message }); }
+});
+
 // DELETE /api/expenses/:id
 router.delete('/:id', authorize('admin', 'manager'), async (req, res) => {
   try {
