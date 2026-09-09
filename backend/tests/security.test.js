@@ -165,4 +165,21 @@ describe('Security regressions', () => {
       .send({ mobile: customer.mobile, purpose: 'spam' });
     expect(bad.statusCode).toEqual(400);
   });
+
+  it('does not reveal account existence via login for locked or deactivated accounts', async () => {
+    const lockedUser = await User.create({ name: 'Locked', mobile: '9000000201', password: 'password123', role: 'customer', lockUntil: new Date(Date.now() + 900000) });
+    const deactivatedUser = await User.create({ name: 'Gone', mobile: '9000000202', password: 'password123', role: 'customer', isActive: false });
+
+    // Unknown number, locked number, and deactivated number must all return the
+    // identical 401 'Invalid credentials' body so an attacker cannot distinguish.
+    const unknown = await request(app).post('/api/auth/login').send({ mobile: '9999900001', password: 'password123' });
+    const locked = await request(app).post('/api/auth/login').send({ mobile: lockedUser.mobile, password: 'password123' });
+    const deactivated = await request(app).post('/api/auth/login').send({ mobile: deactivatedUser.mobile, password: 'password123' });
+
+    const bodyOf = (r) => ({ statusCode: r.statusCode, success: r.body.success, message: r.body.message });
+    expect(bodyOf(locked)).toEqual(bodyOf(unknown));
+    expect(bodyOf(deactivated)).toEqual(bodyOf(unknown));
+    expect(unknown.statusCode).toEqual(401);
+    expect(unknown.body.message).toEqual('Invalid credentials');
+  });
 });

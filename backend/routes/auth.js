@@ -81,7 +81,9 @@ router.post('/send-otp', otpLimiter, async (req, res) => {
       try {
         await checkLock(existingUser);
       } catch (err) {
-        return res.status(403).json({ success: false, message: err.message });
+        // Locked account: return the exact same generic body as the mismatch
+        // branch above so a number's lock state is not distinguishable.
+        return res.json({ success: true, message: 'OTP sent successfully' });
       }
     }
 
@@ -304,19 +306,12 @@ router.post('/login', authLimiter, async (req, res) => {
     }
 
     const user = await User.findOne({ mobile: normMobile }).select('+password +loginAttempts +lockUntil');
-    
-    if (!user) {
+
+    // Uniform response for unknown, locked, or deactivated accounts prevents an
+    // attacker from probing which numbers have accounts via the login endpoint.
+    // Lock and deactivation still block the flow; the user simply isn't told why.
+    if (!user || (user.lockUntil && user.lockUntil > Date.now()) || !user.isActive) {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
-    }
-
-    try {
-      await checkLock(user);
-    } catch (err) {
-      return res.status(403).json({ success: false, message: err.message });
-    }
-
-    if (!user.isActive) {
-      return res.status(403).json({ success: false, message: 'Account is deactivated. Contact admin.' });
     }
 
     // Handle OTP Login flow

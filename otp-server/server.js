@@ -41,10 +41,10 @@ app.use('/api', otpRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {
-  console.error('❌ [OTP SERVER UNHANDLED ERROR]:', err.message);
+  console.error('❌ [OTP SERVER UNHANDLED ERROR]:', err.stack || err.message);
   res.status(500).json({
     success: false,
-    message: err.message || 'Internal OTP Server Error'
+    message: 'Internal OTP Server Error'
   });
 });
 
