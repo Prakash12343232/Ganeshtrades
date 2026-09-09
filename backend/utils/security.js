@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const path = require('path');
 
 const DEFAULT_SORT_FIELDS = ['createdAt', 'updatedAt', 'name', 'price', 'stock', 'totalAmount', 'orderStatus', 'date', 'amount', 'pendingAmount', 'mobile'];
@@ -149,7 +150,7 @@ function normalizeMobile(mobile) {
  * Generates a random 6-digit numeric OTP
  */
 function generateOTP() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  return crypto.randomInt(100000, 1000000).toString();
 }
 
 /**

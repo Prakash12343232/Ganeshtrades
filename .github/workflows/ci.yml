@@ -38,6 +38,20 @@ jobs:
         working-directory: ./backend
         run: npm test
 
+      # ── OTP Server Validation ──
+
+      - name: Install OTP server dependencies
+        working-directory: ./otp-server
+        run: npm ci || npm install
+
+      - name: Validate OTP server syntax
+        working-directory: ./otp-server
+        run: node --check server.js
+
+      - name: Run OTP server tests
+        working-directory: ./otp-server
+        run: npm test
+
       # ── Frontend Validation ──
 
       - name: Install frontend dependencies

@@ -1,11 +1,16 @@
 const mongoose = require('mongoose');
 
+const isHostedEnvironment = () =>
+  process.env.RENDER === 'true' ||
+  Boolean(process.env.RENDER_EXTERNAL_URL) ||
+  Boolean(process.env.VERCEL);
+
 const connectDB = async () => {
   if (process.env.NODE_ENV === 'test') return;
   if (mongoose.connection.readyState === 1) return;
 
-  const isProduction = process.env.NODE_ENV === 'production';
-  
+  const isProduction = process.env.NODE_ENV === 'production' || isHostedEnvironment();
+
   if (isProduction && !process.env.MONGODB_URI) {
     console.error('❌ CRITICAL DATABASE ERROR: MONGODB_URI environment variable is not defined in production.');
     process.exit(1);

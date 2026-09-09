@@ -23,6 +23,7 @@ Developer pushes code
 |:--|:--|:--|
 | Frontend | Vercel | `https://ganeshtrades.vercel.app` |
 | Backend API | Render | `https://ganeshtrades1.onrender.com/api` |
+| OTP Server | Render | `https://ganeshtrades-otp-server.onrender.com` (name from `render.yaml`) |
 | Database | MongoDB Atlas | (Atlas dashboard) |
 | CI/CD | GitHub Actions | `.github/workflows/ci.yml` |
 
@@ -112,6 +113,46 @@ These **must be set manually** in Render Dashboard → Environment (secrets, not
 
 ---
 
+## 2b. Render Setup (OTP Server)
+
+### Initial Setup (one-time)
+
+1. Go to [Render Dashboard](https://dashboard.render.com/).
+2. Create a new **Web Service** connected to `Prakash12343232/Ganeshtrades`.
+3. Render will auto-detect the `render.yaml` blueprint:
+   - Root Directory: `otp-server`
+   - Build Command: `npm install`
+   - Start Command: `npm start`
+   - Health Check: `/api/health`
+   - Build Filter: `otp-server/**` (only rebuilds when OTP server files change)
+   - Auto-Deploy: Yes
+
+### Environment Variables (Render Dashboard)
+
+These are configured in `render.yaml` (committed to repo):
+
+| Variable | Value | In `render.yaml`? |
+|:--|:--|:--|
+| `NODE_ENV` | `production` | ✅ |
+| `PORT` | `5001` | ✅ |
+| `OTP_EXPIRY_SECONDS` | `300` | ✅ |
+| `OTP_RESEND_COOLDOWN_SECONDS` | `60` | ✅ |
+| `OTP_MAX_VERIFY_ATTEMPTS` | `5` | ✅ |
+| `OTP_MAX_SENDS_PER_HOUR` | `5` | ✅ |
+
+These **must be set manually** in Render Dashboard → Environment (secrets, not in code):
+
+| Variable | Value | Notes |
+|:--|:--|:--|
+| `MONGODB_URI` | `mongodb+srv://...` | Atlas connection string |
+| `OTP_SERVICE_API_KEY` | `(random long string)` | Must match the backend's `OTP_SERVICE_API_KEY` |
+| `OTP_HASH_SECRET` | `(random salt)` | Used to HMAC-hash stored OTPs; service fails to start without it in production |
+| `FAST2SMS_API_KEY` / Twilio vars | `(provider keys)` | SMS delivery, set at least one provider |
+
+> ⚠️ The backend service must set `OTP_SERVICE_URL` (its Render URL) and the identical `OTP_SERVICE_API_KEY` so the two services can communicate server-to-server. The frontend **never** receives the API key or any OTP secret.
+
+---
+
 ## 3. GitHub Actions CI
 
 The CI pipeline (`.github/workflows/ci.yml`) runs on every push to `main` and on pull requests.
@@ -123,6 +164,9 @@ The CI pipeline (`.github/workflows/ci.yml`) runs on every push to `main` and on
 | Install backend deps | `npm ci` in `backend/` |
 | Validate backend syntax | `node --check server.js` |
 | Run backend tests | Jest + Supertest + MongoMemoryServer |
+| Install OTP server deps | `npm ci` in `otp-server/` |
+| Validate OTP server syntax | `node --check server.js` |
+| Run OTP server tests | Jest (mock Mongo when none running) |
 | Install frontend deps | `npm ci` in `frontend/` |
 | Lint frontend | `oxlint` (non-blocking) |
 | Build frontend | `vite build` with `VITE_API_URL` |
@@ -156,8 +200,9 @@ Render monitors this endpoint automatically. If it returns unhealthy, Render wil
 
 ## 5. Database Safety
 
-- Production `connectDB()` exits with `process.exit(1)` if MongoDB Atlas is unreachable.
-- In-memory fallback **only** runs in development/local mode.
+- Production `connectDB()` exits with `process.exit(1)` if `MONGODB_URI` is missing or MongoDB Atlas is unreachable.
+- The hosted guard also applies when `RENDER=true` / `RENDER_EXTERNAL_URL` / `VERCEL` is set (Render and Vercel set these automatically), so a hosted instance **cannot silently fall back** to the in-memory database even if `NODE_ENV` is misconfigured.
+- In-memory fallback + demo seeding **only** run in a plain local development shell with no hosted-environment markers and no `MONGODB_URI`.
 - No seed scripts run automatically in production.
 - No database reset happens during deployment.
 - Backups are cron-scheduled (daily/weekly/monthly) but write to ephemeral Render storage — consider external backup for persistence.
@@ -187,11 +232,13 @@ Render monitors this endpoint automatically. If it returns unhealthy, Render wil
 
 The backend dynamically builds the CORS allowlist:
 
-1. `FRONTEND_URL` env var (comma-separated URLs).
-2. `RENDER_EXTERNAL_URL` (set automatically by Render).
-3. `VERCEL_URL` (if set).
-4. Safety net: any `*.onrender.com` or `*.vercel.app` origin in production.
-5. `localhost` origins only in development.
+1. `https://ganeshtrades.vercel.app` (hardcoded production frontend).
+2. `FRONTEND_URL` env var (comma-separated URLs).
+3. `RENDER_EXTERNAL_URL` (set automatically by Render).
+4. `VERCEL_URL` (if set).
+5. `localhost` origins are added **only** when `NODE_ENV` is not `production`.
+6. Requests with no `Origin` header (server-to-server, curl, mobile apps) are allowed.
+7. Any other origin is rejected cleanly — there is **no** wildcard `*.onrender.com` / `*.vercel.app` safety net.
 
 ---
 

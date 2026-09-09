@@ -35,10 +35,14 @@ class OtpClient {
       );
       return response.data;
     } catch (error) {
-      if (error.response && error.response.data) {
-        throw new Error(error.response.data.message || 'OTP Service failed to send OTP');
+      const serverMessage = error.response && error.response.data && error.response.data.message;
+      if (typeof serverMessage === 'string' && serverMessage.trim()) {
+        const serverError = new Error(serverMessage.trim());
+        serverError.exposed = true;
+        if (error.response && error.response.status) serverError.statusCode = error.response.status;
+        throw serverError;
       }
-      throw new Error(`OTP Service Connection Error: ${error.message}`);
+      throw new Error('OTP service is temporarily unavailable. Please try again later.');
     }
   }
 
@@ -66,13 +70,18 @@ class OtpClient {
       );
       return response.data;
     } catch (error) {
-      if (error.response && error.response.data) {
-        return error.response.data;
+      const serverData = error.response && error.response.data;
+      if (serverData && typeof serverData.message === 'string' && serverData.message.trim()) {
+        return {
+          success: serverData.success === true,
+          verified: serverData.verified === true,
+          message: serverData.message.trim()
+        };
       }
       return {
         success: false,
         verified: false,
-        message: `OTP Service Connection Error: ${error.message}`
+        message: 'OTP service is temporarily unavailable. Please try again later.'
       };
     }
   }

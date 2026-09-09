@@ -12,6 +12,7 @@ const { protect } = require('../middleware/auth');
 const { createAuditLog } = require('../utils/auditLogger');
 const connectDB = require('../config/db');
 const { pickFields, normalizeMobile, generateOTP, validatePasswordStrength } = require('../utils/security');
+const { clientErrorMessage } = require('../utils/errors');
 
 // Rate Limiters
 const authLimiter = rateLimit({
@@ -127,8 +128,9 @@ router.post('/send-otp', otpLimiter, async (req, res) => {
 
     res.json({ success: true, message: 'OTP sent successfully' });
   } catch (error) {
-    console.error('❌ send-otp route error:', error.message);
-    res.status(500).json({ success: false, message: error.message || 'An error occurred while processing OTP request.' });
+    console.error('❌ send-otp route error:', error);
+    const statusCode = error.exposed && error.statusCode ? error.statusCode : 500;
+    res.status(statusCode).json({ success: false, message: clientErrorMessage(error, 'An error occurred while processing OTP request.') });
   }
 });
 
@@ -199,7 +201,8 @@ router.post('/verify-otp', authLimiter, async (req, res) => {
 
     res.json({ success: true, message: 'OTP verified successfully' });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('❌ verify-otp route error:', error);
+    res.status(500).json({ success: false, message: clientErrorMessage(error) });
   }
 });
 
@@ -289,7 +292,11 @@ router.post('/register', authLimiter, async (req, res) => {
       }
     });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    console.error('❌ register route error:', error);
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ success: false, message: error.message });
+    }
+    res.status(500).json({ success: false, message: clientErrorMessage(error, 'Registration failed. Please try again later.') });
   }
 });
 
@@ -382,7 +389,8 @@ router.post('/login', authLimiter, async (req, res) => {
       }
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('❌ login route error:', error);
+    res.status(500).json({ success: false, message: clientErrorMessage(error) });
   }
 });
 
@@ -394,7 +402,8 @@ router.get('/me', protect, async (req, res) => {
     const user = await User.findById(req.user._id);
     res.json({ success: true, user });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('❌ /auth/me route error:', error);
+    res.status(500).json({ success: false, message: clientErrorMessage(error) });
   }
 });
 
@@ -433,7 +442,11 @@ router.put('/profile', protect, async (req, res) => {
     const user = await User.findByIdAndUpdate(req.user._id, updateData, { new: true, runValidators: true });
     res.json({ success: true, message: 'Profile updated', user });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    console.error('❌ profile route error:', error);
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ success: false, message: error.message });
+    }
+    res.status(500).json({ success: false, message: clientErrorMessage(error, 'Profile update failed. Please try again later.') });
   }
 });
 
@@ -462,7 +475,11 @@ router.put('/password', protect, async (req, res) => {
 
     res.json({ success: true, message: 'Password updated successfully' });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    console.error('❌ password route error:', error);
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ success: false, message: error.message });
+    }
+    res.status(500).json({ success: false, message: clientErrorMessage(error, 'Password update failed. Please try again later.') });
   }
 });
 
@@ -511,7 +528,8 @@ router.post('/forgot-password', otpLimiter, async (req, res) => {
 
     res.json({ success: true, message: 'If an account exists with this number, an OTP has been sent.' });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('❌ forgot-password route error:', error);
+    res.status(500).json({ success: false, message: clientErrorMessage(error, 'Error processing password reset request. Please try again later.') });
   }
 });
 
@@ -575,7 +593,11 @@ router.post('/reset-password', authLimiter, async (req, res) => {
 
     res.json({ success: true, message: 'Password reset successfully. You can now login with your new password.' });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    console.error('❌ reset-password route error:', error);
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ success: false, message: error.message });
+    }
+    res.status(500).json({ success: false, message: clientErrorMessage(error, 'Password reset failed. Please try again later.') });
   }
 });
 
