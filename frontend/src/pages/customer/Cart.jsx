@@ -80,6 +80,7 @@ export default function Cart() {
     }
 
     setLoading(true);
+    let createdOrder = null;
     try {
       const backendPaymentMethod = paymentMethod === 'online'
         ? (onlineMode === 'upi' ? 'upi' : onlineMode === 'net_banking' ? 'bank_transfer' : 'card')
@@ -95,7 +96,11 @@ export default function Cart() {
       };
 
       const { data } = await createOrder(orderData);
-      const createdOrder = data.data;
+      createdOrder = data.data;
+      // The order now owns these cart items. Clear immediately so a retry
+      // after a failed gateway init (or closing the payment modal) can never
+      // place a duplicate order.
+      clearCart();
 
       // If online payment chosen, trigger gateway modal simulation
       if (paymentMethod === 'online') {
@@ -103,12 +108,18 @@ export default function Cart() {
         setPendingOrderDetails({ order: createdOrder, gatewayData: payRes.data.data });
         setShowPaymentModal(true);
       } else {
-        clearCart();
         toast.success(deliveryType === 'scheduled' ? '📅 Order scheduled successfully!' : 'Order placed successfully!');
         navigate(`/orders/${createdOrder._id}`);
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to place order');
+      if (createdOrder) {
+        // The order was already placed, so taking the user to it (where the
+        // payment can be resumed) beats telling them the order "failed".
+        toast.error(err.response?.data?.message || 'Order placed; payment could not be started. Resume payment from the order page.');
+        navigate(`/orders/${createdOrder._id}`);
+      } else {
+        toast.error(err.response?.data?.message || 'Failed to place order');
+      }
     } finally { setLoading(false); }
   };
 
@@ -120,7 +131,10 @@ export default function Cart() {
     navigate(`/orders/${order._id}`);
   };
 
-  if (items.length === 0) {
+  // Show the empty-cart view unless the gateway modal is open — the order was
+  // created and placed, so the modal (payment resume UPI/card/bank flow) must
+  // stay visible even though the cart has already been cleared.
+  if (items.length === 0 && !showPaymentModal) {
     return (
       <div className="text-center py-20 animate-fadeIn">
         <span className="text-6xl mb-4 block">🛒</span>
@@ -325,7 +339,14 @@ export default function Cart() {
       {showPaymentModal && pendingOrderDetails && (
         <PaymentGatewayModal
           open={showPaymentModal}
-          onClose={() => setShowPaymentModal(false)}
+          onClose={() => {
+            // The order exists already; closing the modal drops the user onto
+            // the order page where the aborted payment can be resumed.
+            const orderId = pendingOrderDetails.order._id;
+            setShowPaymentModal(false);
+            setPendingOrderDetails(null);
+            navigate(`/orders/${orderId}`);
+          }}
           orderNumber={pendingOrderDetails.order.orderNumber}
           amount={pendingOrderDetails.order.finalAmount}
           paymentMode={onlineMode}

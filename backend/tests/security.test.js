@@ -3,6 +3,7 @@ const app = require('../server');
 const User = require('../models/User');
 const Product = require('../models/Product');
 const Order = require('../models/Order');
+const { validateBackupFilename } = require('../utils/security');
 const { generateTestToken } = require('./setup');
 
 describe('Security regressions', () => {
@@ -51,5 +52,28 @@ describe('Security regressions', () => {
       .set('Authorization', `Bearer ${managerToken}`);
 
     expect(res.statusCode).toEqual(403);
+  });
+
+  it('accepts automated backup filenames (daily/weekly/monthly) from the cron jobs', () => {
+    expect(() => validateBackupFilename('backup_daily_2026-09-06T20-30-00-007Z.json')).not.toThrow();
+    expect(() => validateBackupFilename('backup_weekly_2026-09-06T20-30-00-007Z.json')).not.toThrow();
+    expect(() => validateBackupFilename('backup_monthly_2026-09-06T20-30-00-007Z.json')).not.toThrow();
+    expect(() => validateBackupFilename('backup_manual_2026-09-06T20-30-00-007Z.json')).not.toThrow();
+    expect(() => validateBackupFilename('backup_auto_2026-09-06T20-30-00-007Z.json')).not.toThrow();
+  });
+
+  it('still rejects traversal and malformed backup filenames', () => {
+    expect(() => validateBackupFilename('../../etc/passwd')).toThrow();
+    expect(() => validateBackupFilename('backup_auto_..\\evil.json')).toThrow();
+    expect(() => validateBackupFilename('backup_custom_2026-09-06.json')).toThrow();
+  });
+
+  it('routes an automated backup download past filename validation to the file lookup', async () => {
+    // Proof the validator no longer blocks automated names: the route reaches
+    // the disk lookup and returns 404 (file absent) instead of a 400 format error.
+    const res = await request(app)
+      .get('/api/backups/download/backup_daily_2099-01-01T00-00-00-000Z.json')
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(res.statusCode).toEqual(404);
   });
 });

@@ -84,17 +84,27 @@ async function reverseOrderFinancials(order) {
   const stillOwed = Math.max(0, order.finalAmount - alreadyPaid);
   if (stillOwed <= 0) return;
 
+  // Khata settlements reduce the user's debt ledger directly (they live in the
+  // Settlement collection, not Payment), so `stillOwed` derived purely from
+  // Payment docs can exceed the balance the user still actually carries. Cap
+  // the reversal at the current ledger balance so a cancellation after a
+  // settlement can never push creditBalance/pendingAmount negative.
+  const user = await User.findById(order.user);
+  const currentBalance = order.paymentMethod === 'credit' ? (user?.creditBalance || 0) : (user?.pendingAmount || 0);
+  const reversalAmount = Math.min(stillOwed, currentBalance);
+  if (reversalAmount <= 0) return;
+
   if (order.paymentMethod === 'credit') {
-    await User.findByIdAndUpdate(order.user, { $inc: { creditBalance: -stillOwed } });
+    await User.findByIdAndUpdate(order.user, { $inc: { creditBalance: -reversalAmount } });
     await CreditTransaction.create({
       user: order.user,
-      amount: stillOwed,
+      amount: reversalAmount,
       type: 'credit',
       referenceOrder: order._id,
       description: `Cancelled order #${order.orderNumber}`
     });
   } else {
-    await User.findByIdAndUpdate(order.user, { $inc: { pendingAmount: -stillOwed } });
+    await User.findByIdAndUpdate(order.user, { $inc: { pendingAmount: -reversalAmount } });
   }
 }
 

@@ -42,7 +42,7 @@ function validateBackupFilename(filename) {
   if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
     throw new Error('Invalid filename: path traversal detected');
   }
-  if (!/^backup_(manual|auto)_[\w-]+\.json$/.test(filename)) {
+  if (!/^backup_(manual|auto|daily|weekly|monthly)_[\w-]+\.json$/.test(filename)) {
     throw new Error('Invalid backup filename format');
   }
   return filename;
