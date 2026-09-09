@@ -132,6 +132,7 @@ export const getUser = (id) => API.get(`/users/${id}`);
 export const updateUser = (id, data) => API.put(`/users/${id}`, data);
 export const deleteUser = (id) => API.delete(`/users/${id}`);
 export const getUserStats = () => API.get('/users/stats/summary');
+export const getCreditHistory = (id, params) => API.get(`/users/${id}/credit-history`, { params });
 
 // Audit
 export const getAuditLogs = (params) => API.get('/audit', { params });

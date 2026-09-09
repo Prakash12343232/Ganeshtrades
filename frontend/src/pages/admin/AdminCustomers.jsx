@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { getUsers, updateUser, getUserStats } from '../../services/api';
 import toast from 'react-hot-toast';
-import { FiSearch, FiUsers, FiUserCheck, FiUserX, FiUserPlus } from 'react-icons/fi';
+import { FiSearch, FiUsers, FiUserCheck, FiUserX, FiUserPlus, FiEye } from 'react-icons/fi';
 
 const STAT_COLORS = [
   { key: 'public', label: 'Public', bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-100' },
@@ -124,10 +125,16 @@ export default function AdminCustomers() {
                   <td className="py-3 px-4"><span className={u.pendingAmount > 0 ? 'text-red-600 font-semibold' : 'text-green-600'}>₹{u.pendingAmount}</span></td>
                   <td className="py-3 px-4"><span className={`px-2 py-1 rounded-full text-xs font-medium ${u.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{u.isActive ? 'Active' : 'Inactive'}</span></td>
                   <td className="py-3 px-4">
-                    <button onClick={() => handleToggleActive(u)} title="Toggle active status"
-                      className={`p-1.5 rounded-lg ${u.isActive ? 'bg-red-100 text-red-600 hover:bg-red-200' : 'bg-green-100 text-green-600 hover:bg-green-200'}`}>
-                      {u.isActive ? <FiUserX className="w-3.5 h-3.5" /> : <FiUserCheck className="w-3.5 h-3.5" />}
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <Link to={`/admin/customers/${u._id}`} title="View details"
+                        className="p-1.5 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200">
+                        <FiEye className="w-3.5 h-3.5" />
+                      </Link>
+                      <button onClick={() => handleToggleActive(u)} title="Toggle active status"
+                        className={`p-1.5 rounded-lg ${u.isActive ? 'bg-red-100 text-red-600 hover:bg-red-200' : 'bg-green-100 text-green-600 hover:bg-green-200'}`}>
+                        {u.isActive ? <FiUserX className="w-3.5 h-3.5" /> : <FiUserCheck className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

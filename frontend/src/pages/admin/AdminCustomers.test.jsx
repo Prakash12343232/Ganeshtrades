@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 
+vi.mock('react-router-dom', () => ({
+  Link: ({ children, ...props }) => <a {...props}>{children}</a>
+}));
+
 vi.mock('../../services/api', () => ({
   getUsers: vi.fn(),
   updateUser: vi.fn(),

@@ -285,10 +285,11 @@ exports.createOrder = async (req, res) => {
 
 exports.getOrders = async (req, res) => {
   try {
-    const { status, paymentStatus, deliveryType, scheduledDate, timeSlot, page = 1, limit = 20, sort = '-createdAt' } = req.query;
+    const { status, paymentStatus, deliveryType, scheduledDate, timeSlot, userId, page = 1, limit = 20, sort = '-createdAt' } = req.query;
     const paging = parsePagination(page, limit);
     const query = {};
     if (req.user.role === 'customer') query.user = req.user._id;
+    else if (userId) query.user = userId;
     if (status) query.orderStatus = status;
     if (paymentStatus) query.paymentStatus = paymentStatus;
     if (deliveryType) query.deliveryType = deliveryType;

@@ -39,6 +39,7 @@ const AdminBackups = lazy(() => import('./pages/admin/AdminBackups'));
 const AdminCoverage = lazy(() => import('./pages/admin/AdminCoverage'));
 const AdminReviews = lazy(() => import('./pages/admin/AdminReviews'));
 const AdminNotifications = lazy(() => import('./pages/admin/AdminNotifications'));
+const AdminCustomerDetail = lazy(() => import('./pages/admin/AdminCustomerDetail'));
 
 // Lazy Loaded Manager Pages
 const ManagerDashboard = lazy(() => import('./pages/manager/ManagerDashboard'));
@@ -88,6 +89,7 @@ function App() {
           <Route path="orders" element={<AdminOrders />} />
           <Route path="products" element={<AdminProducts />} />
           <Route path="customers" element={<AdminCustomers />} />
+          <Route path="customers/:id" element={<AdminCustomerDetail />} />
           <Route path="payments" element={<AdminPayments />} />
           <Route path="reports" element={<AdminReports />} />
           <Route path="inventory" element={<AdminInventory />} />

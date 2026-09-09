@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
+const CreditTransaction = require('../models/CreditTransaction');
 const { protect, authorize } = require('../middleware/auth');
 const { createAuditLog } = require('../utils/auditLogger');
 const { checkServiceability } = require('../utils/distance');
@@ -79,6 +80,39 @@ router.get('/stats/summary', protect, authorize('admin', 'manager'), async (req,
     res.json({
       success: true,
       data: { stats, totalCustomers, activeCustomers }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// @route   GET /api/users/:id/credit-history
+// @desc    Get credit transaction history for a user
+// @access  Private/Admin
+router.get('/:id/credit-history', protect, authorize('admin', 'manager'), async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    const { page = 1, limit = 20 } = req.query;
+    const paging = parsePagination(page, limit, 100);
+    const total = await CreditTransaction.countDocuments({ user: req.params.id });
+    const transactions = await CreditTransaction.find({ user: req.params.id })
+      .populate('referenceOrder', 'orderNumber finalAmount')
+      .populate('referenceSettlement', 'amount paymentMethod')
+      .populate('loggedBy', 'name')
+      .sort('-createdAt')
+      .skip(paging.skip)
+      .limit(paging.limit);
+
+    res.json({
+      success: true,
+      data: {
+        user: { _id: user._id, name: user.name, creditBalance: user.creditBalance, creditLimit: user.creditLimit, pendingAmount: user.pendingAmount },
+        transactions,
+        pagination: { total, page: paging.page, pages: Math.ceil(total / paging.limit) }
+      }
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
