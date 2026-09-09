@@ -26,7 +26,10 @@ function authenticateOtpService(req, res, next) {
 
   const providedKey = authHeader.split(' ')[1]?.trim();
 
-  if (!providedKey || providedKey !== expectedApiKey.trim()) {
+  const crypto = require('crypto');
+  const expectedBuf = Buffer.from(expectedApiKey.trim(), 'utf8');
+  const providedBuf = providedKey ? Buffer.from(providedKey, 'utf8') : null;
+  if (!providedBuf || providedBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(expectedBuf, providedBuf)) {
     return res.status(401).json({
       success: false,
       message: 'Unauthorized request: Invalid OTP service API key.'

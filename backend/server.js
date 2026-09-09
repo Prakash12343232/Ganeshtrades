@@ -115,8 +115,6 @@ app.use(cors({
     if (!origin) return callback(null, true);
     // Check explicit allowlist
     if (allowedOrigins.includes(origin)) return callback(null, true);
-    // In production, also allow *.onrender.com and *.vercel.app as a safety net
-    if (process.env.NODE_ENV === 'production' && (origin.endsWith('.onrender.com') || origin.endsWith('.vercel.app'))) return callback(null, true);
     console.warn(`⛔ CORS rejected origin: ${origin}`);
     return callback(null, false); // Reject cleanly without raising a 500 error in the backend
   },
