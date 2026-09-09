@@ -3,6 +3,7 @@ const app = require('../server');
 const User = require('../models/User');
 const Product = require('../models/Product');
 const Order = require('../models/Order');
+const Review = require('../models/Review');
 const { validateBackupFilename } = require('../utils/security');
 const { generateTestToken } = require('./setup');
 
@@ -75,5 +76,60 @@ describe('Security regressions', () => {
       .get('/api/backups/download/backup_daily_2099-01-01T00-00-00-000Z.json')
       .set('Authorization', `Bearer ${adminToken}`);
     expect(res.statusCode).toEqual(404);
+  });
+
+  it('does not leak pending/rejected reviews to anonymous users via the status filter', async () => {
+    await Review.create({ user: customer._id, product: product._id, rating: 4, comment: 'draft', status: 'pending', isApproved: false });
+
+    const res = await request(app).get('/api/reviews?status=pending');
+    expect(res.statusCode).toEqual(403);
+
+    const res2 = await request(app).get('/api/reviews');
+    expect(res2.statusCode).toEqual(200);
+    expect(res2.body.data).toHaveLength(0);
+  });
+
+  it('rejects a forged/customer Authorization header from listing all review statuses', async () => {
+    await Review.create({ user: customer._id, product: product._id, rating: 4, comment: 'moderation draft', status: 'pending', isApproved: false });
+
+    const customerRes = await request(app)
+      .get('/api/reviews')
+      .set('Authorization', `Bearer ${generateTestToken(customer._id)}`);
+    expect(customerRes.statusCode).toEqual(200);
+    expect(customerRes.body.data).toHaveLength(0);
+
+    const garbageRes = await request(app)
+      .get('/api/reviews?status=pending')
+      .set('Authorization', 'Bearer not-a-real-token');
+    expect(garbageRes.statusCode).toEqual(401);
+  });
+
+  it('lets staff filter reviews by moderation status', async () => {
+    await Review.create({ user: customer._id, product: product._id, rating: 4, comment: 'pending draft', status: 'pending', isApproved: false });
+
+    const res = await request(app)
+      .get('/api/reviews?status=pending')
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.data[0].status).toEqual('pending');
+  });
+
+  it('lets a user view their own pending review but not another user\'s', async () => {
+    await Review.create({ user: customer._id, product: product._id, rating: 4, comment: 'my draft', status: 'pending', isApproved: false });
+    await Review.create({ user: otherCustomer._id, product: product._id, rating: 3, comment: 'their draft', status: 'pending', isApproved: false });
+
+    const own = await request(app)
+      .get(`/api/reviews?product=${product._id}&user=${customer._id}&limit=1`)
+      .set('Authorization', `Bearer ${generateTestToken(customer._id)}`);
+    expect(own.statusCode).toEqual(200);
+    expect(own.body.data).toHaveLength(1);
+    expect(own.body.data[0].comment).toEqual('my draft');
+
+    const others = await request(app)
+      .get(`/api/reviews?product=${product._id}&user=${otherCustomer._id}&limit=1`)
+      .set('Authorization', `Bearer ${generateTestToken(customer._id)}`);
+    expect(others.statusCode).toEqual(200);
+    expect(others.body.data.filter(r => r.status !== 'approved')).toHaveLength(0);
   });
 });

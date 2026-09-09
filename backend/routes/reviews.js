@@ -5,23 +5,41 @@ const Order = require('../models/Order');
 const { protect, authorize } = require('../middleware/auth');
 const { parsePagination } = require('../utils/security');
 
+// Authenticate only when a Bearer token is supplied, so the same route can
+// serve both public (approved-only) and staff (all statuses) consumers.
+const optionalAuth = async (req, res, next) => {
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    return protect(req, res, next);
+  }
+  next();
+};
+
 // @route   GET /api/reviews
 // @desc    Get reviews (filter by product, user, status, rating)
 // @access  Public (approved only) / Admin (all statuses)
-router.get('/', async (req, res) => {
+router.get('/', optionalAuth, async (req, res) => {
   try {
     const { product, user, status, rating, page = 1, limit = 20 } = req.query;
     const query = {};
+    const isStaff = req.user && ['admin', 'manager'].includes(req.user.role);
+    const queryingSelf = Boolean(req.user && user && req.user._id.toString() === String(user));
 
     if (product) query.product = product;
     if (user) query.user = user;
     if (rating) query.rating = parseInt(rating);
 
-    // Public users only see approved reviews; admin sees all
+    // Public users only see approved reviews. Staff may filter by moderation
+    // status; a user may always view their own reviews (incl. pending/rejected).
     if (status && ['pending', 'approved', 'rejected'].includes(status)) {
+      if (!isStaff && !queryingSelf) {
+        return res.status(403).json({
+          success: false,
+          message: 'Not authorized to filter reviews by moderation status'
+        });
+      }
       query.status = status;
-    } else if (!req.headers.authorization) {
-      // No auth token — public access, show only approved
+    } else if (!isStaff && !queryingSelf) {
+      // No staff token — public access, show only approved
       query.$or = [
         { status: 'approved' },
         { isApproved: true, status: { $exists: false } } // backward compat

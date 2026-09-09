@@ -2,9 +2,13 @@ const crypto = require('crypto');
 const Otp = require('../models/Otp');
 
 /**
- * Secret salt used for hashing OTPs. Can be configured via environment variables.
+ * Secret salt used for hashing OTPs. Must be configured via OTP_HASH_SECRET
+ * in production — fail-fast rather than silently weak-arming the hashes.
  */
-const OTP_HASH_SECRET = process.env.OTP_HASH_SECRET || 'ganesh_trades_otp_secure_salt_2026';
+const OTP_HASH_SECRET = process.env.OTP_HASH_SECRET || (process.env.NODE_ENV === 'production' ? undefined : 'ganesh_trades_otp_dev_hash_secret');
+if (!OTP_HASH_SECRET) {
+  throw new Error('OTP_HASH_SECRET environment variable is required in production mode.');
+}
 
 /**
  * Normalizes Indian mobile numbers to 10 digits.

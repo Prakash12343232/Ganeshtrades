@@ -8,6 +8,9 @@ const otpRoutes = require('./routes/otpRoutes');
 
 const app = express();
 
+// Trust Render/Vercel reverse proxies so per-IP rate limits key off the real client
+app.set('trust proxy', 1);
+
 // Security Middlewares
 app.use(helmet());
 
