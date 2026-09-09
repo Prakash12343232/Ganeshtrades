@@ -117,7 +117,7 @@ export default function AdminOrders() {
 
   const openPayModal = (order) => {
     setPayModal(order);
-    setPayAmount(String(order.finalAmount));
+    setPayAmount(String(order.outstandingAmount ?? order.finalAmount));
     setPayMethod('cash');
     setPayNotes('');
   };
@@ -126,7 +126,8 @@ export default function AdminOrders() {
     if (!payModal) return;
     const amount = Number(payAmount);
     if (!Number.isFinite(amount) || amount <= 0) return toast.error('Enter a valid payment amount');
-    if (amount > payModal.finalAmount) return toast.error(`Amount exceeds order total of ₹${payModal.finalAmount}`);
+    const outstanding = payModal.outstandingAmount ?? payModal.finalAmount;
+    if (amount > outstanding) return toast.error(`Amount exceeds outstanding balance of ₹${outstanding}`);
     setRecording(true);
     try {
       await createPayment({
@@ -302,10 +303,13 @@ export default function AdminOrders() {
             <div className="p-6 space-y-4">
               <div className="bg-green-50 border border-green-100 rounded-xl p-3 text-sm text-green-800">
                 Customer: <span className="font-semibold">{payModal.user?.name}</span>{payModal.user?.mobile ? ` (${payModal.user.mobile})` : ''} — Order total: <span className="font-semibold">₹{payModal.finalAmount}</span>
+                {((payModal.outstandingAmount ?? payModal.finalAmount) < payModal.finalAmount) && (
+                  <> · Already paid: <span className="font-semibold">₹{payModal.paidAmount || 0}</span> · Outstanding: <span className="font-semibold">₹{payModal.outstandingAmount}</span></>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Amount (₹)</label>
-                <input type="number" value={payAmount} onChange={e => setPayAmount(e.target.value)} min="1" max={payModal.finalAmount}
+                <input type="number" value={payAmount} onChange={e => setPayAmount(e.target.value)} min="1" max={(payModal.outstandingAmount ?? payModal.finalAmount)}
                   className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-400" />
               </div>
               <div>

@@ -212,7 +212,7 @@ describe('AdminOrders Record Payment', () => {
     expect(getOrders).toHaveBeenCalledTimes(2);
   });
 
-  it('blocks submission when the amount exceeds the order total', async () => {
+  it('blocks submission when the amount exceeds the outstanding balance', async () => {
     render(<AdminOrders />);
     await screen.findByText('#GT202500001');
 
@@ -223,7 +223,58 @@ describe('AdminOrders Record Payment', () => {
     await waitFor(() => {
       expect(createPayment).not.toHaveBeenCalled();
     });
-    expect(toast.error).toHaveBeenCalledWith('Amount exceeds order total of ₹120');
+    expect(toast.error).toHaveBeenCalledWith('Amount exceeds outstanding balance of ₹120');
+  });
+
+  it('prefills and caps the payment at the outstanding amount for a partially paid order', async () => {
+    getOrders.mockResolvedValue({
+      data: {
+        data: [{
+          _id: 'o5',
+          orderNumber: 'GT202500005',
+          user: { _id: 'u5', name: 'Meena Joshi', mobile: '9012345678' },
+          deliveryType: 'instant',
+          finalAmount: 250,
+          paidAmount: 200,
+          outstandingAmount: 50,
+          paymentStatus: 'partial',
+          paymentMethod: 'cash',
+          orderStatus: 'confirmed',
+          createdAt: '2025-01-01T12:00:00.000Z',
+          deliveryAssigned: false
+        }],
+        pagination: { total: 1, page: 1, pages: 1 }
+      }
+    });
+    render(<AdminOrders />);
+    await screen.findByText('#GT202500005');
+
+    fireEvent.click(screen.getByTitle('Record Payment'));
+    expect(screen.getByDisplayValue('50')).toBeInTheDocument();
+    expect(screen.getByText(/Already paid:/)).toBeInTheDocument();
+    expect(screen.getByText('₹200')).toBeInTheDocument();
+    expect(screen.getByText(/Outstanding:/)).toBeInTheDocument();
+
+    fireEvent.change(screen.getByDisplayValue('50'), { target: { value: '51' } });
+    fireEvent.click(submitPay());
+
+    await waitFor(() => {
+      expect(createPayment).not.toHaveBeenCalled();
+    });
+    expect(toast.error).toHaveBeenCalledWith('Amount exceeds outstanding balance of ₹50');
+
+    fireEvent.change(screen.getByDisplayValue('51'), { target: { value: '50' } });
+    fireEvent.click(submitPay());
+
+    await waitFor(() => {
+      expect(createPayment).toHaveBeenCalledWith({
+        userId: 'u5',
+        orderId: 'o5',
+        amount: 50,
+        paymentMethod: 'cash',
+        notes: undefined
+      });
+    });
   });
 
   it('surfaces a backend rejection as an error toast', async () => {

@@ -303,10 +303,24 @@ exports.getOrders = async (req, res) => {
       const deliveries = await Delivery.find({ order: { $in: orderIds } }).select('order deliveryPersonName deliveryPersonMobile status');
       deliveries.forEach((d) => deliveryByOrder.set(String(d.order), d));
     }
+
+    // Attach payment progress so admin UIs can prefill/cap manual payments to
+    // the order's true outstanding amount (finalAmount - completed payments).
+    const paidByOrder = new Map();
+    if (orderIds.length) {
+      const paidAgg = await Payment.aggregate([
+        { $match: { order: { $in: orderIds }, paymentStatus: 'completed' } },
+        { $group: { _id: '$order', total: { $sum: '$amount' } } }
+      ]);
+      paidAgg.forEach((p) => paidByOrder.set(String(p._id), p.total));
+    }
     const data = orders.map((o) => {
       const delivery = deliveryByOrder.get(String(o._id));
+      const paidAmount = paidByOrder.get(String(o._id)) || 0;
       return {
         ...o.toObject(),
+        paidAmount,
+        outstandingAmount: Math.max(0, (o.finalAmount || 0) - paidAmount),
         deliveryAssigned: Boolean(delivery),
         deliveryPersonName: delivery?.deliveryPersonName || null,
         deliveryPersonMobile: delivery?.deliveryPersonMobile || null,
