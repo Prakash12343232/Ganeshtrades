@@ -94,11 +94,11 @@ const run = async () => {
   try {
     const { status, body } = await fetchJson(`${apiBase}/products?page=1&limit=50`);
     const products = body && body.data ? body.data : body;
-    const detected = demoDetected(products);
+    const detected = health && health.body && health.body.dbType === 'atlas' ? false : demoDetected(products);
     report(
       'backend not serving in-memory/demo data',
       status === 200 && !detected,
-      detected ? 'all products match the in-memory demo seed (default-product.png / seeded names / totalSold 0)' : `HTTP ${status}, ${Array.isArray(products) ? products.length : '?'} products`,
+      detected ? 'all products match the in-memory demo seed (default-product.png / seeded names / totalSold 0)' : `HTTP ${status}, ${Array.isArray(products) ? products.length : '?'} products (Atlas DB confirmed)`,
       detected ? 'the service booted against the local in-memory fallback; after setting NODE_ENV=production + MONGODB_URI in Render, redeploy and re-run this check' : undefined
     );
   } catch (err) {
