@@ -38,13 +38,19 @@ function sanitizeSort(sortParam, defaultSort = '-createdAt', allowedFields = DEF
  */
 function validateBackupFilename(filename) {
   if (!filename || typeof filename !== 'string') {
-    throw new Error('Invalid filename');
+    const err = new Error('Invalid filename');
+    err.exposed = true;
+    throw err;
   }
   if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
-    throw new Error('Invalid filename: path traversal detected');
+    const err = new Error('Invalid filename: path traversal detected');
+    err.exposed = true;
+    throw err;
   }
   if (!/^backup_(manual|auto|daily|weekly|monthly)_[\w-]+\.json$/.test(filename)) {
-    throw new Error('Invalid backup filename format');
+    const err = new Error('Invalid backup filename format');
+    err.exposed = true;
+    throw err;
   }
   return filename;
 }
@@ -57,7 +63,9 @@ function resolveBackupPath(filename, backupDir) {
   const resolved = path.resolve(backupDir, safeName);
   const resolvedDir = path.resolve(backupDir);
   if (!resolved.startsWith(resolvedDir + path.sep)) {
-    throw new Error('Invalid backup file path');
+    const err = new Error('Invalid backup file path');
+    err.exposed = true;
+    throw err;
   }
   return resolved;
 }
@@ -82,7 +90,9 @@ function pickFields(obj, allowedFields) {
 function parsePositiveInt(value, fieldName = 'quantity') {
   const num = parseInt(value, 10);
   if (!Number.isFinite(num) || num < 1 || num > 10000) {
-    throw new Error(`Invalid ${fieldName}: must be a positive integer between 1 and 10000`);
+    const err = new Error(`Invalid ${fieldName}: must be a positive integer between 1 and 10000`);
+    err.exposed = true;
+    throw err;
   }
   return num;
 }
@@ -90,7 +100,9 @@ function parsePositiveInt(value, fieldName = 'quantity') {
 function parseNonNegativeInt(value, fieldName = 'quantity', max = 10000) {
   const num = parseInt(value, 10);
   if (!Number.isFinite(num) || num < 0 || num > max) {
-    throw new Error(`Invalid ${fieldName}: must be an integer between 0 and ${max}`);
+    const err = new Error(`Invalid ${fieldName}: must be an integer between 0 and ${max}`);
+    err.exposed = true;
+    throw err;
   }
   return num;
 }
@@ -98,7 +110,9 @@ function parseNonNegativeInt(value, fieldName = 'quantity', max = 10000) {
 function parsePositiveNumber(value, fieldName = 'amount', max = 10000000) {
   const num = Number(value);
   if (!Number.isFinite(num) || num <= 0 || num > max) {
-    throw new Error(`Invalid ${fieldName}: must be greater than 0 and no more than ${max}`);
+    const err = new Error(`Invalid ${fieldName}: must be greater than 0 and no more than ${max}`);
+    err.exposed = true;
+    throw err;
   }
   return Math.round(num * 100) / 100;
 }
@@ -106,7 +120,9 @@ function parsePositiveNumber(value, fieldName = 'amount', max = 10000000) {
 function parseNonNegativeNumber(value, fieldName = 'amount', max = 10000000) {
   const num = Number(value);
   if (!Number.isFinite(num) || num < 0 || num > max) {
-    throw new Error(`Invalid ${fieldName}: must be between 0 and ${max}`);
+    const err = new Error(`Invalid ${fieldName}: must be between 0 and ${max}`);
+    err.exposed = true;
+    throw err;
   }
   return Math.round(num * 100) / 100;
 }

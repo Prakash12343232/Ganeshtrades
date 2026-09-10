@@ -9,6 +9,7 @@ const Expense = require('../models/Expense');
 const PurchaseOrder = require('../models/PurchaseOrder');
 const { protect, authorize } = require('../middleware/auth');
 const { safeSpreadsheetCell } = require('../utils/security');
+const { clientErrorMessage } = require('../utils/errors');
 
 // GET /api/reports/sales
 router.get('/sales', protect, authorize('admin', 'manager'), async (req, res) => {
@@ -37,7 +38,10 @@ router.get('/sales', protect, authorize('admin', 'manager'), async (req, res) =>
     const totalOrders = orders.length;
 
     res.json({ success: true, data: { orders, totalRevenue, totalOrders, period, start, end } });
-  } catch (error) { res.status(500).json({ success: false, message: error.message }); }
+  } catch (error) {
+    console.error('❌ reports error:', error);
+    res.status(500).json({ success: false, message: clientErrorMessage(error) });
+  }
 });
 
 // GET /api/reports/profit-loss
@@ -70,7 +74,10 @@ router.get('/profit-loss', protect, authorize('admin', 'manager'), async (req, r
     const netProfit = revenue - totalExpenses - costOfGoods;
 
     res.json({ success: true, data: { revenue, totalExpenses, costOfGoods, netProfit, start, end } });
-  } catch (error) { res.status(500).json({ success: false, message: error.message }); }
+  } catch (error) {
+    console.error('❌ reports error:', error);
+    res.status(500).json({ success: false, message: clientErrorMessage(error) });
+  }
 });
 
 // GET /api/reports/export/orders
@@ -103,7 +110,10 @@ router.get('/export/orders', protect, authorize('admin', 'manager'), async (req,
     res.setHeader('Content-Disposition', 'attachment; filename=orders-report.xlsx');
     await workbook.xlsx.write(res);
     res.end();
-  } catch (error) { res.status(500).json({ success: false, message: error.message }); }
+  } catch (error) {
+    console.error('❌ reports error:', error);
+    res.status(500).json({ success: false, message: clientErrorMessage(error) });
+  }
 });
 
 // GET /api/reports/export/products
@@ -137,7 +147,10 @@ router.get('/export/products', protect, authorize('admin', 'manager'), async (re
     res.setHeader('Content-Disposition', 'attachment; filename=products-report.xlsx');
     await workbook.xlsx.write(res);
     res.end();
-  } catch (error) { res.status(500).json({ success: false, message: error.message }); }
+  } catch (error) {
+    console.error('❌ reports error:', error);
+    res.status(500).json({ success: false, message: clientErrorMessage(error) });
+  }
 });
 
 module.exports = router;

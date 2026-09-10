@@ -12,6 +12,7 @@ const {
   parseNonNegativeNumber,
   parsePagination
 } = require('../utils/security');
+const { clientErrorMessage } = require('../utils/errors');
 
 const PRODUCT_FIELDS = [
   'name', 'description', 'category', 'price', 'wholesalePrice', 'unit',
@@ -84,7 +85,8 @@ exports.getProducts = async (req, res) => {
       }
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('❌ productController error:', error);
+    res.status(500).json({ success: false, message: clientErrorMessage(error) });
   }
 };
 
@@ -95,7 +97,8 @@ exports.getFeaturedProducts = async (req, res) => {
       .limit(12);
     res.json({ success: true, data: products });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('❌ productController error:', error);
+    res.status(500).json({ success: false, message: clientErrorMessage(error) });
   }
 };
 
@@ -108,7 +111,8 @@ exports.getCategories = async (req, res) => {
     ]);
     res.json({ success: true, data: categories });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('❌ productController error:', error);
+    res.status(500).json({ success: false, message: clientErrorMessage(error) });
   }
 };
 
@@ -121,7 +125,8 @@ exports.getLowStockProducts = async (req, res) => {
 
     res.json({ success: true, data: products });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('❌ productController error:', error);
+    res.status(500).json({ success: false, message: clientErrorMessage(error) });
   }
 };
 
@@ -173,7 +178,8 @@ exports.bulkImageUpload = async (req, res) => {
       data: updatedProducts
     });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    console.error('❌ productController error:', error);
+    res.status(400).json({ success: false, message: clientErrorMessage(error) });
   }
 };
 
@@ -185,7 +191,8 @@ exports.getProductById = async (req, res) => {
     }
     res.json({ success: true, data: product });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('❌ productController error:', error);
+    res.status(500).json({ success: false, message: clientErrorMessage(error) });
   }
 };
 
@@ -228,7 +235,8 @@ exports.createProduct = async (req, res) => {
 
     res.status(201).json({ success: true, message: 'Product created', data: product });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    console.error('❌ productController error:', error);
+    res.status(400).json({ success: false, message: clientErrorMessage(error) });
   }
 };
 
@@ -285,7 +293,8 @@ exports.updateProduct = async (req, res) => {
 
     res.json({ success: true, message: 'Product updated', data: product });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    console.error('❌ productController error:', error);
+    res.status(400).json({ success: false, message: clientErrorMessage(error) });
   }
 };
 
@@ -342,7 +351,8 @@ exports.uploadProductImages = async (req, res) => {
 
     res.json({ success: true, message: 'Product images uploaded successfully', data: product });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    console.error('❌ productController error:', error);
+    res.status(400).json({ success: false, message: clientErrorMessage(error) });
   }
 };
 
@@ -368,7 +378,8 @@ exports.setPrimaryImage = async (req, res) => {
     await product.save();
     res.json({ success: true, message: 'Primary image updated', data: product });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    console.error('❌ productController error:', error);
+    res.status(400).json({ success: false, message: clientErrorMessage(error) });
   }
 };
 
@@ -402,7 +413,8 @@ exports.deleteProductImage = async (req, res) => {
 
     res.json({ success: true, message: 'Product image deleted', data: product });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    console.error('❌ productController error:', error);
+    res.status(400).json({ success: false, message: clientErrorMessage(error) });
   }
 };
 
@@ -436,7 +448,8 @@ exports.updateStock = async (req, res) => {
 
     res.json({ success: true, message: 'Stock updated', data: product });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    console.error('❌ productController error:', error);
+    res.status(400).json({ success: false, message: clientErrorMessage(error) });
   }
 };
 
@@ -456,6 +469,7 @@ exports.deleteProduct = async (req, res) => {
 
     res.json({ success: true, message: 'Product removed' });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('❌ productController error:', error);
+    res.status(500).json({ success: false, message: clientErrorMessage(error) });
   }
 };

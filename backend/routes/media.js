@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
+const { clientErrorMessage } = require('../utils/errors');
 
 // @route   GET /api/media/:fileId
 // @desc    Stream product image from MongoDB GridFS
@@ -48,8 +49,9 @@ router.get('/:fileId', async (req, res) => {
 
     downloadStream.pipe(res);
   } catch (error) {
+    console.error('❌ media error:', error);
     if (!res.headersSent) {
-      res.status(500).json({ success: false, message: error.message });
+      res.status(500).json({ success: false, message: clientErrorMessage(error, 'Unable to stream image') });
     }
   }
 });

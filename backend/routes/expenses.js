@@ -4,6 +4,7 @@ const Expense = require('../models/Expense');
 const { protect, authorize } = require('../middleware/auth');
 const { createAuditLog } = require('../utils/auditLogger');
 const { pickFields, parsePositiveNumber, parsePagination } = require('../utils/security');
+const { clientErrorMessage } = require('../utils/errors');
 
 const EXPENSE_FIELDS = ['category', 'amount', 'date', 'description', 'receiptUrl'];
 
@@ -21,7 +22,10 @@ router.post('/', async (req, res) => {
     
     await createAuditLog(req.user._id, 'expense_create', 'expense', expense._id, { amount: expense.amount, category: expense.category }, req);
     res.status(201).json({ success: true, data: expense });
-  } catch (error) { res.status(400).json({ success: false, message: error.message }); }
+  } catch (error) {
+    console.error('❌ expenses error:', error);
+    res.status(400).json({ success: false, message: clientErrorMessage(error) });
+  }
 });
 
 // GET /api/expenses
@@ -44,7 +48,10 @@ router.get('/', async (req, res) => {
       .limit(paging.limit);
       
     res.json({ success: true, data: expenses, pagination: { total, page: paging.page, pages: Math.ceil(total / paging.limit) } });
-  } catch (error) { res.status(500).json({ success: false, message: error.message }); }
+  } catch (error) {
+    console.error('❌ expenses error:', error);
+    res.status(500).json({ success: false, message: clientErrorMessage(error) });
+  }
 });
 
 // PUT /api/expenses/:id
@@ -66,7 +73,10 @@ router.put('/:id', async (req, res) => {
 
     await createAuditLog(req.user._id, 'expense_update', 'expense', expense._id, { amount: expense.amount, category: expense.category }, req);
     res.json({ success: true, message: 'Expense updated', data: expense });
-  } catch (error) { res.status(400).json({ success: false, message: error.message }); }
+  } catch (error) {
+    console.error('❌ expenses error:', error);
+    res.status(400).json({ success: false, message: clientErrorMessage(error) });
+  }
 });
 
 // DELETE /api/expenses/:id
@@ -77,7 +87,10 @@ router.delete('/:id', authorize('admin', 'manager'), async (req, res) => {
     
     await createAuditLog(req.user._id, 'expense_delete', 'expense', req.params.id, { amount: expense.amount }, req);
     res.json({ success: true, message: 'Expense deleted' });
-  } catch (error) { res.status(500).json({ success: false, message: error.message }); }
+  } catch (error) {
+    console.error('❌ expenses error:', error);
+    res.status(500).json({ success: false, message: clientErrorMessage(error) });
+  }
 });
 
 module.exports = router;

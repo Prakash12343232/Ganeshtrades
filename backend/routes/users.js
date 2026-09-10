@@ -6,6 +6,7 @@ const { protect, authorize } = require('../middleware/auth');
 const { createAuditLog } = require('../utils/auditLogger');
 const { checkServiceability } = require('../utils/distance');
 const { escapeRegex, sanitizeSort, pickFields, parsePagination } = require('../utils/security');
+const { clientErrorMessage } = require('../utils/errors');
 
 // @route   GET /api/users
 // @desc    Get all users (admin/manager)
@@ -53,7 +54,8 @@ router.get('/', protect, authorize('admin', 'manager'), async (req, res) => {
       }
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('❌ users error:', error);
+    res.status(500).json({ success: false, message: clientErrorMessage(error) });
   }
 });
 
@@ -82,7 +84,8 @@ router.get('/stats/summary', protect, authorize('admin', 'manager'), async (req,
       data: { stats, totalCustomers, activeCustomers }
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('❌ users error:', error);
+    res.status(500).json({ success: false, message: clientErrorMessage(error) });
   }
 });
 
@@ -115,7 +118,8 @@ router.get('/:id/credit-history', protect, authorize('admin', 'manager'), async 
       }
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('❌ users error:', error);
+    res.status(500).json({ success: false, message: clientErrorMessage(error) });
   }
 });
 
@@ -130,7 +134,8 @@ router.get('/:id', protect, authorize('admin', 'manager'), async (req, res) => {
     }
     res.json({ success: true, data: user });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('❌ users error:', error);
+    res.status(500).json({ success: false, message: clientErrorMessage(error) });
   }
 });
 
@@ -205,7 +210,8 @@ router.put('/:id', protect, authorize('admin', 'manager'), async (req, res) => {
 
     res.json({ success: true, message: 'User updated', data: user });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    console.error('❌ users error:', error);
+    res.status(400).json({ success: false, message: clientErrorMessage(error) });
   }
 });
 
@@ -228,7 +234,8 @@ router.delete('/:id', protect, authorize('admin'), async (req, res) => {
 
     res.json({ success: true, message: 'User deactivated' });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('❌ users error:', error);
+    res.status(500).json({ success: false, message: clientErrorMessage(error) });
   }
 });
 

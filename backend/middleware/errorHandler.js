@@ -1,3 +1,5 @@
+const { clientErrorMessage } = require('../utils/errors');
+
 const errorHandler = (err, req, res, next) => {
   let error = { ...err };
   error.message = err.message;
@@ -40,7 +42,7 @@ const errorHandler = (err, req, res, next) => {
 
   res.status(err.statusCode || 500).json({
     success: false,
-    message: error.message || 'Internal Server Error'
+    message: clientErrorMessage(err, 'Internal Server Error')
   });
 };
 

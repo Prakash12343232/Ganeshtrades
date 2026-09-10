@@ -5,6 +5,7 @@ const User = require('../models/User');
 const Product = require('../models/Product');
 const Payment = require('../models/Payment');
 const { protect, authorize } = require('../middleware/auth');
+const { clientErrorMessage } = require('../utils/errors');
 
 // GET /api/dashboard/stats
 router.get('/stats', protect, authorize('admin', 'manager'), async (req, res) => {
@@ -70,7 +71,10 @@ router.get('/stats', protect, authorize('admin', 'manager'), async (req, res) =>
         recentOrders
       }
     });
-  } catch (error) { res.status(500).json({ success: false, message: error.message }); }
+  } catch (error) {
+    console.error('❌ dashboard error:', error);
+    res.status(500).json({ success: false, message: clientErrorMessage(error) });
+  }
 });
 
 // GET /api/dashboard/chart-data
@@ -130,7 +134,10 @@ router.get('/chart-data', protect, authorize('admin', 'manager'), async (req, re
     const topProducts = await Product.find({ status: 'active' }).sort('-totalSold').limit(5).select('name totalSold price');
 
     res.json({ success: true, data: { last7Days, customerTypes, topProducts } });
-  } catch (error) { res.status(500).json({ success: false, message: error.message }); }
+  } catch (error) {
+    console.error('❌ dashboard error:', error);
+    res.status(500).json({ success: false, message: clientErrorMessage(error) });
+  }
 });
 
 // GET /api/dashboard/auto-reorder
@@ -146,7 +153,10 @@ router.get('/auto-reorder', protect, authorize('admin', 'manager'), async (req, 
     }).select('name stock minStock price totalSold expiryDate');
 
     res.json({ success: true, data: suggestions });
-  } catch (error) { res.status(500).json({ success: false, message: error.message }); }
+  } catch (error) {
+    console.error('❌ dashboard error:', error);
+    res.status(500).json({ success: false, message: clientErrorMessage(error) });
+  }
 });
 
 module.exports = router;

@@ -7,6 +7,7 @@ const Product = require('../models/Product');
 const { protect, authorize } = require('../middleware/auth');
 const { createAuditLog } = require('../utils/auditLogger');
 const { pickFields, parsePositiveInt, parsePositiveNumber } = require('../utils/security');
+const { clientErrorMessage } = require('../utils/errors');
 
 const SUPPLIER_FIELDS = ['name', 'contactPerson', 'mobile', 'email', 'gstNumber', 'address', 'status'];
 
@@ -20,7 +21,10 @@ router.post('/', async (req, res) => {
     const supplier = await Supplier.create(supplierData);
     await createAuditLog(req.user._id, 'supplier_create', 'supplier', supplier._id, { name: supplier.name }, req);
     res.status(201).json({ success: true, data: supplier });
-  } catch (error) { res.status(400).json({ success: false, message: error.message }); }
+  } catch (error) {
+    console.error('❌ suppliers error:', error);
+    res.status(400).json({ success: false, message: clientErrorMessage(error) });
+  }
 });
 
 // GET /api/suppliers - List suppliers
@@ -28,7 +32,10 @@ router.get('/', async (req, res) => {
   try {
     const suppliers = await Supplier.find().sort('-createdAt');
     res.json({ success: true, data: suppliers });
-  } catch (error) { res.status(500).json({ success: false, message: error.message }); }
+  } catch (error) {
+    console.error('❌ suppliers error:', error);
+    res.status(500).json({ success: false, message: clientErrorMessage(error) });
+  }
 });
 
 // POST /api/suppliers/po - Create Purchase Order
@@ -66,7 +73,10 @@ router.post('/po', async (req, res) => {
 
     await createAuditLog(req.user._id, 'po_create', 'purchase_order', po._id, { poNumber: po.poNumber }, req);
     res.status(201).json({ success: true, data: po });
-  } catch (error) { res.status(400).json({ success: false, message: error.message }); }
+  } catch (error) {
+    console.error('❌ suppliers error:', error);
+    res.status(400).json({ success: false, message: clientErrorMessage(error) });
+  }
 });
 
 // PUT /api/suppliers/po/:id/receive - Mark PO as received (Updates Inventory)
@@ -91,7 +101,10 @@ router.put('/po/:id/receive', async (req, res) => {
 
     await createAuditLog(req.user._id, 'po_receive', 'purchase_order', po._id, { poNumber: po.poNumber }, req);
     res.json({ success: true, data: po });
-  } catch (error) { res.status(400).json({ success: false, message: error.message }); }
+  } catch (error) {
+    console.error('❌ suppliers error:', error);
+    res.status(400).json({ success: false, message: clientErrorMessage(error) });
+  }
 });
 
 // GET /api/suppliers/po - List POs
@@ -99,7 +112,10 @@ router.get('/po', async (req, res) => {
   try {
     const pos = await PurchaseOrder.find().populate('supplier', 'name').sort('-createdAt');
     res.json({ success: true, data: pos });
-  } catch (error) { res.status(500).json({ success: false, message: error.message }); }
+  } catch (error) {
+    console.error('❌ suppliers error:', error);
+    res.status(500).json({ success: false, message: clientErrorMessage(error) });
+  }
 });
 
 // POST /api/suppliers/payment - Record payment to supplier
@@ -128,7 +144,10 @@ router.post('/payment', async (req, res) => {
 
     await createAuditLog(req.user._id, 'supplier_payment', 'supplier_payment', payment._id, { amount }, req);
     res.status(201).json({ success: true, data: payment });
-  } catch (error) { res.status(400).json({ success: false, message: error.message }); }
+  } catch (error) {
+    console.error('❌ suppliers error:', error);
+    res.status(400).json({ success: false, message: clientErrorMessage(error) });
+  }
 });
 
 module.exports = router;

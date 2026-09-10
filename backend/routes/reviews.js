@@ -4,6 +4,7 @@ const Review = require('../models/Review');
 const Order = require('../models/Order');
 const { protect, authorize } = require('../middleware/auth');
 const { parsePagination } = require('../utils/security');
+const { clientErrorMessage } = require('../utils/errors');
 
 // Authenticate only when a Bearer token is supplied, so the same route can
 // serve both public (approved-only) and staff (all statuses) consumers.
@@ -61,7 +62,8 @@ router.get('/', optionalAuth, async (req, res) => {
       pagination: { total, page: paging.page, pages: Math.ceil(total / paging.limit) }
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('❌ reviews error:', error);
+    res.status(500).json({ success: false, message: clientErrorMessage(error) });
   }
 });
 
@@ -105,7 +107,8 @@ router.get('/product/:productId', async (req, res) => {
       pagination: { total, page: paging.page, pages: Math.ceil(total / paging.limit) }
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('❌ reviews error:', error);
+    res.status(500).json({ success: false, message: clientErrorMessage(error) });
   }
 });
 
@@ -159,7 +162,8 @@ router.post('/', protect, async (req, res) => {
     if (error.code === 11000) {
       return res.status(400).json({ success: false, message: 'You have already reviewed this product' });
     }
-    res.status(400).json({ success: false, message: error.message });
+    console.error('❌ reviews error:', error);
+    res.status(400).json({ success: false, message: clientErrorMessage(error) });
   }
 });
 
@@ -184,7 +188,8 @@ router.put('/:id', protect, async (req, res) => {
 
     res.json({ success: true, message: 'Review updated and re-submitted for approval', data: review });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    console.error('❌ reviews error:', error);
+    res.status(400).json({ success: false, message: clientErrorMessage(error) });
   }
 });
 
@@ -212,7 +217,8 @@ router.put('/:id/moderate', protect, authorize('admin', 'manager'), async (req, 
 
     res.json({ success: true, message: `Review ${status}`, data: review });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    console.error('❌ reviews error:', error);
+    res.status(400).json({ success: false, message: clientErrorMessage(error) });
   }
 });
 
@@ -230,7 +236,8 @@ router.put('/:id/helpful', protect, async (req, res) => {
 
     res.json({ success: true, message: 'Marked as helpful', data: review });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    console.error('❌ reviews error:', error);
+    res.status(400).json({ success: false, message: clientErrorMessage(error) });
   }
 });
 
@@ -252,7 +259,8 @@ router.delete('/:id', protect, async (req, res) => {
     await Review.findByIdAndDelete(req.params.id);
     res.json({ success: true, message: 'Review deleted' });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('❌ reviews error:', error);
+    res.status(500).json({ success: false, message: clientErrorMessage(error) });
   }
 });
 

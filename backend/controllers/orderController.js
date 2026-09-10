@@ -9,6 +9,7 @@ const { createAuditLog } = require('../utils/auditLogger');
 const { generateInvoicePDF } = require('../utils/pdfGenerator');
 const { checkServiceability } = require('../utils/distance');
 const { sanitizeSort, parsePositiveInt, parsePagination } = require('../utils/security');
+const { clientErrorMessage } = require('../utils/errors');
 
 const TIME_SLOTS = Order.TIME_SLOTS;
 
@@ -153,7 +154,7 @@ exports.createOrder = async (req, res) => {
       try {
         quantity = parsePositiveInt(item.quantity);
       } catch (err) {
-        return res.status(400).json({ success: false, message: err.message });
+        return res.status(400).json({ success: false, message: clientErrorMessage(err, 'Invalid quantity') });
       }
 
       const product = await Product.findById(item.product);
@@ -280,7 +281,10 @@ exports.createOrder = async (req, res) => {
     await createAuditLog(req.user._id, 'order_create', 'order', order._id, { orderNumber: order.orderNumber, distance: serviceCheck.distance, deliveryType: deliveryType || 'instant' }, req);
 
     res.status(201).json({ success: true, message: deliveryType === 'scheduled' ? 'Order scheduled successfully' : 'Order placed', data: order });
-  } catch (error) { res.status(400).json({ success: false, message: error.message }); }
+  } catch (error) {
+    console.error('❌ orderController error:', error);
+    res.status(400).json({ success: false, message: clientErrorMessage(error) });
+  }
 };
 
 exports.getOrders = async (req, res) => {
@@ -340,7 +344,10 @@ exports.getOrders = async (req, res) => {
     });
 
     res.json({ success: true, data, pagination: { total, page: paging.page, pages: Math.ceil(total / paging.limit) } });
-  } catch (error) { res.status(500).json({ success: false, message: error.message }); }
+  } catch (error) {
+    console.error('❌ orderController error:', error);
+    res.status(500).json({ success: false, message: clientErrorMessage(error) });
+  }
 };
 
 exports.getUpcomingScheduledOrders = async (req, res) => {
@@ -393,7 +400,10 @@ exports.getUpcomingScheduledOrders = async (req, res) => {
         }
       }
     });
-  } catch (error) { res.status(500).json({ success: false, message: error.message }); }
+  } catch (error) {
+    console.error('❌ orderController error:', error);
+    res.status(500).json({ success: false, message: clientErrorMessage(error) });
+  }
 };
 
 exports.getTimeSlots = async (req, res) => {
@@ -409,7 +419,10 @@ exports.getOrderById = async (req, res) => {
     if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
     if (req.user.role === 'customer' && order.user._id.toString() !== req.user._id.toString()) return res.status(403).json({ success: false, message: 'Not authorized' });
     res.json({ success: true, data: order });
-  } catch (error) { res.status(500).json({ success: false, message: error.message }); }
+  } catch (error) {
+    console.error('❌ orderController error:', error);
+    res.status(500).json({ success: false, message: clientErrorMessage(error) });
+  }
 };
 
 exports.rescheduleOrder = async (req, res) => {
@@ -483,7 +496,10 @@ exports.rescheduleOrder = async (req, res) => {
     }
 
     res.json({ success: true, message: 'Delivery rescheduled successfully', data: order });
-  } catch (error) { res.status(400).json({ success: false, message: error.message }); }
+  } catch (error) {
+    console.error('❌ orderController error:', error);
+    res.status(400).json({ success: false, message: clientErrorMessage(error) });
+  }
 };
 
 exports.updateOrderStatus = async (req, res) => {
@@ -555,7 +571,10 @@ exports.updateOrderStatus = async (req, res) => {
     const statusLabels = { pending: 'Order Received', confirmed: 'Order Confirmed', processing: 'Preparing Your Order', out_for_delivery: 'Out for Delivery', delivered: 'Delivered Successfully', cancelled: 'Order Cancelled' };
     await Notification.create({ title: '📦 Order Update', message: `Order #${order.orderNumber}: ${statusLabels[orderStatus] || orderStatus}`, type: 'order', recipient: order.user, link: `/orders/${order._id}` });
     res.json({ success: true, message: 'Status updated', data: order });
-  } catch (error) { res.status(400).json({ success: false, message: error.message }); }
+  } catch (error) {
+    console.error('❌ orderController error:', error);
+    res.status(400).json({ success: false, message: clientErrorMessage(error) });
+  }
 };
 
 exports.cancelOrder = async (req, res) => {
@@ -583,7 +602,10 @@ exports.cancelOrder = async (req, res) => {
     }
 
     res.json({ success: true, message: 'Order cancelled', data: order });
-  } catch (error) { res.status(400).json({ success: false, message: error.message }); }
+  } catch (error) {
+    console.error('❌ orderController error:', error);
+    res.status(400).json({ success: false, message: clientErrorMessage(error) });
+  }
 };
 
 exports.getOrderInvoice = async (req, res) => {
@@ -596,5 +618,8 @@ exports.getOrderInvoice = async (req, res) => {
     const pdfBuffer = await generateInvoicePDF(order, order.user);
     res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': `attachment; filename=invoice-${order.orderNumber}.pdf` });
     res.send(pdfBuffer);
-  } catch (error) { res.status(500).json({ success: false, message: error.message }); }
+  } catch (error) {
+    console.error('❌ orderController error:', error);
+    res.status(500).json({ success: false, message: clientErrorMessage(error) });
+  }
 };

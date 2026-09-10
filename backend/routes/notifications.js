@@ -3,6 +3,7 @@ const router = express.Router();
 const Notification = require('../models/Notification');
 const { protect, authorize } = require('../middleware/auth');
 const { pickFields } = require('../utils/security');
+const { clientErrorMessage } = require('../utils/errors');
 
 const NOTIFICATION_FIELDS = ['title', 'message', 'type', 'recipient', 'recipientRole', 'link', 'metadata', 'priority'];
 
@@ -67,7 +68,10 @@ router.get('/', protect, async (req, res) => {
       ]
     });
     res.json({ success: true, data, unreadCount, pagination: { total, page: pageNum, pages: Math.ceil(total / limitNum) } });
-  } catch (error) { res.status(500).json({ success: false, message: error.message }); }
+  } catch (error) {
+    console.error('❌ notifications error:', error);
+    res.status(500).json({ success: false, message: clientErrorMessage(error) });
+  }
 });
 
 // PUT /api/notifications/:id/read
@@ -89,7 +93,10 @@ router.put('/:id/read', protect, async (req, res) => {
     }
     await notification.save();
     res.json({ success: true });
-  } catch (error) { res.status(500).json({ success: false, message: error.message }); }
+  } catch (error) {
+    console.error('❌ notifications error:', error);
+    res.status(500).json({ success: false, message: clientErrorMessage(error) });
+  }
 });
 
 // PUT /api/notifications/read-all
@@ -103,7 +110,10 @@ router.put('/read-all', protect, async (req, res) => {
       { $addToSet: { readBy: req.user._id } }
     );
     res.json({ success: true, message: 'All marked read' });
-  } catch (error) { res.status(500).json({ success: false, message: error.message }); }
+  } catch (error) {
+    console.error('❌ notifications error:', error);
+    res.status(500).json({ success: false, message: clientErrorMessage(error) });
+  }
 });
 
 // POST /api/notifications - Create (admin)
@@ -112,7 +122,10 @@ router.post('/', protect, authorize('admin', 'manager'), async (req, res) => {
     const notificationData = pickFields(req.body, NOTIFICATION_FIELDS);
     const notification = await Notification.create(notificationData);
     res.status(201).json({ success: true, data: notification });
-  } catch (error) { res.status(400).json({ success: false, message: error.message }); }
+  } catch (error) {
+    console.error('❌ notifications error:', error);
+    res.status(400).json({ success: false, message: clientErrorMessage(error) });
+  }
 });
 
 // BUG-04 fix: DELETE /clear-read MUST be registered before DELETE /:id
@@ -123,7 +136,10 @@ router.delete('/clear-read', protect, async (req, res) => {
   try {
     const result = await Notification.deleteMany({ recipient: req.user._id, isRead: true });
     res.json({ success: true, message: `${result.deletedCount} read notification(s) cleared` });
-  } catch (error) { res.status(500).json({ success: false, message: error.message }); }
+  } catch (error) {
+    console.error('❌ notifications error:', error);
+    res.status(500).json({ success: false, message: clientErrorMessage(error) });
+  }
 });
 
 // DELETE /api/notifications/:id - Delete single notification
@@ -140,7 +156,10 @@ router.delete('/:id', protect, async (req, res) => {
     }
     await Notification.findByIdAndDelete(req.params.id);
     res.json({ success: true, message: 'Notification deleted' });
-  } catch (error) { res.status(500).json({ success: false, message: error.message }); }
+  } catch (error) {
+    console.error('❌ notifications error:', error);
+    res.status(500).json({ success: false, message: clientErrorMessage(error) });
+  }
 });
 
 module.exports = router;

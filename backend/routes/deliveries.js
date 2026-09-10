@@ -6,6 +6,7 @@ const Notification = require('../models/Notification');
 const { protect, authorize } = require('../middleware/auth');
 const { createAuditLog } = require('../utils/auditLogger');
 const { parsePagination } = require('../utils/security');
+const { clientErrorMessage } = require('../utils/errors');
 
 const DELIVERY_STATUSES = ['assigned', 'picked_up', 'on_the_way', 'delivered', 'failed'];
 
@@ -68,7 +69,10 @@ router.post('/', async (req, res) => {
 
     await createAuditLog(req.user._id, canReassign ? 'delivery_reassign' : 'delivery_assign', 'delivery', delivery._id, { orderId }, req);
     res.status(201).json({ success: true, data: delivery });
-  } catch (error) { res.status(400).json({ success: false, message: error.message }); }
+  } catch (error) {
+    console.error('❌ deliveries error:', error);
+    res.status(400).json({ success: false, message: clientErrorMessage(error) });
+  }
 });
 
 // GET /api/deliveries - List deliveries (with schedule filters)
@@ -138,7 +142,10 @@ router.get('/', async (req, res) => {
         pages: Math.ceil(filteredTotal / paging.limit)
       }
     });
-  } catch (error) { res.status(500).json({ success: false, message: error.message }); }
+  } catch (error) {
+    console.error('❌ deliveries error:', error);
+    res.status(500).json({ success: false, message: clientErrorMessage(error) });
+  }
 });
 
 // GET /api/deliveries/today-priority — Priority list for today
@@ -203,7 +210,10 @@ router.get('/today-priority', async (req, res) => {
         }
       }
     });
-  } catch (error) { res.status(500).json({ success: false, message: error.message }); }
+  } catch (error) {
+    console.error('❌ deliveries error:', error);
+    res.status(500).json({ success: false, message: clientErrorMessage(error) });
+  }
 });
 
 // PUT /api/deliveries/:id/status - Update delivery status
@@ -251,7 +261,10 @@ router.put('/:id/status', async (req, res) => {
 
     await createAuditLog(req.user._id, 'delivery_update', 'delivery', delivery._id, { status }, req);
     res.json({ success: true, data: delivery });
-  } catch (error) { res.status(400).json({ success: false, message: error.message }); }
+  } catch (error) {
+    console.error('❌ deliveries error:', error);
+    res.status(400).json({ success: false, message: clientErrorMessage(error) });
+  }
 });
 
 module.exports = router;

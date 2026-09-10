@@ -8,6 +8,7 @@ const CreditTransaction = require('../models/CreditTransaction');
 const { protect, authorize } = require('../middleware/auth');
 const { createAuditLog } = require('../utils/auditLogger');
 const { parsePositiveNumber, parsePagination } = require('../utils/security');
+const { clientErrorMessage } = require('../utils/errors');
 
 // POST /api/payments - Record payment
 router.post('/', protect, authorize('admin', 'manager'), async (req, res) => {
@@ -64,7 +65,10 @@ router.post('/', protect, authorize('admin', 'manager'), async (req, res) => {
     await createAuditLog(req.user._id, 'payment_create', 'payment', payment._id, { amount, orderId }, req);
 
     res.status(201).json({ success: true, message: 'Payment recorded', data: payment });
-  } catch (error) { res.status(400).json({ success: false, message: error.message }); }
+  } catch (error) {
+    console.error('❌ payments error:', error);
+    res.status(400).json({ success: false, message: clientErrorMessage(error) });
+  }
 });
 
 // GET /api/payments
@@ -79,7 +83,10 @@ router.get('/', protect, async (req, res) => {
     const total = await Payment.countDocuments(query);
     const payments = await Payment.find(query).populate('user', 'name mobile').populate('order', 'orderNumber totalAmount').sort('-createdAt').skip(paging.skip).limit(paging.limit);
     res.json({ success: true, data: payments, pagination: { total, page: paging.page, pages: Math.ceil(total / paging.limit) } });
-  } catch (error) { res.status(500).json({ success: false, message: error.message }); }
+  } catch (error) {
+    console.error('❌ payments error:', error);
+    res.status(500).json({ success: false, message: clientErrorMessage(error) });
+  }
 });
 
 // GET /api/payments/pending
@@ -87,7 +94,10 @@ router.get('/pending', protect, authorize('admin', 'manager'), async (req, res) 
   try {
     const users = await User.find({ pendingAmount: { $gt: 0 } }).select('name mobile customerType pendingAmount').sort('-pendingAmount');
     res.json({ success: true, data: users });
-  } catch (error) { res.status(500).json({ success: false, message: error.message }); }
+  } catch (error) {
+    console.error('❌ payments error:', error);
+    res.status(500).json({ success: false, message: clientErrorMessage(error) });
+  }
 });
 
 // POST /api/payments/settlement - Khata Settlement
@@ -127,7 +137,10 @@ router.post('/settlement', protect, authorize('admin', 'manager'), async (req, r
 
     await createAuditLog(req.user._id, 'settlement_create', 'settlement', settlement._id, { amount }, req);
     res.status(201).json({ success: true, message: 'Settlement recorded', data: settlement });
-  } catch (error) { res.status(400).json({ success: false, message: error.message }); }
+  } catch (error) {
+    console.error('❌ payments error:', error);
+    res.status(400).json({ success: false, message: clientErrorMessage(error) });
+  }
 });
 
 // ─── Online Payment Gateway (Simulated) ─────────────────────
@@ -190,7 +203,10 @@ router.post('/create-order', protect, async (req, res) => {
         }
       }
     });
-  } catch (error) { res.status(400).json({ success: false, message: error.message }); }
+  } catch (error) {
+    console.error('❌ payments error:', error);
+    res.status(400).json({ success: false, message: clientErrorMessage(error) });
+  }
 });
 
 // POST /api/payments/verify - Verify online payment
@@ -265,7 +281,10 @@ router.post('/verify', protect, async (req, res) => {
     });
 
     res.json({ success: true, message: 'Payment verified successfully', data: payment });
-  } catch (error) { res.status(400).json({ success: false, message: error.message }); }
+  } catch (error) {
+    console.error('❌ payments error:', error);
+    res.status(400).json({ success: false, message: clientErrorMessage(error) });
+  }
 });
 
 module.exports = router;
