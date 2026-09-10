@@ -5,6 +5,8 @@ const isHostedEnvironment = () =>
   Boolean(process.env.RENDER_EXTERNAL_URL) ||
   Boolean(process.env.VERCEL);
 
+let dbKind = null;
+
 const connectDB = async () => {
   if (process.env.NODE_ENV === 'test') return;
   if (mongoose.connection.readyState === 1) return;
@@ -21,6 +23,7 @@ const connectDB = async () => {
     const conn = await mongoose.connect(process.env.MONGODB_URI, {
       serverSelectionTimeoutMS: 10000
     });
+    dbKind = 'atlas';
     console.log(`✅ MongoDB Atlas Connected: ${conn.connection.host}`);
   } catch (error) {
     console.error(`❌ MongoDB Atlas Connection Error: ${error.message}`);
@@ -38,6 +41,7 @@ const connectDB = async () => {
       const mongod = await MongoMemoryServer.create();
       const uri = mongod.getUri();
       const conn = await mongoose.connect(uri);
+      dbKind = 'in-memory';
       console.log(`✅ Development Fallback Applied: In-Memory MongoDB Connected at ${conn.connection.host}`);
       
       // Auto-seed so local sandbox works
@@ -48,6 +52,8 @@ const connectDB = async () => {
     }
   }
 };
+
+connectDB.getDbKind = () => dbKind;
 
 async function seedInMemory() {
   const User = require('../models/User');

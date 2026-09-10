@@ -203,6 +203,7 @@ app.get('/api/health', (req, res) => {
     message: 'Ganesh Trades API is running',
     environment: process.env.NODE_ENV || 'not set',
     database: dbStatus[dbState] || 'unknown',
+    dbType: connectDB.getDbKind() || 'unknown',
     timestamp: new Date()
   });
 });

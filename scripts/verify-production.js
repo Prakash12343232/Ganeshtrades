@@ -76,6 +76,12 @@ const run = async () => {
       `database=${JSON.stringify(body.database)}`,
       'set a real Atlas MONGODB_URI in the Render dashboard for ganeshtrades1 and redeploy'
     );
+    report(
+      'backend is connected to Atlas (not in-memory)',
+      body.dbType === 'atlas',
+      `dbType=${JSON.stringify(body.dbType)} (reported by the live /api/health; 'unknown' means the running build predates this check)`,
+      'the live service reports the in-memory fallback or an old build; set NODE_ENV=production + a real Atlas MONGODB_URI in Render and redeploy so /api/health reports dbType=atlas'
+    );
   } catch (err) {
     report('backend health endpoint', false, `unreachable: ${err.message}`, 'confirm the Render service ganeshtrades1 is running and healthy at /api/health');
   }

@@ -182,4 +182,17 @@ describe('Security regressions', () => {
     expect(unknown.statusCode).toEqual(401);
     expect(unknown.body.message).toEqual('Invalid credentials');
   });
+
+  describe('GET /api/health exposes the DB backend kind (dbType)', () => {
+    it('reports success and the dbType field so in-memory/Atlas state is observable', async () => {
+      const res = await request(app).get('/api/health');
+      expect(res.statusCode).toEqual(200);
+      expect(res.body.success).toBe(true);
+      expect(typeof res.body.dbType).toBe('string');
+      // Under the test harness (setup.js talks directly to MongoMemoryServer,
+      // db.js returns early) the live indicator is 'unknown'; production boots
+      // must report 'atlas', never 'in-memory'.
+      expect(['atlas', 'in-memory', 'unknown']).toContain(res.body.dbType);
+    });
+  });
 });

@@ -224,6 +224,7 @@ What it verifies:
 | Backend health endpoint | `/api/health` returns `success:true` |
 | Environment is production | `environment:"production"` (catches `development` misconfiguration) |
 | Database connected | `database:"connected"` against a real Atlas URI |
+| Atlas confirmed (not in-memory) | `dbType:"atlas"` on `/api/health` (an explicit indicator that overrides `database:"connected"`, which is true even for the in-memory fallback; `unknown` means the running build predates this field) |
 | No in-memory/demo data | Products do **not** match the demo seed signature (`/uploads/default-product.png`, seeded names, `totalSold:0`) |
 | Frontend SPA served | `https://ganeshtrades.vercel.app` returns the app shell (HTTP 200) |
 | Frontend API target | The deployed bundle points at the backend API origin |
