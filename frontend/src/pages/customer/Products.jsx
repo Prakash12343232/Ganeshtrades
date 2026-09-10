@@ -257,7 +257,7 @@ export default function Products() {
       {loading ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {[...Array(8)].map((_, i) => (
-            <div key={i} className="bg-white dark:bg-navy-900 rounded-2xl border border-slate-200 dark:border-navy-800 overflow-hidden animate-pulse shadow-sm">
+            <div key={i} data-testid="product-skeleton" className="bg-white dark:bg-navy-900 rounded-2xl border border-slate-200 dark:border-navy-800 overflow-hidden animate-pulse shadow-sm">
               <div className="h-44 bg-slate-100 dark:bg-navy-950"></div>
               <div className="p-4 space-y-3">
                 <div className="h-4 bg-slate-200 dark:bg-navy-800 rounded w-3/4"></div>
@@ -280,7 +280,7 @@ export default function Products() {
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {products.map(product => (
-            <div key={product._id} className="bg-white dark:bg-navy-900 rounded-2xl border border-slate-200 dark:border-navy-800/80 overflow-hidden shadow-sm hover:shadow-xl hover:border-mint-500/40 hover:shadow-mint-500/10 transition-all group relative flex flex-col justify-between">
+            <div key={product._id} data-testid="product-card" className="bg-white dark:bg-navy-900 rounded-2xl border border-slate-200 dark:border-navy-800/80 overflow-hidden shadow-sm hover:shadow-xl hover:border-mint-500/40 hover:shadow-mint-500/10 transition-all group relative flex flex-col justify-between">
               {product.isFeatured && (
                 <span className="absolute top-2 left-2 z-10 px-2 py-0.5 bg-mint-500 text-navy-950 text-[10px] font-extrabold rounded-full shadow-md">
                   Featured
