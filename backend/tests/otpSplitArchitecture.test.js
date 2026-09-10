@@ -14,6 +14,13 @@ jest.mock('../utils/otpClient', () => ({
   })
 }));
 
+// Pin the generator so the tests know the exact password-reset OTP code
+// without reading the DB (the at-rest value is a salted hash).
+jest.mock('../utils/security', () => {
+  const actual = jest.requireActual('../utils/security');
+  return { ...actual, generateOTP: jest.fn(() => '123456') };
+});
+
 const app = require('../server');
 
 describe('OTP split architecture (OTP_SERVICE_URL configured)', () => {
@@ -132,7 +139,7 @@ describe('OTP split architecture (OTP_SERVICE_URL configured)', () => {
 
     const verify = await request(app)
       .post('/api/auth/verify-otp')
-      .send({ mobile: '9876000004', otp: otp.otp, purpose: 'password_reset' });
+      .send({ mobile: '9876000004', otp: '123456', purpose: 'password_reset' });
     expect(verify.statusCode).toBe(200);
 
     const stored = await Otp.findOne({ mobile: '9876000004', purpose: 'password_reset' });
@@ -140,7 +147,7 @@ describe('OTP split architecture (OTP_SERVICE_URL configured)', () => {
 
     const reset = await request(app)
       .post('/api/auth/reset-password')
-      .send({ mobile: '9876000004', otp: otp.otp, newPassword: 'NewPass@12345' });
+      .send({ mobile: '9876000004', otp: '123456', newPassword: 'NewPass@12345' });
     expect(reset.statusCode).toBe(200);
   });
 });

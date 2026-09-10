@@ -170,6 +170,29 @@ function generateOTP() {
 }
 
 /**
+ * Hash an OTP for at-rest storage with a per-record random salt.
+ * Returns { salt, hash } — the plaintext is never persisted.
+ */
+function hashOTP(otp) {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.createHash('sha256').update(`${salt}:${otp}`).digest('hex');
+  return { salt, hash };
+}
+
+/**
+ * Constant-time OTP verification against a salted SHA-256 record.
+ * Returns false for malformed input so plaintext legacy/foreign records fail closed.
+ */
+function verifyOTP(otp, storedHash, storedSalt) {
+  if (typeof otp !== 'string' || typeof storedHash !== 'string' || typeof storedSalt !== 'string') return false;
+  const computed = crypto.createHash('sha256').update(`${storedSalt}:${otp}`).digest('hex');
+  const a = Buffer.from(computed, 'hex');
+  const b = Buffer.from(storedHash, 'hex');
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(a, b);
+}
+
+/**
  * Validates password strength.
  * Returns { valid: boolean, errors: string[], strength: 'weak'|'medium'|'strong' }
  */
@@ -206,6 +229,8 @@ module.exports = {
   safeSpreadsheetCell,
   normalizeMobile,
   generateOTP,
+  hashOTP,
+  verifyOTP,
   validatePasswordStrength,
   DEFAULT_SORT_FIELDS
 };

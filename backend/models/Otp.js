@@ -10,6 +10,9 @@ const otpSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  salt: {
+    type: String
+  },
   purpose: {
     type: String,
     enum: ['register', 'login', 'password_reset', 'email_verify'],

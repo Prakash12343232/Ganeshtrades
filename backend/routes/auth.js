@@ -11,7 +11,7 @@ const { checkServiceability } = require('../utils/distance');
 const { protect } = require('../middleware/auth');
 const { createAuditLog } = require('../utils/auditLogger');
 const connectDB = require('../config/db');
-const { pickFields, normalizeMobile, generateOTP, validatePasswordStrength } = require('../utils/security');
+const { pickFields, normalizeMobile, generateOTP, hashOTP, verifyOTP, validatePasswordStrength } = require('../utils/security');
 const { clientErrorMessage } = require('../utils/errors');
 
 // Rate Limiters
@@ -102,10 +102,12 @@ router.post('/send-otp', otpLimiter, async (req, res) => {
     await Otp.deleteMany({ mobile: normMobile, purpose });
 
     const otpCode = generateOTP();
-    
+    const { salt, hash } = hashOTP(otpCode);
+
     await Otp.create({
       mobile: normMobile,
-      otp: otpCode, // In production, hash this or keep it plain if short-lived TTL handles it. Plain is fine for 5m TTL.
+      otp: hash,
+      salt,
       purpose,
       expiresAt: new Date(Date.now() + 5 * 60000) // 5 minutes
     });
@@ -190,7 +192,7 @@ router.post('/verify-otp', authLimiter, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Maximum attempts reached. Please request a new OTP.' });
     }
 
-    if (otpRecord.otp !== String(otp).trim()) {
+    if (!verifyOTP(String(otp).trim(), otpRecord.otp, otpRecord.salt)) {
       await otpRecord.save();
       return res.status(400).json({ success: false, message: 'Incorrect OTP' });
     }
@@ -503,9 +505,11 @@ router.post('/forgot-password', otpLimiter, async (req, res) => {
     await Otp.deleteMany({ mobile: normMobile, purpose: 'password_reset' });
 
     const otpCode = generateOTP();
+    const { salt, hash } = hashOTP(otpCode);
     await Otp.create({
       mobile: normMobile,
-      otp: otpCode,
+      otp: hash,
+      salt,
       purpose: 'password_reset',
       expiresAt: new Date(Date.now() + 10 * 60000) // 10 minutes
     });
@@ -566,7 +570,7 @@ router.post('/reset-password', authLimiter, async (req, res) => {
         return res.status(400).json({ success: false, message: 'Maximum attempts reached. Please request a new OTP.' });
       }
 
-      if (otpRecord.otp !== String(otp).trim()) {
+      if (!verifyOTP(String(otp).trim(), otpRecord.otp, otpRecord.salt)) {
         await otpRecord.save();
         return res.status(400).json({ success: false, message: 'Incorrect OTP' });
       }

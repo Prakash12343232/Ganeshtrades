@@ -5,6 +5,13 @@ const Otp = require('../models/Otp');
 const AuditLog = require('../models/AuditLog');
 const { sendOtpSms } = require('../utils/sms');
 
+// Pin the generator so the tests know the exact OTP code without reading the
+// DB (the at-rest value is now a salted hash, never the plaintext).
+jest.mock('../utils/security', () => {
+  const actual = jest.requireActual('../utils/security');
+  return { ...actual, generateOTP: jest.fn(() => '123456') };
+});
+
 describe('OTP SMS delivery + password reset flow', () => {
   afterEach(() => {
     delete process.env.FAST2SMS_API_KEY;
@@ -43,7 +50,10 @@ describe('OTP SMS delivery + password reset flow', () => {
 
       const otp = await Otp.findOne({ mobile: '9876500000', purpose: 'password_reset' });
       expect(otp).toBeTruthy();
-      expect(otp.otp).toMatch(/^\d{6}$/);
+      // OTP is stored as a salted SHA-256 hash — never the plaintext code.
+      expect(otp.otp).not.toEqual('123456');
+      expect(otp.otp).toMatch(/^[a-f0-9]{64}$/);
+      expect(otp.salt).toBeTruthy();
     });
 
     it('does not reveal whether an account exists', async () => {
@@ -84,7 +94,7 @@ describe('OTP SMS delivery + password reset flow', () => {
 
       const res = await request(app)
         .post('/api/auth/reset-password')
-        .send({ mobile: '9876522222', otp: otp.otp, newPassword: 'NewPass@12345' });
+        .send({ mobile: '9876522222', otp: '123456', newPassword: 'NewPass@12345' });
 
       expect(res.statusCode).toEqual(200);
       expect(res.body.success).toBe(true);
@@ -113,7 +123,7 @@ describe('OTP SMS delivery + password reset flow', () => {
 
       const verify = await request(app)
         .post('/api/auth/verify-otp')
-        .send({ mobile: '9876533333', otp: otp.otp, purpose: 'password_reset' });
+        .send({ mobile: '9876533333', otp: '123456', purpose: 'password_reset' });
       expect(verify.statusCode).toEqual(200);
 
       const stored = await Otp.findOne({ mobile: '9876533333', purpose: 'password_reset' });
@@ -123,7 +133,7 @@ describe('OTP SMS delivery + password reset flow', () => {
       // record already confirmed by /verify-otp returned 'Invalid or expired OTP'.
       const reset = await request(app)
         .post('/api/auth/reset-password')
-        .send({ mobile: '9876533333', otp: otp.otp, newPassword: 'NewPass@12345' });
+        .send({ mobile: '9876533333', otp: '123456', newPassword: 'NewPass@12345' });
       expect(reset.statusCode).toEqual(200);
 
       const login = await request(app)
