@@ -10,6 +10,7 @@
     "start": "npm start --prefix backend",
     "start:otp": "npm start --prefix otp-server",
     "test:otp": "npm test --prefix otp-server",
+    "verify:prod": "node scripts/verify-production.js",
     "dev": "concurrently --kill-others-on-fail -n \"backend,frontend,otp\" -c \"yellow,blue,green\" \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\" \"npm start --prefix otp-server\""
   },
   "devDependencies": {

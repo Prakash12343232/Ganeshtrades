@@ -207,6 +207,30 @@ Render monitors this endpoint automatically. If it returns unhealthy, Render wil
 - No database reset happens during deployment.
 - Backups are cron-scheduled (daily/weekly/monthly) but write to ephemeral Render storage — consider external backup for persistence.
 
+## 5b. Verifying Production Readiness
+
+Run the automated readiness gate against the live services (zero dependencies, Node ≥ 18):
+
+```bash
+npm run verify:prod
+# or, with the OTP service configured:
+npm run verify:prod -- --otp https://ganeshtrades-otp-server.onrender.com
+```
+
+What it verifies:
+
+| Check | Green means |
+|:--|:--|
+| Backend health endpoint | `/api/health` returns `success:true` |
+| Environment is production | `environment:"production"` (catches `development` misconfiguration) |
+| Database connected | `database:"connected"` against a real Atlas URI |
+| No in-memory/demo data | Products do **not** match the demo seed signature (`/uploads/default-product.png`, seeded names, `totalSold:0`) |
+| Frontend SPA served | `https://ganeshtrades.vercel.app` returns the app shell (HTTP 200) |
+| Frontend API target | The deployed bundle points at the backend API origin |
+| OTP server health (opt-in) | `/api/health` responds 200 when `--otp` is given |
+
+Exit code is `0` only when every configured check passes. Run it **after** any Render/Vercel dashboard change and **before** every deploy/push to confirm the live topology is truly production.
+
 ---
 
 ## 6. Cron Jobs / Background Jobs
