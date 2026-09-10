@@ -3,6 +3,11 @@
   "version": "1.0.0",
   "description": "Ganesh Trades Full Stack Application",
   "private": true,
+  "workspaces": [
+    "backend",
+    "frontend",
+    "otp-server"
+  ],
   "scripts": {
     "install-all": "npm install --prefix backend && npm install --prefix frontend && npm install --prefix otp-server",
     "build-frontend": "npm run build --prefix frontend",
@@ -18,5 +23,9 @@
   },
   "dependencies": {
     "twilio": "^6.1.0"
+  },
+  "overrides": {
+    "qs": "6.16.0",
+    "uuid": "11.1.1"
   }
 }
