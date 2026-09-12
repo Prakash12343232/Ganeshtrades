@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getLowStock, getProducts, updateStock } from '../../services/api';
 import toast from 'react-hot-toast';
-import { FiAlertTriangle, FiSearch } from 'react-icons/fi';
+import { FiAlertTriangle, FiSearch, FiUploadCloud } from 'react-icons/fi';
 import ProductImage from '../../components/common/ProductImage';
+import DataImportWizard from '../../components/admin/DataImportWizard';
 
 const STOCK_ACTIONS = [
   { value: 'add', label: 'Add', color: 'bg-green-100 text-green-700 hover:bg-green-200' },
@@ -16,6 +17,7 @@ export default function AdminInventory() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [stockInputs, setStockInputs] = useState({});
+  const [showImportWizard, setShowImportWizard] = useState(false);
 
   const fetchLowStock = () => {
     getLowStock().then(res => setLowStock(res.data.data)).catch(() => {});
@@ -68,7 +70,16 @@ export default function AdminInventory() {
 
   return (
     <div className="animate-fadeIn">
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">Inventory Management</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <h1 className="text-2xl font-bold text-gray-800">Inventory Management</h1>
+        <button
+          type="button"
+          onClick={() => setShowImportWizard(true)}
+          className="flex items-center gap-1.5 px-3.5 py-2 bg-white text-gray-700 hover:text-primary-700 border border-gray-300 rounded-xl text-xs font-semibold hover:bg-gray-50 shadow-sm transition-all self-start sm:self-auto"
+        >
+          <FiUploadCloud className="text-primary-600 w-4 h-4" /> Bulk Stock Update (Excel/CSV)
+        </button>
+      </div>
 
       <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl p-6 text-white mb-6">
         <div className="flex items-center gap-3">
@@ -196,6 +207,17 @@ export default function AdminInventory() {
           </div>
         </>
       )}
+
+      {/* Bulk Inventory Import Wizard */}
+      <DataImportWizard
+        isOpen={showImportWizard}
+        onClose={() => setShowImportWizard(false)}
+        initialType="inventory"
+        onImportSuccess={() => {
+          fetchLowStock();
+          fetchAll();
+        }}
+      />
     </div>
   );
 }

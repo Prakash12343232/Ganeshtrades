@@ -1,5 +1,8 @@
 const mongoose = require('mongoose');
 
+// Fail fast on buffering if disconnected
+mongoose.set('bufferCommands', false);
+
 const isHostedEnvironment = () =>
   process.env.RENDER === 'true' ||
   Boolean(process.env.RENDER_EXTERNAL_URL) ||
@@ -18,38 +21,40 @@ const connectDB = async () => {
     process.exit(1);
   }
 
-  try {
-    console.log('Connecting to MongoDB Atlas...');
-    const conn = await mongoose.connect(process.env.MONGODB_URI, {
-      serverSelectionTimeoutMS: 10000
-    });
-    dbKind = 'atlas';
-    console.log(`✅ MongoDB Atlas Connected: ${conn.connection.host}`);
-  } catch (error) {
-    console.error(`❌ MongoDB Atlas Connection Error: ${error.message}`);
-    
-    if (isProduction) {
-      console.error('❌ CRITICAL: Production database connection to MongoDB Atlas failed.');
-      console.error('❌ Refusing to start application in production without a valid MongoDB Atlas connection.');
-      process.exit(1);
-    }
-
-    console.warn('⚠️ Atlas is unreachable. Falling back to an in-memory database for local development only...');
-    
+  if (process.env.MONGODB_URI) {
     try {
-      const { MongoMemoryServer } = require('mongodb-memory-server');
-      const mongod = await MongoMemoryServer.create();
-      const uri = mongod.getUri();
-      const conn = await mongoose.connect(uri);
-      dbKind = 'in-memory';
-      console.log(`✅ Development Fallback Applied: In-Memory MongoDB Connected at ${conn.connection.host}`);
-      
-      // Auto-seed so local sandbox works
-      await seedInMemory();
-    } catch (memError) {
-      console.error(`❌ Critical Database Failure: ${memError.message}`);
-      process.exit(1);
+      console.log('Connecting to MongoDB Atlas...');
+      const conn = await mongoose.connect(process.env.MONGODB_URI, {
+        serverSelectionTimeoutMS: 5000
+      });
+      dbKind = 'atlas';
+      console.log(`✅ MongoDB Atlas Connected: ${conn.connection.host}`);
+      return;
+    } catch (error) {
+      console.error(`❌ MongoDB Atlas Connection Error: ${error.message}`);
+      if (isProduction) {
+        console.error('❌ CRITICAL: Production database connection to MongoDB Atlas failed.');
+        console.error('❌ Refusing to start application in production without a valid MongoDB Atlas connection.');
+        process.exit(1);
+      }
+      console.warn('⚠️ Atlas is unreachable. Falling back to an in-memory database for local development only...');
     }
+  } else {
+    console.log('ℹ️ MONGODB_URI not provided. Starting in-memory database...');
+  }
+
+  try {
+    const { MongoMemoryServer } = require('mongodb-memory-server');
+    const mongod = await MongoMemoryServer.create();
+    const uri = mongod.getUri();
+    const conn = await mongoose.connect(uri);
+    dbKind = 'in-memory';
+    console.log(`✅ In-Memory MongoDB Connected at ${conn.connection.host}`);
+
+    // Auto-seed so sandbox works
+    await seedInMemory();
+  } catch (memError) {
+    console.warn(`⚠️ In-memory database initialization error: ${memError.message}`);
   }
 };
 

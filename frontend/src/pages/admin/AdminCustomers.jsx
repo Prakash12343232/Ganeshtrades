@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { getUsers, updateUser, getUserStats } from '../../services/api';
 import toast from 'react-hot-toast';
-import { FiSearch, FiUsers, FiUserCheck, FiUserX, FiUserPlus, FiEye } from 'react-icons/fi';
+import { FiSearch, FiUsers, FiUserCheck, FiUserX, FiUserPlus, FiEye, FiUploadCloud } from 'react-icons/fi';
+import DataImportWizard from '../../components/admin/DataImportWizard';
 
 const STAT_COLORS = [
   { key: 'public', label: 'Public', bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-100' },
@@ -16,6 +17,7 @@ export default function AdminCustomers() {
   const [stats, setStats] = useState(null);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
+  const [showImportWizard, setShowImportWizard] = useState(false);
 
   const fetchUsers = useCallback((page = 1) => {
     const params = { page, limit: 20 };
@@ -41,7 +43,16 @@ export default function AdminCustomers() {
 
   return (
     <div className="animate-fadeIn">
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">Customers</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <h1 className="text-2xl font-bold text-gray-800">Customers</h1>
+        <button
+          type="button"
+          onClick={() => setShowImportWizard(true)}
+          className="flex items-center gap-1.5 px-3.5 py-2 bg-white text-gray-700 hover:text-primary-700 border border-gray-300 rounded-xl text-xs font-semibold hover:bg-gray-50 shadow-sm transition-all self-start sm:self-auto"
+        >
+          <FiUploadCloud className="text-primary-600 w-4 h-4" /> Import Customers (Excel/CSV)
+        </button>
+      </div>
 
       <div className="flex items-center gap-2 mb-4">
         <div className="p-2 bg-primary-50 rounded-lg text-primary-600"><FiUsers className="w-4 h-4" /></div>
@@ -154,6 +165,14 @@ export default function AdminCustomers() {
           ))}
         </div>
       )}
+
+      {/* Bulk Customer Import Wizard */}
+      <DataImportWizard
+        isOpen={showImportWizard}
+        onClose={() => setShowImportWizard(false)}
+        initialType="customers"
+        onImportSuccess={() => fetchUsers(1)}
+      />
     </div>
   );
 }

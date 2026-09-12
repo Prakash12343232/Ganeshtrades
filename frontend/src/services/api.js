@@ -157,4 +157,27 @@ export const getDeliveries = (params) => API.get('/deliveries', { params });
 export const updateDeliveryStatus = (id, data) => API.put(`/deliveries/${id}/status`, data);
 export const getTodayPriority = () => API.get('/deliveries/today-priority');
 
+// Bulk Data Import
+export const getImportTemplate = (type, format = 'xlsx') =>
+  API.get(`/import/template/${type}`, { params: { format }, responseType: 'blob' });
+export const previewProductImport = (formData) =>
+  API.post('/import/products/preview', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  });
+export const commitProductImport = (data) => API.post('/import/products/commit', data);
+export const previewCustomerImport = (formData) =>
+  API.post('/import/customers/preview', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  });
+export const commitCustomerImport = (data) => API.post('/import/customers/commit', data);
+export const previewInventoryImport = (formData) =>
+  API.post('/import/inventory/preview', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  });
+export const commitInventoryImport = (data) => API.post('/import/inventory/commit', data);
+
+// Ganesh AI Business Assistant
+export const getAiSnapshot = () => API.get('/ai/snapshot');
+export const askAiAssistant = (query) => API.post('/ai/assistant', { query });
+
 export default API;

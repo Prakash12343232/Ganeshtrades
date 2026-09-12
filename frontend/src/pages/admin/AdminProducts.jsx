@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getProducts, createProduct, updateProduct, deleteProduct } from '../../services/api';
 import toast from 'react-hot-toast';
-import { FiPlus, FiEdit2, FiTrash2, FiX, FiImage, FiSearch } from 'react-icons/fi';
+import { FiPlus, FiEdit2, FiTrash2, FiX, FiImage, FiSearch, FiUploadCloud } from 'react-icons/fi';
 import ProductImage from '../../components/common/ProductImage';
 import ProductImageUploader from '../../components/admin/ProductImageUploader';
 import BulkImageManager from '../../components/admin/BulkImageManager';
+import DataImportWizard from '../../components/admin/DataImportWizard';
 
 const CATEGORIES = [
   'rice_grains','dal_pulses','spices','oil_ghee','flour','sugar_jaggery',

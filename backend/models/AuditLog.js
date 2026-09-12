@@ -20,7 +20,8 @@ const auditLogSchema = new mongoose.Schema({
       'supplier_create', 'supplier_payment', 'po_create', 'po_receive',
       'expense_create', 'expense_update', 'expense_delete',
       'password_reset',
-      'product_image_upload', 'product_image_delete', 'bulk_image_upload'
+      'product_image_upload', 'product_image_delete', 'bulk_image_upload',
+      'bulk_import_products', 'bulk_import_customers', 'bulk_update_inventory'
     ]
   },
   entity: {

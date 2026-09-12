@@ -1,0 +1,6 @@
+{
+  "name": "Ganesh Trades",
+  "description": "Online grocery and wholesale store with product catalog, cart, orders, and management dashboard",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

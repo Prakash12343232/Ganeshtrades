@@ -23,7 +23,9 @@ const ROUTE_MOUNTS = {
   'deliveries.js': '/api/deliveries',
   'backups.js': '/api/backups',
   'settings.js': '/api/settings',
-  'media.js': '/api/media'
+  'media.js': '/api/media',
+  'import.js': '/api/import',
+  'ai.js': '/api/ai'
 };
 
 // Endpoints consumed OUTSIDE services/api.js (e.g. media URLs built by utils/mediaUrl.js)

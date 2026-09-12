@@ -2,13 +2,18 @@ import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useState, useEffect, Suspense } from 'react';
 import { getNotifications } from '../services/api';
-import { FiHome, FiPackage, FiUsers, FiDollarSign, FiBarChart2, FiBox, FiLogOut, FiMenu, FiArrowLeft, FiBell, FiTruck, FiBookOpen, FiFileText, FiDatabase, FiMap, FiShoppingBag, FiStar } from 'react-icons/fi';
+import { FiHome, FiPackage, FiUsers, FiDollarSign, FiBarChart2, FiBox, FiLogOut, FiMenu, FiArrowLeft, FiBell, FiTruck, FiBookOpen, FiFileText, FiDatabase, FiMap, FiShoppingBag, FiStar, FiCpu, FiUploadCloud } from 'react-icons/fi';
 import logoImg from '../assets/logo.png';
+import AiBusinessAssistant from '../components/admin/AiBusinessAssistant';
+import DataImportWizard from '../components/admin/DataImportWizard';
 
 export default function AdminLayout() {
   const { user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [unreadNotifs, setUnreadNotifs] = useState(0);
+  const [isAiOpen, setIsAiOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
+  const [importType, setImportType] = useState('products');
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -97,7 +102,30 @@ export default function AdminLayout() {
                 {menuItems.find(m => isActive(m.path, m.exact))?.label || 'Dashboard'}
               </h2>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setImportType('products');
+                  setIsImportOpen(true);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-navy-850 hover:bg-navy-800 text-slate-300 hover:text-white border border-navy-700 rounded-xl text-xs font-semibold transition-all"
+                title="Excel/CSV Bulk Import"
+              >
+                <FiUploadCloud className="w-4 h-4 text-mint-400" />
+                <span className="hidden sm:inline">Bulk Import</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsAiOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-mint-500/20 to-emerald-500/20 hover:from-mint-500/30 hover:to-emerald-500/30 text-mint-300 border border-mint-500/40 rounded-xl text-xs font-bold transition-all shadow-sm shadow-mint-500/10"
+                title="Ganesh AI Business Assistant"
+              >
+                <FiCpu className="w-4 h-4 text-mint-400 animate-pulse" />
+                <span className="hidden md:inline">Ganesh AI</span>
+              </button>
+
               <Link to="/admin/notifications" className="p-2 text-slate-300 hover:text-mint-400 relative">
                 <FiBell className="w-5 h-5" />
                 {unreadNotifs > 0 && (
@@ -123,6 +151,32 @@ export default function AdminLayout() {
             <Outlet />
           </Suspense>
         </main>
+
+        {/* Floating Quick AI Button */}
+        <button
+          onClick={() => setIsAiOpen(true)}
+          className="fixed bottom-5 right-5 z-40 p-3.5 bg-gradient-to-r from-mint-500 to-emerald-500 text-navy-950 rounded-2xl shadow-xl shadow-mint-500/25 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 font-bold text-xs"
+          title="Open Ganesh AI Business Assistant"
+        >
+          <FiCpu className="w-5 h-5" />
+          <span className="hidden sm:inline">Ask AI Assistant</span>
+        </button>
+
+        {/* Global Modals */}
+        <AiBusinessAssistant
+          isOpen={isAiOpen}
+          onClose={() => setIsAiOpen(false)}
+        />
+
+        <DataImportWizard
+          isOpen={isImportOpen}
+          onClose={() => setIsImportOpen(false)}
+          initialType={importType}
+          onImportSuccess={() => {
+            // Can trigger a custom event or router refresh
+            window.dispatchEvent(new CustomEvent('gt_data_imported', { detail: { type: importType } }));
+          }}
+        />
       </div>
     </div>
   );
