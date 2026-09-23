@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
 const { MongoMemoryServer } = require('mongodb-memory-server');
 const jwt = require('jsonwebtoken');
 
-jest.setTimeout(120000); // 120 seconds timeout for in-memory MongoDB download
+jest.setTimeout(300000); // 300 seconds timeout for in-memory MongoDB download
 
 let mongoServer;
 
@@ -16,7 +16,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  if (mongoose.connection) {
+  if (mongoose.connection && mongoose.connection.readyState === 1) {
     await mongoose.connection.dropDatabase();
     await mongoose.connection.close();
   }
@@ -26,9 +26,11 @@ afterAll(async () => {
 });
 
 afterEach(async () => {
-  const collections = mongoose.connection.collections;
-  for (const key in collections) {
-    await collections[key].deleteMany();
+  if (mongoose.connection && mongoose.connection.readyState === 1) {
+    const collections = mongoose.connection.collections;
+    for (const key in collections) {
+      await collections[key].deleteMany();
+    }
   }
 });
 
