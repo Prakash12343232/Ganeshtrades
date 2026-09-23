@@ -23,12 +23,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
 
       # ── Backend Validation ──
-
-      - name: Install backend dependencies
-        working-directory: ./backend
-        run: npm ci || npm install
 
       - name: Validate backend syntax
         working-directory: ./backend
@@ -40,10 +40,6 @@ jobs:
 
       # ── OTP Server Validation ──
 
-      - name: Install OTP server dependencies
-        working-directory: ./otp-server
-        run: npm ci || npm install
-
       - name: Validate OTP server syntax
         working-directory: ./otp-server
         run: node --check server.js
@@ -53,10 +49,6 @@ jobs:
         run: npm test
 
       # ── Frontend Validation ──
-
-      - name: Install frontend dependencies
-        working-directory: ./frontend
-        run: npm ci || npm install
 
       - name: Lint frontend
         working-directory: ./frontend
