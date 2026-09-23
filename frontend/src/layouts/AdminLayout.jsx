@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useState, useEffect, Suspense } from 'react';
 import { getNotifications } from '../services/api';
 import { FiHome, FiPackage, FiUsers, FiDollarSign, FiBarChart2, FiBox, FiLogOut, FiMenu, FiArrowLeft, FiBell, FiTruck, FiBookOpen, FiFileText, FiDatabase, FiMap, FiShoppingBag, FiStar, FiCpu, FiUploadCloud } from 'react-icons/fi';
-import logoImg from '../assets/logo.png';
+import logoIcon from '../assets/logo-icon.png';
 import AiBusinessAssistant from '../components/admin/AiBusinessAssistant';
 import DataImportWizard from '../components/admin/DataImportWizard';
 
@@ -57,12 +57,12 @@ export default function AdminLayout() {
         <div>
           <div className="flex items-center gap-3 px-6 py-5 border-b border-navy-800">
             <img
-              src={logoImg}
+              src={logoIcon}
               alt="Ganesh Trades Logo"
-              className="w-12 h-12 object-contain drop-shadow-[0_4px_10px_rgba(52,211,153,0.3)]"
+              className="w-11 h-11 object-contain drop-shadow-[0_4px_12px_rgba(16,185,129,0.35)] flex-shrink-0"
             />
             <div>
-              <h1 className="font-extrabold text-lg text-white">Ganesh Trades</h1>
+              <h1 className="font-extrabold text-base text-white leading-tight tracking-tight">Ganesh Trades</h1>
               <p className="text-xs text-mint-400 font-medium capitalize">{user?.role} Panel</p>
             </div>
           </div>

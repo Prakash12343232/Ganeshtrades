@@ -7,6 +7,7 @@ import { FiShoppingCart, FiUser, FiMenu, FiX, FiHome, FiPackage, FiLogOut, FiLog
 import { FaWhatsapp } from 'react-icons/fa';
 import ThemeToggle from '../components/common/ThemeToggle';
 import logoImg from '../assets/logo.png';
+import logoIcon from '../assets/logo-icon.png';
 
 export default function CustomerLayout() {
   const { user, logout } = useAuth();
@@ -76,15 +77,15 @@ export default function CustomerLayout() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-2.5 group">
+            <Link to="/" className="flex items-center gap-2 group">
               <img
-                src={logoImg}
+                src={logoIcon}
                 alt="Ganesh Trades Logo"
-                className="w-12 h-12 object-contain drop-shadow-[0_4px_10px_rgba(52,211,153,0.3)] group-hover:scale-105 transition-transform"
+                className="w-11 h-11 object-contain drop-shadow-[0_4px_12px_rgba(16,185,129,0.35)] group-hover:scale-110 transition-transform duration-200"
               />
               <div className="hidden sm:block">
-                <h1 className="text-lg font-bold text-slate-900 dark:text-white leading-tight">Ganesh Trades</h1>
-                <p className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold tracking-wide -mt-0.5">Grocery &amp; Wholesale</p>
+                <h1 className="text-base font-extrabold text-slate-900 dark:text-white leading-tight tracking-tight">Ganesh Trades</h1>
+                <p className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold tracking-wider -mt-0.5 uppercase">Grocery &amp; Wholesale</p>
               </div>
             </Link>
 
@@ -249,13 +250,12 @@ export default function CustomerLayout() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>
-              <div className="flex items-center gap-2.5 mb-3">
+              <div className="flex items-center gap-3 mb-3">
                 <img
                   src={logoImg}
                   alt="Ganesh Trades Logo"
-                  className="w-11 h-11 object-contain drop-shadow-[0_2px_8px_rgba(52,211,153,0.3)]"
+                  className="w-14 h-14 object-contain drop-shadow-[0_2px_12px_rgba(16,185,129,0.35)]"
                 />
-                <h3 className="text-xl font-bold text-white">Ganesh Trades</h3>
               </div>
               <p className="text-slate-400 text-sm leading-relaxed max-w-sm">Your trusted grocery and wholesale shop. Quality products at the best prices for homes, hotels and PGs.</p>
             </div>
