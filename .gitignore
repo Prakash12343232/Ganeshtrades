@@ -4,7 +4,9 @@ node_modules/
 # Environment & secrets
 .env
 .env.*
+.env*
 !.env.example
+!**/.env.example
 
 # Backups (contain PII)
 backend/backups/*.json
@@ -31,5 +33,4 @@ npm-debug.log*
 !.vscode/extensions.json
 
 .vercel
-
-.env*
+.gnhf/
