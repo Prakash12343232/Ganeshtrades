@@ -157,25 +157,52 @@ RESULT: GREEN - all production readiness checks passed.
 
 ---
 
-## 6. GitHub Branch and Commit Status
+## 6. GitHub Actions CI Failure & Resolution
 
-- **Dedicated Repair Branch**: `repair/otp-sms-delivery`
-- **Commit Hash**: `8983a08` (`fix(sms): implement Fast2SMS gateway adapter with Quick OTP and DLT support, timeout handling, and test suite`)
-- **Remote Push**: Successfully pushed to `origin/repair/otp-sms-delivery`.
-- **Pull Request URL**: [https://github.com/Prakash12343232/Ganeshtrades/pull/new/repair/otp-sms-delivery](https://github.com/Prakash12343232/Ganeshtrades/pull/new/repair/otp-sms-delivery)
+### Incident Overview
+- **Failed Workflow Run**: [https://github.com/Prakash12343232/Ganeshtrades/actions/runs/38108566575](https://github.com/Prakash12343232/Ganeshtrades/actions/runs/38108566575)
+- **Failed Commit**: `83917f72b43b526f8afb701ff618fb08f1b7c0d2`
+- **Workflow**: `.github/workflows/ci.yml` (`validate` job)
+- **Failing Step**: `Test frontend` (`npm test` in `./frontend`)
+
+### Root Cause Analysis
+- The CI workflow configured `node-version: 20` using `actions/setup-node@v4`.
+- The frontend test runner uses Vitest 5 with `jsdom@30.1.1` and its internal HTTP/web-platform dependency `undici@8.11.0`.
+- As defined in their respective `package.json` specifications:
+  - `undici@8.11.0`: `"engines": { "node": ">=22.19.0" }`
+  - `jsdom@30.1.1`: `"engines": { "node": "^22.22.2 || ^24.15.0 || >=26.0.0" }`
+- On Node.js 20, modern WebIDL cloning utilities are missing from the runtime, throwing:
+  ```text
+  TypeError: webidl.util.markAsUncloneable is not a function
+  ```
+- All other CI steps (syntax validation, backend tests, OTP tests, Oxlint) passed, isolating the failure strictly to the runner's Node.js runtime version during Vitest's JSDOM setup.
+
+### Engineering Fix Applied
+1. **Upgraded Node.js in CI**: Updated `.github/workflows/ci.yml` step `Setup Node.js` to `node-version: '22'` (resolves to the latest Node 22 LTS patch release on ubuntu-latest).
+2. **Explicit Lockfile Cache Key**: Added `cache-dependency-path: package-lock.json` to ensure deterministic npm cache invalidation based on the monorepo root lockfile.
+3. **CI Trigger Expansion**: Added `push: branches: [main, 'repair/**']` so repair branches validate automatically on push before proposing a merge into `main`.
+4. **Engines Specification**: Added `"engines": { "node": ">=22.0.0" }` to root `package.json` to document runtime engine expectations clearly across all developers and CI.
+
+---
+
+## 7. GitHub Branch and Commit Status
+
+- **Dedicated CI Repair Branch**: `repair/ci-node22-fix`
+- **Previous SMS Repair Branch**: `repair/otp-sms-delivery` (`115e9a7`)
 - **Production Base (`main`)**: Clean at commit `83917f7`.
 
 ---
 
-## 7. Next Actions for Prakash
+## 8. Next Actions for Prakash
 
 1. **Add `SMS_PROVIDER` and `FAST2SMS_API_KEY` in Render Dashboard**:
    - Open Render Dashboard → `ganeshtrades1` → **Environment**.
    - Add `SMS_PROVIDER=fast2sms` and `FAST2SMS_API_KEY=<your_api_key>`.
    - Save changes (Render will trigger redeploy).
 2. **Review and Merge Pull Request**:
-   - Open [https://github.com/Prakash12343232/Ganeshtrades/pull/new/repair/otp-sms-delivery](https://github.com/Prakash12343232/Ganeshtrades/pull/new/repair/otp-sms-delivery).
-   - Review changes and merge `repair/otp-sms-delivery` into `main`.
+   - Open [https://github.com/Prakash12343232/Ganeshtrades/pull/new/repair/ci-node22-fix](https://github.com/Prakash12343232/Ganeshtrades/pull/new/repair/ci-node22-fix).
+   - Verify green GitHub Actions check.
+   - Merge `repair/ci-node22-fix` into `main`.
 3. **Redeploy Vercel**:
    - Open Vercel Dashboard → `ganeshtrades` → Deployments.
    - Click **Redeploy** to build the latest commit from `main`.
