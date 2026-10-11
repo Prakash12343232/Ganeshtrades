@@ -98,9 +98,9 @@ export default function PaymentGatewayModal({ open, onClose, orderNumber, amount
 
         <div className="space-y-2 pt-2">
           <button onClick={handleAuthorize} disabled={paymentProcessing}
-            className="w-full py-3 bg-mint-500 hover:bg-mint-400 text-navy-950 font-extrabold rounded-xl text-sm transition-all shadow-lg shadow-mint-500/20 flex items-center justify-center gap-2">
+            className="w-full py-3 bg-mint-500 hover:bg-mint-400 text-slate-950 font-extrabold rounded-xl text-sm transition-all shadow-lg shadow-mint-500/20 flex items-center justify-center gap-2 cursor-pointer">
             {paymentProcessing ? (
-              <span className="flex items-center gap-2"><span className="animate-spin rounded-full h-4 w-4 border-t-2 border-navy-950"></span> Processing Payment...</span>
+              <span className="flex items-center gap-2"><span className="animate-spin rounded-full h-4 w-4 border-2 border-slate-950 border-t-transparent"></span> Processing Payment...</span>
             ) : (
               <><FiCheck /> Authorize Payment of ₹{amount?.toFixed(2)}</>
             )}

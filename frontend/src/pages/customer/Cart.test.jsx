@@ -130,4 +130,49 @@ describe('Cart place-order duplicate protection', () => {
     });
     expect(createPaymentOrder).not.toHaveBeenCalled();
   });
+
+  it('renders all accessible payment options and sub-modes with readable text', async () => {
+    await renderCart();
+    expect(screen.getByText(/Online Payment Gateway/)).toBeInTheDocument();
+    expect(screen.getByText(/Cash on Delivery/)).toBeInTheDocument();
+    expect(screen.getByText(/Credit \(Khata Account\)/)).toBeInTheDocument();
+
+    // Default online mode shows sub-modes
+    expect(screen.getByRole('button', { name: /UPI \/ GPay \/ PhonePe/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Debit Card/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Credit Card/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Net Banking/ })).toBeInTheDocument();
+
+    // Switch to Khata Credit
+    fireEvent.click(screen.getByRole('radio', { name: /Credit \(Khata Account\)/ }));
+    expect(screen.getByRole('button', { name: 'Place Order' })).toBeInTheDocument();
+  });
+
+  it('renders a disabled button with clear feedback when schedule is incomplete', async () => {
+    await renderCart();
+    fireEvent.click(screen.getByRole('button', { name: /Schedule/ }));
+
+    const btn = screen.getByRole('button', { name: 'Select Delivery Date & Time' });
+    expect(btn).toBeDisabled();
+    expect(btn).toHaveClass('cursor-not-allowed');
+  });
+
+  it('renders out-of-range state when serviceability is false', async () => {
+    checkServiceability.mockResolvedValueOnce({ data: { data: { serviceable: false, message: 'Too far away' } } });
+    await renderCart();
+
+    await waitFor(() => {
+      const btn = screen.getByRole('button', { name: 'Outside Delivery Area' });
+      expect(btn).toBeDisabled();
+      expect(btn).toHaveClass('bg-rose-600');
+    });
+  });
+
+  it('renders a clean product image fallback for items without photos', async () => {
+    cartState.items = [
+      { product: 'p2', name: 'Dal', price: 65, quantity: 1, stock: 5, image: '' }
+    ];
+    await renderCart();
+    expect(screen.getByTestId('product-image-fallback')).toBeInTheDocument();
+  });
 });

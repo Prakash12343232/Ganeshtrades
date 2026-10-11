@@ -13,8 +13,9 @@ export function getBackendOrigin() {
 export function resolveMediaUrl(url) {
   if (typeof url !== 'string' || url.trim() === '') return url;
   const trimmed = url.trim();
-  if (!/^\/(api\/media|uploads)\//i.test(trimmed)) return url;
+  if (!/^\/?(api\/media|uploads)\//i.test(trimmed)) return url;
   const origin = getBackendOrigin();
-  if (!origin) return url;
-  return `${origin}${trimmed}`;
+  const normalizedPath = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+  if (!origin) return normalizedPath;
+  return `${origin}${normalizedPath}`;
 }

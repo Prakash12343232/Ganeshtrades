@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Package, ImageOff } from 'lucide-react';
+import { Package } from 'lucide-react';
 import { resolveMediaUrl } from '../../utils/mediaUrl';
 
 /**
@@ -9,7 +9,7 @@ export default function ProductImage({
   src,
   alt = 'Product image',
   className = 'w-full h-full object-contain',
-  containerClassName = 'w-full h-full flex items-center justify-center bg-gray-50 rounded-md overflow-hidden relative',
+  containerClassName = 'w-full h-full flex items-center justify-center bg-slate-50 dark:bg-navy-950 rounded-md overflow-hidden relative',
   onClick,
   showFallbackLabel = true
 }) {
@@ -28,16 +28,17 @@ export default function ProductImage({
   if (!isValidSrc || hasError) {
     return (
       <div
-        className={`${containerClassName} border border-gray-100 bg-slate-50/80 text-gray-400 p-2 select-none`}
+        className={`${containerClassName} bg-slate-100 dark:bg-navy-900/80 text-slate-400 dark:text-slate-500 select-none`}
         onClick={onClick}
-        title="No image available"
+        title={alt || 'No photo available'}
+        data-testid="product-image-fallback"
       >
-        <div className="flex flex-col items-center justify-center text-center p-2">
-          <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mb-1.5 text-gray-400 shadow-inner">
-            <ImageOff className="w-5 h-5" />
+        <div className="flex flex-col items-center justify-center text-center p-1">
+          <div className="w-8 h-8 rounded-lg bg-slate-200/80 dark:bg-navy-800/90 flex items-center justify-center text-mint-600 dark:text-mint-400 shadow-sm">
+            <Package className="w-4 h-4" />
           </div>
           {showFallbackLabel && (
-            <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">
+            <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-wider">
               No Photo
             </span>
           )}
@@ -49,8 +50,8 @@ export default function ProductImage({
   return (
     <div className={containerClassName} onClick={onClick}>
       {!isLoaded && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-100 animate-pulse">
-          <Package className="w-6 h-6 text-gray-300" />
+        <div className="absolute inset-0 flex items-center justify-center bg-slate-100 dark:bg-navy-900/50 animate-pulse">
+          <Package className="w-5 h-5 text-slate-400 dark:text-navy-600" />
         </div>
       )}
       <img

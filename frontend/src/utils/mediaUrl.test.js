@@ -43,6 +43,11 @@ describe('resolveMediaUrl', () => {
     expect(resolveMediaUrl('/uploads/product-1.webp')).toBe('https://ganeshtrades1.onrender.com/uploads/product-1.webp');
   });
 
+  it('prepends the backend origin to uploads paths without leading slash', () => {
+    expect(resolveMediaUrl('uploads/product-1.webp')).toBe('https://ganeshtrades1.onrender.com/uploads/product-1.webp');
+    expect(resolveMediaUrl('api/media/abc123')).toBe('https://ganeshtrades1.onrender.com/api/media/abc123');
+  });
+
   it('leaves absolute URLs untouched', () => {
     const cloudinary = 'https://res.cloudinary.com/demo/image/upload/v1/product.webp';
     expect(resolveMediaUrl(cloudinary)).toBe(cloudinary);
