@@ -86,6 +86,19 @@ const run = async () => {
     report('backend health endpoint', false, `unreachable: ${err.message}`, 'confirm the Render service ganeshtrades1 is running and healthy at /api/health');
   }
 
+  const serverRoot = new URL(apiBase).origin;
+  try {
+    const { status, body } = await fetchJson(`${serverRoot}/`);
+    report(
+      'backend root endpoint (no ENOENT)',
+      status === 200 && body && body.success === true,
+      status === 200 && body && body.success === true ? `HTTP 200 (${body.message})` : `HTTP ${status} (ENOENT / missing-file fallback occurred)`,
+      'redeploy backend with root endpoint fix that avoids res.sendFile when frontend build is absent'
+    );
+  } catch (err) {
+    report('backend root endpoint (no ENOENT)', false, `unreachable: ${err.message}`);
+  }
+
   const demoDetected = (products) =>
     Array.isArray(products) &&
     products.length > 0 &&

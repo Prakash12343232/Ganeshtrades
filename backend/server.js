@@ -11,7 +11,7 @@ const path = require('path');
 require('dotenv').config({ override: false });
 
 // Safe startup diagnostics (no secrets printed)
-// Build trigger: 2026-09-01T19:21:40Z
+// Build trigger: 2026-10-11T14:50:00Z - fix: Render API-only routing and SPA fallback ENOENT guard
 console.log(`🔧 NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
 console.log(`🔧 MONGODB_URI: ${process.env.MONGODB_URI ? 'set (' + process.env.MONGODB_URI.length + ' chars)' : '❌ NOT SET'}`);
 console.log(`🔧 JWT_SECRET: ${process.env.JWT_SECRET ? 'set (' + process.env.JWT_SECRET.length + ' chars)' : '❌ NOT SET'}`);
@@ -213,17 +213,50 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// SPA Fallback: Any non-API route serves index.html for React Router
+// Root endpoint: API-only status endpoint
+app.get('/', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Ganesh Trades API is running',
+    environment: process.env.NODE_ENV || 'not set',
+    version: '1.0.0',
+    documentation: '/api/health',
+    frontend: 'https://ganeshtrades.vercel.app'
+  });
+});
+
+// Non-API routes fallback: Render is an API-only service (frontend hosted on Vercel)
 const frontendIndex = path.resolve(__dirname, '../frontend', 'dist', 'index.html');
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) {
     return next();
   }
+  // Only serve index.html if the build artifact physically exists (e.g. monolithic dev)
   if (fs.existsSync(frontendIndex)) {
-    res.sendFile(frontendIndex);
-  } else {
-    res.send('API is running. Build frontend with npm run build to serve the application.');
+    return res.sendFile(frontendIndex, (err) => {
+      if (err) {
+        res.status(404).json({
+          success: false,
+          message: 'Frontend asset unavailable. The web application is hosted at https://ganeshtrades.vercel.app'
+        });
+      }
+    });
   }
+  res.status(404).json({
+    success: false,
+    message: 'Route not found. Ganesh Trades backend is an API-only service; the web application is hosted at https://ganeshtrades.vercel.app'
+  });
+});
+
+// 404 handler for unmatched API routes
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) {
+    return res.status(404).json({
+      success: false,
+      message: `API endpoint '${req.originalUrl}' not found`
+    });
+  }
+  next();
 });
 
 // Database offline / connectivity fallback

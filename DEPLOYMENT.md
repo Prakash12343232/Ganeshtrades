@@ -311,7 +311,8 @@ git push --force origin main
 | Vercel not auto-deploying | Verify GitHub integration in Vercel Dashboard → Settings → Git |
 | Render not auto-deploying | Verify Auto-Deploy is "Yes" in Render Dashboard |
 | Backend changes not triggering Render | Build filter is `backend/**` — ensure changes are in that directory |
-| Backend fails with `Cannot find module 'express'` | Ensure Render is set to branch `gnhf/perform-a-final-prod-4752de`; root `package.json` includes `workspaces` so `npm install` installs backend dependencies whether built from root (`.`) or `backend` |
+| Backend fails with `Cannot find module` | Ensure Render service tracks branch `main`; root `package.json` includes `workspaces` so npm installs backend dependencies |
+| Render logs `ENOENT: frontend/dist/index.html` | Backend is API-only on Render; `server.js` serves a JSON status at `/` and guards all non-API routes against `res.sendFile` when `frontend/dist` is absent |
 | CI tests fail | Check GitHub Actions logs; tests use MongoMemoryServer (no real DB) |
 
 ---
