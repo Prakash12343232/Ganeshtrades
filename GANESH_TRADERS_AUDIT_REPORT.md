@@ -183,6 +183,22 @@ RESULT: GREEN - all production readiness checks passed.
 3. **CI Trigger Expansion**: Added `push: branches: [main, 'repair/**']` so repair branches validate automatically on push before proposing a merge into `main`.
 4. **Engines Specification**: Added `"engines": { "node": ">=22.0.0" }` to root `package.json` to document runtime engine expectations clearly across all developers and CI.
 
+### Verified GitHub Actions Execution
+- **Verified Green Run**: [https://github.com/Prakash12343232/Ganeshtrades/actions/runs/38109975365](https://github.com/Prakash12343232/Ganeshtrades/actions/runs/38109975365)
+- **Status**: **COMPLETED (SUCCESS / GREEN)**
+- **Commit**: `5cafc75` on branch `repair/ci-node22-fix`
+- **Steps Verified**:
+  - `Checkout repository`: **SUCCESS**
+  - `Setup Node.js (v22 LTS)`: **SUCCESS**
+  - `Install dependencies (npm ci)`: **SUCCESS**
+  - `Validate backend syntax`: **SUCCESS**
+  - `Run backend tests (29 suites / 172 tests)`: **SUCCESS**
+  - `Validate OTP server syntax`: **SUCCESS**
+  - `Run OTP server tests (1 suite / 11 tests)`: **SUCCESS**
+  - `Lint frontend (Oxlint 0 errors)`: **SUCCESS**
+  - `Test frontend (Vitest 5 / JSDOM 30 - 24 suites / 152 tests)`: **SUCCESS**
+  - `Build frontend (Vite production bundle)`: **SUCCESS**
+
 ---
 
 ## 7. GitHub Branch and Commit Status
