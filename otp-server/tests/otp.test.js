@@ -184,4 +184,44 @@ describe('OTP Microservice — Comprehensive Test Suite', () => {
       expect(res.body.success).toBe(false);
     });
   });
+
+  // 5. Fast2SMS Provider Adapter Unit Tests
+  describe('SmsProvider Fast2SMS Adapter', () => {
+    const axios = require('axios');
+    const SmsProvider = require('../services/smsProvider');
+
+    it('should successfully dispatch via Fast2SMS Quick OTP route', async () => {
+      process.env.FAST2SMS_API_KEY = 'mock_fast2sms_key';
+      delete process.env.FAST2SMS_ROUTE;
+      delete process.env.FAST2SMS_TEMPLATE_ID;
+      delete process.env.FAST2SMS_SENDER_ID;
+
+      const postSpy = jest.spyOn(axios, 'post').mockResolvedValueOnce({
+        data: { return: true, message: ['SMS sent successfully.'] }
+      });
+
+      const result = await SmsProvider.sendViaFast2SMS('9876543210', '482719', '98****3210');
+      expect(result.success).toBe(true);
+      expect(result.provider).toBe('fast2sms');
+      expect(postSpy).toHaveBeenCalledWith(
+        'https://www.fast2sms.com/dev/bulkV2',
+        { route: 'otp', variables_values: '482719', numbers: '9876543210' },
+        expect.any(Object)
+      );
+      postSpy.mockRestore();
+    });
+
+    it('should throw an error when Fast2SMS reports failure', async () => {
+      process.env.FAST2SMS_API_KEY = 'mock_fast2sms_key';
+      const postSpy = jest.spyOn(axios, 'post').mockResolvedValueOnce({
+        data: { return: false, status_code: 996, message: ['Low balance in your account'] }
+      });
+
+      await expect(
+        SmsProvider.sendViaFast2SMS('9876543210', '482719', '98****3210')
+      ).rejects.toThrow(/Low balance in your account/);
+      postSpy.mockRestore();
+    });
+  });
 });
+

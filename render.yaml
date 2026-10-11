@@ -25,6 +25,16 @@ services:
         sync: false
       - key: JWT_SECRET
         sync: false
+      - key: SMS_PROVIDER
+        sync: false
+      - key: FAST2SMS_API_KEY
+        sync: false
+      - key: FAST2SMS_ROUTE
+        sync: false
+      - key: FAST2SMS_SENDER_ID
+        sync: false
+      - key: FAST2SMS_TEMPLATE_ID
+        sync: false
       - key: TWILIO_ACCOUNT_SID
         sync: false
       - key: TWILIO_AUTH_TOKEN

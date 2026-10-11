@@ -53,40 +53,78 @@ class SmsProvider {
   }
 
   static async sendViaFast2SMS(mobile, otp, masked) {
-    const apiKey = process.env.FAST2SMS_API_KEY || process.env.SMS_API_KEY;
+    const apiKey = (process.env.FAST2SMS_API_KEY || process.env.SMS_API_KEY || '').trim();
     if (!apiKey) {
       throw new Error('FAST2SMS API key missing in environment configuration.');
     }
 
-    console.log(`[SMS FAST2SMS] Dispatching OTP SMS to ${masked}...`);
+    const senderId = (process.env.FAST2SMS_SENDER_ID || process.env.SMS_SENDER_ID || '').trim();
+    const templateId = (process.env.FAST2SMS_TEMPLATE_ID || process.env.SMS_TEMPLATE_ID || '').trim();
+    const explicitRoute = (process.env.FAST2SMS_ROUTE || '').trim().toLowerCase();
+    const useDlt = explicitRoute === 'dlt' || Boolean(templateId && senderId);
+
+    const payload = useDlt
+      ? {
+          route: 'dlt',
+          sender_id: senderId,
+          message: templateId,
+          variables_values: String(otp),
+          numbers: String(mobile),
+          flash: 0
+        }
+      : {
+          route: 'otp',
+          variables_values: String(otp),
+          numbers: String(mobile)
+        };
+
+    console.log(`[SMS FAST2SMS] Dispatching OTP SMS to ${masked} using route '${payload.route}'...`);
     try {
       const response = await axios.post(
         'https://www.fast2sms.com/dev/bulkV2',
+        payload,
         {
-          route: 'otp',
-          variables_values: otp,
-          numbers: mobile
-        },
-        {
-          headers: { authorization: apiKey },
+          headers: {
+            authorization: apiKey,
+            'Content-Type': 'application/json'
+          },
           timeout: 10000
         }
       );
 
-      if (response.data && (response.data.return === true || response.data.status_code === 200)) {
-        console.log(`[SMS FAST2SMS SUCCESS] Dispatched to ${masked}. Message: ${response.data.message || 'Accepted'}`);
+      const data = response.data;
+      const isSuccess = data && (data.return === true || data.status_code === 200);
+
+      const extractMsg = (d) => {
+        if (!d) return 'Accepted';
+        if (Array.isArray(d.message)) return d.message.join(', ');
+        if (typeof d.message === 'string' && d.message.trim()) return d.message.trim();
+        return 'Accepted';
+      };
+
+      if (isSuccess) {
+        const msg = extractMsg(data);
+        console.log(`[SMS FAST2SMS SUCCESS] Dispatched to ${masked}. Message: ${msg}`);
         return {
           success: true,
           provider: 'fast2sms',
-          message: response.data.message || 'SMS sent successfully via Fast2SMS'
+          message: msg
         };
       } else {
-        const errDesc = response.data?.message || JSON.stringify(response.data);
+        const errDesc = extractMsg(data);
         console.error(`[SMS FAST2SMS FAILURE] Provider error for ${masked}: ${errDesc}`);
         throw new Error(`Fast2SMS failed to deliver SMS: ${errDesc}`);
       }
     } catch (err) {
-      const errMsg = err.response?.data?.message || err.message;
+      let errMsg = 'Fast2SMS network error';
+      if (err.code === 'ECONNABORTED' || (err.message && err.message.includes('timeout'))) {
+        errMsg = 'Fast2SMS HTTP request timed out after 10 seconds';
+      } else if (err.response && err.response.data) {
+        const d = err.response.data;
+        errMsg = Array.isArray(d.message) ? d.message.join(', ') : (d.message || err.message);
+      } else if (err.message) {
+        errMsg = err.message;
+      }
       console.error(`[SMS FAST2SMS ERROR] Request failed for ${masked}: ${errMsg}`);
       throw new Error(`Fast2SMS error: ${errMsg}`);
     }
