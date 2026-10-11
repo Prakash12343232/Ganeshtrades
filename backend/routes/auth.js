@@ -13,6 +13,7 @@ const { createAuditLog } = require('../utils/auditLogger');
 const connectDB = require('../config/db');
 const { pickFields, normalizeMobile, generateOTP, hashOTP, verifyOTP, validatePasswordStrength } = require('../utils/security');
 const { clientErrorMessage } = require('../utils/errors');
+const googleAuth = require('../utils/googleAuth');
 
 // Rate Limiters
 const authLimiter = rateLimit({
@@ -47,6 +48,207 @@ const checkLock = async (user) => {
     throw new Error(`Account locked due to multiple failed attempts. Try again in ${minutesLeft} minutes.`);
   }
 };
+
+// @route   GET /api/auth/google/config
+// @desc    Get Google OAuth public configuration (client ID availability)
+// @access  Public
+router.get('/google/config', (req, res) => {
+  const clientId = process.env.GOOGLE_CLIENT_ID || '';
+  res.json({
+    success: true,
+    configured: Boolean(clientId.trim()),
+    clientId: clientId.trim() || null
+  });
+});
+
+// @route   POST /api/auth/google
+// @desc    Authenticate or register user with Google Identity Services token
+// @access  Public
+router.post('/google', authLimiter, async (req, res) => {
+  try {
+    const { credential, idToken } = req.body;
+    const tokenToVerify = credential || idToken;
+
+    if (!tokenToVerify) {
+      return res.status(400).json({
+        success: false,
+        message: 'Google credential token is required'
+      });
+    }
+
+    if (mongoose.connection.readyState !== 1) {
+      await connectDB();
+    }
+
+    // 1. Verify token signature, issuer, audience, and email verification
+    const googleProfile = await googleAuth.verifyGoogleToken(tokenToVerify);
+
+    // 2. Find existing user by googleId
+    let user = await User.findOne({ googleId: googleProfile.sub });
+
+    // 3. If not found by googleId, find by verified email
+    if (!user) {
+      user = await User.findOne({ email: googleProfile.email });
+
+      if (user) {
+        // Critical: Strict protection of owner and manager privileges
+        if (user.role === 'admin' || user.role === 'manager') {
+          const adminAllowedEmail = (process.env.ADMIN_GOOGLE_EMAIL || '').toLowerCase().trim();
+          const isExplicitAdminEmail = adminAllowedEmail && adminAllowedEmail === googleProfile.email;
+
+          if (!isExplicitAdminEmail) {
+            return res.status(403).json({
+              success: false,
+              message: 'Administrative accounts require verified Google linking. Please sign in with your mobile & password first, then link your Google account in Settings.'
+            });
+          }
+        }
+
+        // Link verified Google ID to existing customer record
+        user.googleId = googleProfile.sub;
+        user.isEmailVerified = true;
+        if (!user.avatar && googleProfile.picture) {
+          user.avatar = googleProfile.picture;
+        }
+        await user.save();
+      }
+    }
+
+    // 4. If user still does not exist, create a new customer record
+    if (!user) {
+      user = await User.create({
+        name: googleProfile.name || 'Customer',
+        email: googleProfile.email,
+        googleId: googleProfile.sub,
+        avatar: googleProfile.picture || '',
+        role: 'customer', // STRICT: new Google users are ALWAYS customers
+        customerType: 'public',
+        isEmailVerified: true,
+        isActive: true,
+        authProvider: 'google'
+      });
+    }
+
+    // Check account status
+    if (!user.isActive) {
+      return res.status(401).json({
+        success: false,
+        message: 'Account has been deactivated. Please contact support.'
+      });
+    }
+
+    if (user.lockUntil && user.lockUntil > Date.now()) {
+      const minutesLeft = Math.ceil((user.lockUntil - Date.now()) / 60000);
+      return res.status(401).json({
+        success: false,
+        message: `Account temporarily locked. Try again in ${minutesLeft} minutes.`
+      });
+    }
+
+    // Reset failed login attempts on successful authentication
+    if (user.loginAttempts > 0) {
+      user.loginAttempts = 0;
+      user.lockUntil = undefined;
+      await user.save();
+    }
+
+    await createAuditLog(user._id, 'user_login', 'user', user._id, { method: 'google', email: user.email }, req);
+
+    const token = generateToken(user._id);
+
+    res.json({
+      success: true,
+      message: 'Google login successful',
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        mobile: user.mobile,
+        email: user.email,
+        customerType: user.customerType,
+        role: user.role,
+        address: user.address,
+        avatar: user.avatar,
+        distanceFromShop: user.distanceFromShop
+      }
+    });
+  } catch (error) {
+    console.error('❌ /auth/google error:', error);
+    const statusCode = error.statusCode || 500;
+    res.status(statusCode).json({
+      success: false,
+      message: error.exposed ? error.message : clientErrorMessage(error, 'Google authentication failed. Please try again.')
+    });
+  }
+});
+
+// @route   POST /api/auth/google/link
+// @desc    Link an existing authenticated account to a verified Google account
+// @access  Private (requires existing Bearer token)
+router.post('/google/link', protect, async (req, res) => {
+  try {
+    const { credential, idToken } = req.body;
+    const tokenToVerify = credential || idToken;
+
+    if (!tokenToVerify) {
+      return res.status(400).json({ success: false, message: 'Google credential token is required' });
+    }
+
+    const googleProfile = await googleAuth.verifyGoogleToken(tokenToVerify);
+
+    // Verify this Google ID is not already linked to another account
+    const existingWithGoogle = await User.findOne({
+      googleId: googleProfile.sub,
+      _id: { $ne: req.user._id }
+    });
+
+    if (existingWithGoogle) {
+      return res.status(409).json({
+        success: false,
+        message: 'This Google account is already linked to another Ganesh Trades account.'
+      });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    user.googleId = googleProfile.sub;
+    if (!user.email) {
+      user.email = googleProfile.email;
+    }
+    user.isEmailVerified = true;
+    if (!user.avatar && googleProfile.picture) {
+      user.avatar = googleProfile.picture;
+    }
+
+    await user.save();
+
+    await createAuditLog(user._id, 'user_update', 'user', user._id, { method: 'google_link', email: googleProfile.email }, req);
+
+    res.json({
+      success: true,
+      message: 'Google account linked successfully',
+      user: {
+        id: user._id,
+        name: user.name,
+        mobile: user.mobile,
+        email: user.email,
+        role: user.role,
+        googleId: user.googleId,
+        avatar: user.avatar
+      }
+    });
+  } catch (error) {
+    console.error('❌ /auth/google/link error:', error);
+    const statusCode = error.statusCode || 500;
+    res.status(statusCode).json({
+      success: false,
+      message: error.exposed ? error.message : clientErrorMessage(error, 'Failed to link Google account.')
+    });
+  }
+});
 
 // @route   POST /api/auth/send-otp
 // @desc    Send OTP for registration or login

@@ -99,6 +99,19 @@ const run = async () => {
     report('backend root endpoint (no ENOENT)', false, `unreachable: ${err.message}`);
   }
 
+  try {
+    const { status, body } = await fetchJson(`${apiBase}/auth/google/config`);
+    const endpointReady = status === 200 && body && body.success === true;
+    report(
+      'backend Google auth endpoint',
+      endpointReady,
+      endpointReady ? `HTTP 200 (configured: ${body.configured})` : `HTTP ${status}`,
+      'deploy backend with /api/auth/google endpoint and configure GOOGLE_CLIENT_ID in Render'
+    );
+  } catch (err) {
+    report('backend Google auth endpoint', false, `unreachable: ${err.message}`);
+  }
+
   const demoDetected = (products) =>
     Array.isArray(products) &&
     products.length > 0 &&

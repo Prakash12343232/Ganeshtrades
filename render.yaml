@@ -47,6 +47,11 @@ services:
         sync: false
       - key: OTP_SERVICE_API_KEY
         sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: ADMIN_GOOGLE_EMAIL
+        sync: false
+
 
   - type: web
     name: ganeshtrades-otp-server

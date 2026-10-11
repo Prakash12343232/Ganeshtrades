@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { updateProfile, changePassword, checkServiceability } from '../../services/api';
+import GoogleSignInButton from '../../components/GoogleSignInButton';
 import toast from 'react-hot-toast';
 import { FiMapPin, FiLock, FiSave, FiCrosshair, FiNavigation, FiCheckCircle, FiXCircle } from 'react-icons/fi';
 
@@ -121,7 +122,7 @@ export default function Profile() {
       {/* Tabs */}
       <div className="flex gap-2 mb-6">
         <button onClick={() => setTab('profile')} className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${tab === 'profile' ? 'bg-mint-500 text-navy-950 shadow-lg shadow-mint-500/20' : 'bg-navy-900 text-slate-300 border border-navy-800 hover:border-mint-500/30'}`}>Edit Profile</button>
-        <button onClick={() => setTab('password')} className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${tab === 'password' ? 'bg-mint-500 text-navy-950 shadow-lg shadow-mint-500/20' : 'bg-navy-900 text-slate-300 border border-navy-800 hover:border-mint-500/30'}`}>Change Password</button>
+        <button onClick={() => setTab('security')} className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${tab === 'security' ? 'bg-mint-500 text-navy-950 shadow-lg shadow-mint-500/20' : 'bg-navy-900 text-slate-300 border border-navy-800 hover:border-mint-500/30'}`}>Security & Accounts</button>
       </div>
 
       {tab === 'profile' ? (
@@ -198,39 +199,82 @@ export default function Profile() {
           </button>
         </form>
       ) : (
-        <form onSubmit={handlePassword} className="bg-navy-900 rounded-2xl border border-navy-800 p-6 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1">Current Password</label>
-            <input type="password" value={passForm.currentPassword} onChange={e => setPassForm({...passForm, currentPassword: e.target.value})}
-              className="w-full px-4 py-3 bg-navy-950 border border-navy-700 text-slate-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-mint-500" required />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1">New Password</label>
-            <input type="password" value={passForm.newPassword} onChange={e => setPassForm({...passForm, newPassword: e.target.value})}
-              className="w-full px-4 py-3 bg-navy-950 border border-navy-700 text-slate-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-mint-500" required minLength={8} />
-            {passForm.newPassword && (
-              <div className="mt-1.5 space-y-1">
-                <div className="flex gap-1">
-                  {[
-                    passForm.newPassword.length >= 8,
-                    /[A-Z]/.test(passForm.newPassword),
-                    /[a-z]/.test(passForm.newPassword),
-                    /[0-9]/.test(passForm.newPassword),
-                    /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?`~]/.test(passForm.newPassword)
-                  ].map((passed, idx) => (
-                    <div key={idx} className={`h-1 flex-1 rounded-full transition-all ${passed ? 'bg-mint-400' : 'bg-navy-800'}`} />
-                  ))}
+        <div className="space-y-6">
+          {/* Google Account Linking Card */}
+          <div className="bg-navy-900 rounded-2xl border border-navy-800 p-6 space-y-4">
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <span>Google Account Link</span>
+            </h3>
+            
+            {user?.googleId ? (
+              <div className="p-4 bg-navy-950 border border-mint-500/40 rounded-xl flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">✅</span>
+                  <div>
+                    <p className="text-sm font-bold text-white">Google Account Linked</p>
+                    <p className="text-xs text-mint-300">{user?.email || 'Verified Google Sign-In'}</p>
+                  </div>
                 </div>
-                <p className="text-[10px] text-slate-400">
-                  Use 8+ chars with uppercase, lowercase, number & special symbol
+                <span className="text-xs bg-mint-500/20 text-mint-300 border border-mint-500/30 px-3 py-1 rounded-full font-semibold">Active</span>
+              </div>
+            ) : (
+              <div className="p-4 bg-navy-950 border border-navy-700 rounded-xl space-y-3">
+                <p className="text-xs text-slate-400">
+                  Connect your Google account for secure one-click sign-in without SMS OTP or passwords.
                 </p>
+                <div className="max-w-md mx-auto">
+                  <GoogleSignInButton 
+                    text="Link Google Account" 
+                    mode="link"
+                    onSuccess={(data) => {
+                      updateUser(data.user);
+                      toast.success('Google account successfully linked!');
+                    }} 
+                  />
+                </div>
               </div>
             )}
           </div>
-          <button type="submit" className="w-full py-3 bg-mint-500 text-navy-950 rounded-xl font-bold hover:bg-mint-400 flex items-center justify-center gap-2 shadow-lg shadow-mint-500/20">
-            <FiLock /> Change Password
-          </button>
-        </form>
+
+          {/* Change Password Form */}
+          <form onSubmit={handlePassword} className="bg-navy-900 rounded-2xl border border-navy-800 p-6 space-y-4">
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <FiLock className="text-mint-400" />
+              <span>Change Password</span>
+            </h3>
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1">Current Password</label>
+              <input type="password" value={passForm.currentPassword} onChange={e => setPassForm({...passForm, currentPassword: e.target.value})}
+                className="w-full px-4 py-3 bg-navy-950 border border-navy-700 text-slate-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-mint-500" required />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1">New Password</label>
+              <input type="password" value={passForm.newPassword} onChange={e => setPassForm({...passForm, newPassword: e.target.value})}
+                className="w-full px-4 py-3 bg-navy-950 border border-navy-700 text-slate-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-mint-500" required minLength={8} />
+              {passForm.newPassword && (
+                <div className="mt-1.5 space-y-1">
+                  <div className="flex gap-1">
+                    {[
+                      passForm.newPassword.length >= 8,
+                      /[A-Z]/.test(passForm.newPassword),
+                      /[a-z]/.test(passForm.newPassword),
+                      /[0-9]/.test(passForm.newPassword),
+                      /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?`~]/.test(passForm.newPassword)
+                    ].map((passed, idx) => (
+                      <div key={idx} className={`h-1 flex-1 rounded-full transition-all ${passed ? 'bg-mint-400' : 'bg-navy-800'}`} />
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-slate-400">
+                    Use 8+ chars with uppercase, lowercase, number & special symbol
+                  </p>
+                </div>
+              )}
+            </div>
+            <button type="submit" className="w-full py-3 bg-mint-500 text-navy-950 rounded-xl font-bold hover:bg-mint-400 flex items-center justify-center gap-2 shadow-lg shadow-mint-500/20 cursor-pointer">
+              <FiLock /> Change Password
+            </button>
+          </form>
+        </div>
       )}
     </div>
   );

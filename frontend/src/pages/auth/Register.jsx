@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { register, checkServiceability, sendOtp, verifyOtp } from '../../services/api';
+import GoogleSignInButton from '../../components/GoogleSignInButton';
 import toast from 'react-hot-toast';
 import { FiUser, FiPhone, FiMail, FiLock, FiMapPin, FiCrosshair, FiCheckCircle, FiXCircle, FiKey } from 'react-icons/fi';
 
@@ -16,6 +17,12 @@ export default function Register() {
 
   const { loginUser } = useAuth();
   const navigate = useNavigate();
+
+  const handleGoogleSuccess = (data) => {
+    loginUser(data.user, data.token);
+    toast.success(`Welcome to Ganesh Trades, ${data.user.name || 'valued customer'}!`);
+    navigate('/');
+  };
 
   useEffect(() => {
     let timer;
@@ -153,8 +160,27 @@ export default function Register() {
           <p className="text-mint-300/80 mt-1 text-sm">Join Ganesh Trades</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-navy-900/90 backdrop-blur-xl rounded-3xl p-6 border border-navy-700/80 space-y-4 shadow-2xl relative overflow-hidden">
+        <div className="bg-navy-900/90 backdrop-blur-xl rounded-3xl p-6 border border-navy-700/80 space-y-4 shadow-2xl relative overflow-hidden">
           
+          {/* Quick Sign-Up: Continue with Google */}
+          <div className="space-y-2">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 text-center">
+              Quick Sign-Up
+            </label>
+            <GoogleSignInButton onSuccess={handleGoogleSuccess} text="Sign up with Google" />
+          </div>
+
+          {/* Divider */}
+          <div className="relative my-2">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-navy-700/80"></div>
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-navy-900 px-3 text-slate-400 font-medium">Or register with mobile & password</span>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-slate-300 mb-1">Full Name</label>
@@ -296,6 +322,7 @@ export default function Register() {
             Already have an account? <Link to="/login" className="text-mint-400 font-bold hover:underline">Login</Link>
           </p>
         </form>
+        </div>
       </div>
     </div>
   );
