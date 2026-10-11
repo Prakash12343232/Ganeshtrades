@@ -105,9 +105,10 @@ Before modifying the codebase, a complete audit of the authentication and deploy
 
 | Service | Host | Live State | Verification Status |
 | :--- | :--- | :--- | :--- |
-| **Frontend** | Vercel (`ganeshtrades.vercel.app`) | Live | Ready for Google Sign-In build deployment. |
-| **Backend API** | Render (`ganeshtrades1.onrender.com`) | Live (`NODE_ENV=production`, `dbType=atlas`) | Requires deployment of Google OAuth code & env var. |
-| **Database** | MongoDB Atlas | Healthy & Connected | Preserves all users, products, orders, and credit balances. |
+| **GitHub Actions CI** | `Prakash12343232/Ganeshtrades` | **Passed (Green)** | Run `#38138360043` (`main`) & `#38138342288` (`repair/google-sign-in`) completed with `conclusion: success`. All 11 workflow steps passed. |
+| **Frontend** | Vercel (`ganeshtrades.vercel.app`) | **Live & Deployed** | Serving commit `09463ec` with Google Identity Services script `<script src="https://accounts.google.com/gsi/client" async defer></script>` and updated bundle `index-CupiEITc.js`. |
+| **Backend API** | Render (`ganeshtrades1.onrender.com`) | **Live & Operational** (`NODE_ENV=production`, `dbType=atlas`) | Health endpoint returns HTTP 200. Root endpoint serves JSON (no ENOENT). Awaiting manual deploy or env-var trigger on Render dashboard to activate commit `09463ec` route `/api/auth/google`. |
+| **Database** | MongoDB Atlas | **Healthy & Connected** | Preserves all users, products, orders, Khata credit records, and admin privileges. |
 
 ---
 
