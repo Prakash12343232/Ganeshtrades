@@ -78,11 +78,13 @@ export default function CustomerLayout() {
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2 group">
-              <img
-                src={logoIcon}
-                alt="Ganesh Trades Logo"
-                className="w-11 h-11 object-contain drop-shadow-[0_4px_12px_rgba(16,185,129,0.35)] group-hover:scale-110 transition-transform duration-200"
-              />
+              <div className="w-11 h-11 rounded-xl flex items-center justify-center ring-2 ring-purple-500 shadow-[0_0_12px_3px_rgba(168,85,247,0.5)] group-hover:shadow-[0_0_18px_5px_rgba(168,85,247,0.7)] transition-all duration-200">
+                <img
+                  src={logoIcon}
+                  alt="Ganesh Trades Logo"
+                  className="w-9 h-9 object-contain group-hover:scale-110 transition-transform duration-200"
+                />
+              </div>
               <div className="hidden sm:block">
                 <h1 className="text-base font-extrabold text-slate-900 dark:text-white leading-tight tracking-tight">Ganesh Trades</h1>
                 <p className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold tracking-wider -mt-0.5 uppercase">Grocery &amp; Wholesale</p>
