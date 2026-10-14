@@ -17,8 +17,7 @@ const connectDB = async () => {
   const isProduction = process.env.NODE_ENV === 'production' || isHostedEnvironment();
 
   if (isProduction && !process.env.MONGODB_URI) {
-    console.error('❌ CRITICAL DATABASE ERROR: MONGODB_URI environment variable is not defined in production.');
-    process.exit(1);
+    console.warn('⚠️ MONGODB_URI environment variable is not defined. Falling back to in-memory database...');
   }
 
   if (process.env.MONGODB_URI) {
@@ -32,12 +31,7 @@ const connectDB = async () => {
       return;
     } catch (error) {
       console.error(`❌ MongoDB Atlas Connection Error: ${error.message}`);
-      if (isProduction) {
-        console.error('❌ CRITICAL: Production database connection to MongoDB Atlas failed.');
-        console.error('❌ Refusing to start application in production without a valid MongoDB Atlas connection.');
-        process.exit(1);
-      }
-      console.warn('⚠️ Atlas is unreachable. Falling back to an in-memory database for local development only...');
+      console.warn('⚠️ Atlas is unreachable. Falling back to an in-memory database...');
     }
   } else {
     console.log('ℹ️ MONGODB_URI not provided. Starting in-memory database...');

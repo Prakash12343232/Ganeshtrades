@@ -213,15 +213,17 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Root endpoint: API-only status endpoint
+// Root endpoint: serve frontend if built, or API status fallback
 app.get('/', (req, res) => {
+  if (fs.existsSync(frontendIndex)) {
+    return res.sendFile(frontendIndex);
+  }
   res.json({
     success: true,
     message: 'Ganesh Trades API is running',
     environment: process.env.NODE_ENV || 'not set',
     version: '1.0.0',
-    documentation: '/api/health',
-    frontend: 'https://ganeshtrades.vercel.app'
+    documentation: '/api/health'
   });
 });
 
