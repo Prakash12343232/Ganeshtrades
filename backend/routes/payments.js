@@ -225,10 +225,27 @@ router.post('/verify', protect, async (req, res) => {
       return res.json({ success: true, message: 'Payment already verified', data: payment });
     }
 
-    // Simulated verification — in production, verify signature with Razorpay SDK
-    // const crypto = require('crypto');
-    // const expectedSig = crypto.createHmac('sha256', process.env.RAZORPAY_SECRET).update(gatewayOrderId + '|' + gatewayPaymentId).digest('hex');
-    // if (expectedSig !== gatewaySignature) return res.status(400).json(...);
+    const crypto = require('crypto');
+    const razorpaySecret = process.env.RAZORPAY_KEY_SECRET || process.env.RAZORPAY_SECRET;
+    const simulatedAllowed = process.env.ALLOW_SIMULATED_PAYMENTS === 'true';
+
+    if (razorpaySecret) {
+      if (!gatewaySignature) {
+        return res.status(400).json({ success: false, message: 'Payment signature is required' });
+      }
+      const expectedSig = crypto
+        .createHmac('sha256', razorpaySecret)
+        .update(`${gatewayOrderId}|${gatewayPaymentId}`)
+        .digest('hex');
+      if (expectedSig !== gatewaySignature) {
+        return res.status(400).json({ success: false, message: 'Invalid payment signature' });
+      }
+    } else if (process.env.NODE_ENV === 'production' && !simulatedAllowed) {
+      return res.status(503).json({
+        success: false,
+        message: 'Online payment verification is not configured. Set RAZORPAY_KEY_SECRET or contact support.'
+      });
+    }
 
     // Mark payment as completed
     payment.paymentStatus = 'completed';

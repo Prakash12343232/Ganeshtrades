@@ -161,7 +161,7 @@ router.put('/:id', protect, authorize('admin', 'manager'), async (req, res) => {
       if (req.user.role !== 'admin') {
         return res.status(403).json({ success: false, message: 'Only administrators can change user roles' });
       }
-      if (!['customer', 'admin', 'manager'].includes(role)) {
+      if (!['customer', 'admin', 'manager', 'staff'].includes(role)) {
         return res.status(400).json({ success: false, message: 'Invalid role' });
       }
       // Prevent self-demotion of the last admin

@@ -3,6 +3,21 @@ const { OAuth2Client } = require('google-auth-library');
 let cachedClient = null;
 let cachedClientId = null;
 
+/**
+ * Parse GOOGLE_CLIENT_ID — supports comma-separated Web client IDs (e.g. prod + preview).
+ */
+function getGoogleClientIds() {
+  const raw = process.env.GOOGLE_CLIENT_ID || '';
+  return raw
+    .split(',')
+    .map((id) => id.trim())
+    .filter(Boolean);
+}
+
+function getPrimaryGoogleClientId() {
+  return getGoogleClientIds()[0] || '';
+}
+
 function getOAuthClient(clientId) {
   if (!cachedClient || cachedClientId !== clientId) {
     cachedClient = new OAuth2Client(clientId);
@@ -25,24 +40,28 @@ async function verifyGoogleToken(idToken, customAudience) {
     throw err;
   }
 
-  const clientId = customAudience || process.env.GOOGLE_CLIENT_ID;
-  if (!clientId || !clientId.trim()) {
+  const allowedAudiences = customAudience
+    ? [String(customAudience).trim()]
+    : getGoogleClientIds();
+
+  if (!allowedAudiences.length) {
     const err = new Error('Google authentication is not configured on this server. Please set GOOGLE_CLIENT_ID in environment variables.');
     err.statusCode = 503;
     err.exposed = true;
     throw err;
   }
 
-  const client = getOAuthClient(clientId.trim());
+  const client = getOAuthClient(allowedAudiences[0]);
 
   let ticket;
   try {
     ticket = await client.verifyIdToken({
       idToken: idToken.trim(),
-      audience: clientId.trim()
+      audience: allowedAudiences.length === 1 ? allowedAudiences[0] : allowedAudiences
     });
   } catch (verifyError) {
-    const err = new Error(`Invalid or expired Google token: ${verifyError.message}`);
+    console.error('Google token verification failed:', verifyError.message);
+    const err = new Error('Invalid or expired Google token. Please try again or use mobile & password sign-in.');
     err.statusCode = 401;
     err.exposed = true;
     throw err;
@@ -91,5 +110,7 @@ async function verifyGoogleToken(idToken, customAudience) {
 
 module.exports = {
   verifyGoogleToken,
-  getOAuthClient
+  getOAuthClient,
+  getGoogleClientIds,
+  getPrimaryGoogleClientId
 };

@@ -11,7 +11,7 @@ const { checkServiceability } = require('../utils/distance');
 const { protect } = require('../middleware/auth');
 const { createAuditLog } = require('../utils/auditLogger');
 const connectDB = require('../config/db');
-const { pickFields, normalizeMobile, generateOTP, hashOTP, verifyOTP, validatePasswordStrength } = require('../utils/security');
+const { pickFields, normalizeMobile, generateOTP, hashOTP, verifyOTP, validatePasswordStrength, sanitizeUserForResponse } = require('../utils/security');
 const { clientErrorMessage } = require('../utils/errors');
 const googleAuth = require('../utils/googleAuth');
 
@@ -53,11 +53,11 @@ const checkLock = async (user) => {
 // @desc    Get Google OAuth public configuration (client ID availability)
 // @access  Public
 router.get('/google/config', (req, res) => {
-  const clientId = process.env.GOOGLE_CLIENT_ID || '';
+  const clientId = googleAuth.getPrimaryGoogleClientId();
   res.json({
     success: true,
-    configured: Boolean(clientId.trim()),
-    clientId: clientId.trim() || null
+    configured: Boolean(clientId),
+    clientId: clientId || null
   });
 });
 
@@ -86,31 +86,17 @@ router.post('/google', authLimiter, async (req, res) => {
     // 2. Find existing user by googleId
     let user = await User.findOne({ googleId: googleProfile.sub });
 
-    // 3. If not found by googleId, find by verified email
+    // 3. Never infer account ownership from an email match.  A Google identity
+    // must be linked by an already authenticated Ganesh Trades user through
+    // /google/link; otherwise an attacker with control of an email inbox could
+    // take over a mobile/password account (including customer order history).
     if (!user) {
-      user = await User.findOne({ email: googleProfile.email });
-
-      if (user) {
-        // Critical: Strict protection of owner and manager privileges
-        if (user.role === 'admin' || user.role === 'manager') {
-          const adminAllowedEmail = (process.env.ADMIN_GOOGLE_EMAIL || '').toLowerCase().trim();
-          const isExplicitAdminEmail = adminAllowedEmail && adminAllowedEmail === googleProfile.email;
-
-          if (!isExplicitAdminEmail) {
-            return res.status(403).json({
-              success: false,
-              message: 'Administrative accounts require verified Google linking. Please sign in with your mobile & password first, then link your Google account in Settings.'
-            });
-          }
-        }
-
-        // Link verified Google ID to existing customer record
-        user.googleId = googleProfile.sub;
-        user.isEmailVerified = true;
-        if (!user.avatar && googleProfile.picture) {
-          user.avatar = googleProfile.picture;
-        }
-        await user.save();
+      const existingWithEmail = await User.findOne({ email: googleProfile.email });
+      if (existingWithEmail) {
+        return res.status(409).json({
+          success: false,
+          message: 'An account with this email already exists. Sign in with your existing account, then link Google from Settings.'
+        });
       }
     }
 
@@ -156,20 +142,21 @@ router.post('/google', authLimiter, async (req, res) => {
 
     const token = generateToken(user._id);
 
+    const safeUser = sanitizeUserForResponse(user);
     res.json({
       success: true,
       message: 'Google login successful',
       token,
       user: {
-        id: user._id,
-        name: user.name,
-        mobile: user.mobile,
-        email: user.email,
-        customerType: user.customerType,
-        role: user.role,
-        address: user.address,
-        avatar: user.avatar,
-        distanceFromShop: user.distanceFromShop
+        id: safeUser._id,
+        name: safeUser.name,
+        mobile: safeUser.mobile,
+        email: safeUser.email,
+        customerType: safeUser.customerType,
+        role: safeUser.role,
+        address: safeUser.address,
+        avatar: safeUser.avatar,
+        distanceFromShop: safeUser.distanceFromShop
       }
     });
   } catch (error) {
@@ -212,6 +199,22 @@ router.post('/google/link', protect, async (req, res) => {
     const user = await User.findById(req.user._id);
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // If this account has no email, do not attach an email that belongs to a
+    // different account. This also gives a clear response instead of relying
+    // on the database unique-index error.
+    if (!user.email) {
+      const existingWithEmail = await User.findOne({
+        email: googleProfile.email,
+        _id: { $ne: user._id }
+      });
+      if (existingWithEmail) {
+        return res.status(409).json({
+          success: false,
+          message: 'This Google email is already used by another Ganesh Trades account.'
+        });
+      }
     }
 
     user.googleId = googleProfile.sub;
@@ -604,7 +607,7 @@ router.post('/login', authLimiter, async (req, res) => {
 router.get('/me', protect, async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
-    res.json({ success: true, user });
+    res.json({ success: true, user: sanitizeUserForResponse(user) });
   } catch (error) {
     console.error('❌ /auth/me route error:', error);
     res.status(500).json({ success: false, message: clientErrorMessage(error) });

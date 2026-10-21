@@ -63,6 +63,7 @@ describe('Google Authentication Endpoints', () => {
       expect(res.statusCode).toBe(401);
       expect(res.body.success).toBe(false);
       expect(res.body.message).toMatch(/Invalid or expired Google token/i);
+      expect(res.body.message).not.toMatch(/audience/i);
     });
 
     it('rejects when Google email is unverified', async () => {
@@ -140,7 +141,7 @@ describe('Google Authentication Endpoints', () => {
       expect(res.body.token).toBeDefined();
     });
 
-    it('links Google ID to existing customer account with matching verified email', async () => {
+    it('does not silently link a Google identity to an existing customer based only on email', async () => {
       const existingCustomer = await User.create({
         name: 'Pre-existing Customer',
         mobile: '9876543299',
@@ -161,13 +162,12 @@ describe('Google Authentication Endpoints', () => {
         .post('/api/auth/google')
         .send({ credential: 'link-token' });
 
-      expect(res.statusCode).toBe(200);
-      expect(res.body.success).toBe(true);
-      expect(res.body.user.id).toBe(existingCustomer._id.toString());
-      expect(res.body.user.customerType).toBe('hotel');
+      expect(res.statusCode).toBe(409);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/sign in with your existing account.*link google/i);
 
       const updated = await User.findById(existingCustomer._id);
-      expect(updated.googleId).toBe('google-sub-linked-777');
+      expect(updated.googleId).toBeUndefined();
       expect(updated.role).toBe('customer');
     });
 
@@ -192,16 +192,16 @@ describe('Google Authentication Endpoints', () => {
         .post('/api/auth/google')
         .send({ credential: 'admin-unlinked-token' });
 
-      expect(res.statusCode).toBe(403);
+      expect(res.statusCode).toBe(409);
       expect(res.body.success).toBe(false);
-      expect(res.body.message).toMatch(/Administrative accounts require verified Google linking/i);
+      expect(res.body.message).toMatch(/sign in with your existing account.*link google/i);
 
       // Verify DB was NOT linked
       const checkAdmin = await User.findOne({ email: 'admin@ganeshtrades.com' });
       expect(checkAdmin.googleId).toBeUndefined();
     });
 
-    it('allows admin sign-in when ADMIN_GOOGLE_EMAIL environment variable explicitly matches', async () => {
+    it('does not bypass authenticated linking for an admin when ADMIN_GOOGLE_EMAIL matches', async () => {
       process.env.ADMIN_GOOGLE_EMAIL = 'owner.verified@gmail.com';
 
       const adminUser = await User.create({
@@ -223,13 +223,12 @@ describe('Google Authentication Endpoints', () => {
         .post('/api/auth/google')
         .send({ credential: 'owner-token' });
 
-      expect(res.statusCode).toBe(200);
-      expect(res.body.success).toBe(true);
-      expect(res.body.user.role).toBe('admin');
-      expect(res.body.user.id).toBe(adminUser._id.toString());
+      expect(res.statusCode).toBe(409);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/sign in with your existing account.*link google/i);
 
       const updated = await User.findById(adminUser._id);
-      expect(updated.googleId).toBe('owner-sub-111');
+      expect(updated.googleId).toBeUndefined();
     });
 
     it('rejects deactivated user account', async () => {

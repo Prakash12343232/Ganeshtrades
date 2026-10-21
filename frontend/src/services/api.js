@@ -183,4 +183,21 @@ export const commitInventoryImport = (data) => API.post('/import/inventory/commi
 export const getAiSnapshot = () => API.get('/ai/snapshot');
 export const askAiAssistant = (query) => API.post('/ai/assistant', { query });
 
+// ── Phase 1: Staff Management (admin/manager) ──
+export const getStaff = (params) => API.get('/staff', { params });
+export const getStaffById = (id) => API.get(`/staff/${id}`);
+export const createStaff = (data) => API.post('/staff', data);
+export const updateStaff = (id, data) => API.put(`/staff/${id}`, data);
+
+export const getPartners = (params) => API.get('/staff/partners', { params });
+export const createPartner = (data) => API.post('/staff/partners', data);
+export const updatePartner = (id, data) => API.put(`/staff/partners/${id}`, data);
+
+// ── Phase 1: Worker Portal (staff role) ──
+export const getWorkerMe = () => API.get('/worker/me');
+export const getWorkerDeliveries = (params) => API.get('/worker/deliveries', { params });
+export const getWorkerDelivery = (id) => API.get(`/worker/deliveries/${id}`);
+export const updateWorkerDeliveryStatus = (id, data) => API.put(`/worker/deliveries/${id}/status`, data);
+export const workerCollectPayment = (id, data) => API.post(`/worker/deliveries/${id}/payment`, data);
+
 export default API;

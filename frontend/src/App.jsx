@@ -5,6 +5,7 @@ import { useAuth } from './context/AuthContext';
 // Layouts
 import CustomerLayout from './layouts/CustomerLayout';
 import AdminLayout from './layouts/AdminLayout';
+import WorkerLayout from './layouts/WorkerLayout';
 
 // Auth Pages
 import Login from './pages/auth/Login';
@@ -40,9 +41,14 @@ const AdminCoverage = lazy(() => import('./pages/admin/AdminCoverage'));
 const AdminReviews = lazy(() => import('./pages/admin/AdminReviews'));
 const AdminNotifications = lazy(() => import('./pages/admin/AdminNotifications'));
 const AdminCustomerDetail = lazy(() => import('./pages/admin/AdminCustomerDetail'));
+const AdminStaff = lazy(() => import('./pages/admin/AdminStaff'));
 
 // Lazy Loaded Manager Pages
 const ManagerDashboard = lazy(() => import('./pages/manager/ManagerDashboard'));
+
+// Lazy Loaded Worker Pages
+const WorkerDeliveries = lazy(() => import('./pages/worker/WorkerDeliveries'));
+const WorkerProfile = lazy(() => import('./pages/worker/WorkerProfile'));
 
 // Guards
 const PrivateRoute = ({ children }) => {
@@ -61,6 +67,12 @@ const AdminOnlyRoute = ({ children }) => {
   const { user, loading } = useAuth();
   if (loading) return <div className="flex items-center justify-center h-screen"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary-500"></div></div>;
   return user?.role === 'admin' ? children : <Navigate to="/admin" />;
+};
+
+const WorkerRoute = ({ children }) => {
+  const { user, loading } = useAuth();
+  if (loading) return <div className="flex items-center justify-center h-screen"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary-500"></div></div>;
+  return user?.role === 'staff' ? children : <Navigate to="/" />;
 };
 
 function App() {
@@ -99,8 +111,15 @@ function App() {
           <Route path="deliveries" element={<AdminDeliveries />} />
           <Route path="reviews" element={<AdminReviews />} />
           <Route path="notifications" element={<AdminNotifications />} />
+          <Route path="staff" element={<AdminStaff />} />
           <Route path="backups" element={<AdminOnlyRoute><AdminBackups /></AdminOnlyRoute>} />
           <Route path="coverage" element={<AdminCoverage />} />
+        </Route>
+
+        {/* Worker Routes */}
+        <Route path="/worker" element={<WorkerRoute><WorkerLayout /></WorkerRoute>}>
+          <Route index element={<WorkerDeliveries />} />
+          <Route path="profile" element={<WorkerProfile />} />
         </Route>
 
         {/* Manager Routes */}

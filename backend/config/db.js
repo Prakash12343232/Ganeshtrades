@@ -16,8 +16,10 @@ const connectDB = async () => {
 
   const isProduction = process.env.NODE_ENV === 'production' || isHostedEnvironment();
 
+  // A production service must never serve demo/in-memory data.  Failing fast
+  // ensures a bad Atlas configuration is visible to Render and its health check.
   if (isProduction && !process.env.MONGODB_URI) {
-    console.warn('⚠️ MONGODB_URI environment variable is not defined. Falling back to in-memory database...');
+    throw new Error('MONGODB_URI must be configured in production');
   }
 
   if (process.env.MONGODB_URI) {
@@ -31,6 +33,7 @@ const connectDB = async () => {
       return;
     } catch (error) {
       console.error(`❌ MongoDB Atlas Connection Error: ${error.message}`);
+      if (isProduction) throw error;
       console.warn('⚠️ Atlas is unreachable. Falling back to an in-memory database...');
     }
   } else {

@@ -196,6 +196,22 @@ function verifyOTP(otp, storedHash, storedSalt) {
  * Validates password strength.
  * Returns { valid: boolean, errors: string[], strength: 'weak'|'medium'|'strong' }
  */
+/**
+ * Strip sensitive/internal fields before sending a User document to clients.
+ */
+function sanitizeUserForResponse(user) {
+  if (!user) return null;
+  const doc = typeof user.toObject === 'function' ? user.toObject() : { ...user };
+  delete doc.password;
+  delete doc.loginAttempts;
+  delete doc.lockUntil;
+  delete doc.emailVerificationToken;
+  delete doc.emailVerificationExpires;
+  delete doc.passwordResetToken;
+  delete doc.passwordResetExpires;
+  return doc;
+}
+
 function validatePasswordStrength(password) {
   const errors = [];
   if (!password || typeof password !== 'string') {
@@ -232,5 +248,6 @@ module.exports = {
   hashOTP,
   verifyOTP,
   validatePasswordStrength,
+  sanitizeUserForResponse,
   DEFAULT_SORT_FIELDS
 };

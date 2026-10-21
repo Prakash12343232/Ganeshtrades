@@ -14,10 +14,16 @@ export default function Login() {
   const { loginUser } = useAuth();
   const navigate = useNavigate();
 
+  const routeForRole = (role) => {
+    if (role === 'admin' || role === 'manager') return '/admin';
+    if (role === 'staff') return '/worker';
+    return '/';
+  };
+
   const handleGoogleSuccess = (data) => {
     loginUser(data.user, data.token);
     toast.success(`Welcome back, ${data.user.name || 'valued customer'}!`);
-    navigate(data.user.role === 'admin' || data.user.role === 'manager' ? '/admin' : '/');
+    navigate(routeForRole(data.user.role));
   };
 
   const handleSubmit = async (e) => {
@@ -42,7 +48,7 @@ export default function Login() {
       
       loginUser(data.user, data.token);
       toast.success('Welcome back!');
-      navigate(data.user.role === 'admin' || data.user.role === 'manager' ? '/admin' : '/');
+      navigate(routeForRole(data.user.role));
     } catch (err) {
       toast.error(err.response?.data?.message || 'Login failed');
     } finally { 

@@ -27,6 +27,7 @@ export default function AdminLayout() {
     { path: '/admin', label: 'Dashboard', icon: <FiHome />, exact: true },
     { path: '/admin/orders', label: 'Orders', icon: <FiShoppingBag /> },
     { path: '/admin/deliveries', label: 'Deliveries', icon: <FiTruck /> },
+    { path: '/admin/staff', label: 'Staff & Partners', icon: <FiUsers /> },
     { path: '/admin/products', label: 'Products', icon: <FiPackage /> },
     { path: '/admin/inventory', label: 'Inventory', icon: <FiBox /> },
     { path: '/admin/reviews', label: 'Reviews', icon: <FiStar /> },

@@ -40,6 +40,9 @@ const settingsRoutes = require('./routes/settings');
 const mediaRoutes = require('./routes/media');
 const importRoutes = require('./routes/import');
 const aiRoutes = require('./routes/ai');
+// Phase 1: workforce management
+const staffRoutes = require('./routes/staff');
+const workerRoutes = require('./routes/worker');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -47,11 +50,24 @@ app.set('trust proxy', 1);
 const fs = require('fs');
 
 if (!process.env.JWT_SECRET) {
-  process.env.JWT_SECRET = 'ganesh_trades_secure_jwt_secret_key_32_chars_min_default';
+  if (process.env.NODE_ENV === 'production') {
+    console.error('❌ FATAL: JWT_SECRET must be set in production. Refusing to start.');
+    process.exit(1);
+  }
+  if (process.env.NODE_ENV === 'test') {
+    process.env.JWT_SECRET = 'testsecret';
+  } else {
+    console.warn('⚠️ JWT_SECRET not set — using development-only default. Do not use in production.');
+    process.env.JWT_SECRET = 'ganesh_trades_dev_jwt_secret_do_not_use_in_prod';
+  }
 }
 
-// Connect to MongoDB
-connectDB();
+// Connect to MongoDB. A production connection failure is fatal; serving demo
+// data after an Atlas outage would be both misleading and unsafe.
+connectDB().catch((error) => {
+  console.error(`❌ Database startup failed: ${error.message}`);
+  if (process.env.NODE_ENV === 'production') process.exit(1);
+});
 
 // Init Cron Jobs
 if (process.env.NODE_ENV !== 'test') {
@@ -114,8 +130,23 @@ app.use(cors({
     if (!origin) return callback(null, true);
     // Check explicit allowlist
     if (allowedOrigins.includes(origin)) return callback(null, true);
-    // Allow AI Studio preview, dev domains, and local testing
-    if (origin.endsWith('.run.app') || origin.endsWith('.google.com') || origin.includes('localhost') || origin.includes('127.0.0.1')) {
+    // Non-production: allow local dev and Google OAuth helper origins
+    if (process.env.NODE_ENV !== 'production') {
+      if (
+        origin.endsWith('.run.app') ||
+        origin.endsWith('.google.com') ||
+        origin.includes('localhost') ||
+        origin.includes('127.0.0.1')
+      ) {
+        return callback(null, true);
+      }
+    }
+    // Production: optional extra allowlist (comma-separated), e.g. Vercel preview URLs
+    const extraOrigins = (process.env.CORS_EXTRA_ORIGINS || '')
+      .split(',')
+      .map((u) => u.trim().replace(/\/+$/, ''))
+      .filter(Boolean);
+    if (extraOrigins.includes(origin)) {
       return callback(null, true);
     }
     console.warn(`⛔ CORS rejected origin: ${origin}`);
@@ -197,6 +228,9 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/media', mediaRoutes);
 app.use('/api/import', importRoutes);
 app.use('/api/ai', aiRoutes);
+// Phase 1: workforce management
+app.use('/api/staff', staffRoutes);
+app.use('/api/worker', workerRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -223,7 +257,8 @@ app.get('/', (req, res) => {
     message: 'Ganesh Trades API is running',
     environment: process.env.NODE_ENV || 'not set',
     version: '1.0.0',
-    documentation: '/api/health'
+    documentation: '/api/health',
+    frontend: 'https://ganeshtrades.vercel.app'
   });
 });
 
@@ -261,14 +296,11 @@ app.use((req, res, next) => {
   next();
 });
 
-// Database offline / connectivity fallback
+// Database offline / connectivity fallback — never return empty success payloads (auth bypass / data leak risk)
 app.use((err, req, res, next) => {
   if (err.name === 'MongooseError' || err.name === 'MongoNetworkError' || (err.message && err.message.includes('buffering timed out'))) {
-    console.warn('[AI Studio] Database offline — returning fallback response');
-    if (req.method === 'GET') {
-      return res.json(req.path.endsWith('s') || req.path.endsWith('s/') ? [] : {});
-    }
-    return res.status(503).json({ error: 'Service temporarily unavailable (database offline)' });
+    console.warn('[API] Database offline — rejecting request');
+    return res.status(503).json({ success: false, message: 'Service temporarily unavailable (database offline)' });
   }
   next(err);
 });

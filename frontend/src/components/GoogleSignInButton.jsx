@@ -11,25 +11,37 @@ export default function GoogleSignInButton({
 }) {
   const buttonRef = useRef(null);
   const [loading, setLoading] = useState(false);
-  const [clientId, setClientId] = useState(import.meta.env.VITE_GOOGLE_CLIENT_ID || '');
-  const [isConfigured, setIsConfigured] = useState(Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID));
+  const [clientId, setClientId] = useState('');
+  const [isConfigured, setIsConfigured] = useState(false);
   const [gisLoaded, setGisLoaded] = useState(Boolean(window.google?.accounts?.id));
 
-  // Fetch client ID from backend if not baked into Vite env
+  // Backend GOOGLE_CLIENT_ID is authoritative (must match token audience verification)
   useEffect(() => {
-    if (!clientId) {
-      getGoogleConfig()
-        .then(res => {
-          if (res.data?.configured && res.data.clientId) {
-            setClientId(res.data.clientId);
-            setIsConfigured(true);
+    let cancelled = false;
+    getGoogleConfig()
+      .then((res) => {
+        if (cancelled) return;
+        if (res.data?.configured && res.data.clientId) {
+          const backendId = res.data.clientId.trim();
+          const viteId = (import.meta.env.VITE_GOOGLE_CLIENT_ID || '').trim();
+          if (viteId && viteId !== backendId && import.meta.env.DEV) {
+            console.warn('[Google Sign-In] VITE_GOOGLE_CLIENT_ID differs from backend — using backend client ID.');
           }
-        })
-        .catch(() => {
-          // Non-critical: environment variable check
-        });
-    }
-  }, [clientId]);
+          setClientId(backendId);
+          setIsConfigured(true);
+        } else if (import.meta.env.VITE_GOOGLE_CLIENT_ID) {
+          setClientId(import.meta.env.VITE_GOOGLE_CLIENT_ID.trim());
+          setIsConfigured(true);
+        }
+      })
+      .catch(() => {
+        if (!cancelled && import.meta.env.VITE_GOOGLE_CLIENT_ID) {
+          setClientId(import.meta.env.VITE_GOOGLE_CLIENT_ID.trim());
+          setIsConfigured(true);
+        }
+      });
+    return () => { cancelled = true; };
+  }, []);
 
   // Ensure Google Identity Services script is loaded
   useEffect(() => {
