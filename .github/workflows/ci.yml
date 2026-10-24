@@ -29,6 +29,19 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # npm lockfiles generated on Windows can omit sharp's Linux optional
+      # native packages. Install the exact Linux x64 runtime without modifying
+      # the workspace lockfile so sharp is available for backend tests.
+      - name: Install sharp Linux runtime
+        run: >-
+          npm install --no-save --package-lock=false --ignore-scripts
+          --os=linux --cpu=x64
+          @img/sharp-linux-x64@0.35.5
+          @img/sharp-libvips-linux-x64@1.3.4
+
+      - name: Verify sharp native runtime
+        run: node -e "require('sharp'); console.log('sharp native runtime loaded')"
+
       # ── Backend Validation ──
 
       - name: Validate backend syntax
