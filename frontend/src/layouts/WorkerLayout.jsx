@@ -23,7 +23,7 @@ export default function WorkerLayout() {
       {/* Header */}
       <header className="sticky top-0 z-40 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center ring-2 ring-purple-500 shadow-[0_0_10px_2px_rgba(168,85,247,0.4)]">
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center">
             <img src={logoIcon} alt="Logo" className="w-7 h-7 object-contain" />
           </div>
           <div>
