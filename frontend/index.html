@@ -8,7 +8,7 @@
     <link rel="icon" type="image/png" href="/logo.png?v=3" />
     <link rel="shortcut icon" href="/favicon.ico?v=3" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=3" />
-    <meta name="theme-color" content="#10b981" />
+    <meta name="theme-color" content="#0B1020" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Online grocery and wholesale store with product catalog, cart, orders, and management dashboard" />
     <meta property="og:title" content="Ganesh Trades" />
@@ -22,9 +22,18 @@
     <script>
       (function() {
         try {
-          var t = localStorage.getItem('theme');
-          var theme = t === 'light' ? 'light' : 'dark';
-          document.documentElement.classList.add(theme);
+          var root = document.documentElement;
+          var saved = localStorage.getItem('ganesh-theme');
+          var legacy = localStorage.getItem('theme');
+          var theme = ['fresh', 'royal', 'midnight', 'warm'].indexOf(saved) >= 0
+            ? saved
+            : (legacy === 'light' ? 'fresh' : 'midnight');
+          root.dataset.theme = theme;
+          root.classList.add(theme === 'midnight' ? 'dark' : 'light', 'theme-' + theme);
+          root.style.colorScheme = theme === 'midnight' ? 'dark' : 'light';
+          document.querySelector('meta[name="theme-color"]').content = {
+            fresh: '#F7FAF5', royal: '#F8F7FF', midnight: '#0B1020', warm: '#FFF8EC'
+          }[theme];
         } catch (e) {
           document.documentElement.classList.add('dark');
         }

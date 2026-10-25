@@ -1,56 +1,61 @@
-import { describe, it, expect, afterEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
-import { ThemeProvider, useTheme } from './ThemeContext';
+import { afterEach, describe, expect, it } from 'vitest';
+import { act, renderHook } from '@testing-library/react';
+import { THEMES, ThemeProvider, useTheme } from './ThemeContext';
 
 const wrapper = ({ children }) => <ThemeProvider>{children}</ThemeProvider>;
-
 const renderTheme = () => renderHook(() => useTheme(), { wrapper });
 
-function clearDocumentThemeClasses() {
-  document.documentElement.classList.remove('light', 'dark');
+function clearDocumentTheme() {
+  document.documentElement.classList.remove('light', 'dark', 'theme-fresh', 'theme-royal', 'theme-midnight', 'theme-warm');
+  delete document.documentElement.dataset.theme;
 }
 
 describe('ThemeContext', () => {
   afterEach(() => {
-    clearDocumentThemeClasses();
+    localStorage.clear();
+    clearDocumentTheme();
   });
 
-  it('defaults to dark theme and applies the dark class', () => {
+  it('exposes all four named themes and defaults to Midnight Neon', () => {
     const { result } = renderTheme();
-    expect(result.current.theme).toBe('dark');
+    expect(Object.keys(result.current.themes)).toEqual(['fresh', 'royal', 'midnight', 'warm']);
+    expect(result.current.theme).toBe('midnight');
+    expect(document.documentElement.dataset.theme).toBe('midnight');
     expect(document.documentElement.classList.contains('dark')).toBe(true);
-    expect(document.documentElement.classList.contains('light')).toBe(false);
+    expect(THEMES.fresh.colors).toEqual(['#176B45', '#B7E4B0', '#F7FAF5', '#FFFFFF']);
+    expect(THEMES.royal.colors).toEqual(['#6D28D9', '#C4B5FD', '#F8F7FF', '#FFFFFF']);
+    expect(THEMES.warm.colors).toEqual(['#C65D32', '#F2D5A7', '#FFF8EC', '#FFFFFF']);
   });
 
-  it('toggleTheme switches between dark and light and updates the document class', () => {
+  it('switches immediately, applies the theme class and persists each selection', () => {
     const { result } = renderTheme();
-    act(() => result.current.toggleTheme());
-    expect(result.current.theme).toBe('light');
-    expect(document.documentElement.classList.contains('light')).toBe(true);
-    expect(document.documentElement.classList.contains('dark')).toBe(false);
-    act(() => result.current.toggleTheme());
-    expect(result.current.theme).toBe('dark');
-    expect(document.documentElement.classList.contains('dark')).toBe(true);
+    for (const id of ['fresh', 'royal', 'warm', 'midnight']) {
+      act(() => result.current.setTheme(id));
+      expect(result.current.theme).toBe(id);
+      expect(document.documentElement.dataset.theme).toBe(id);
+      expect(document.documentElement.classList.contains(`theme-${id}`)).toBe(true);
+      expect(localStorage.getItem('ganesh-theme')).toBe(id);
+    }
   });
 
-  it('persists the chosen theme in localStorage', () => {
-    const { result } = renderTheme();
-    act(() => result.current.toggleTheme());
-    expect(localStorage.getItem('theme')).toBe('light');
-  });
+  it('restores a saved theme and supports legacy light/dark preferences', () => {
+    localStorage.setItem('ganesh-theme', 'royal');
+    const first = renderTheme();
+    expect(first.result.current.theme).toBe('royal');
+    first.unmount();
 
-  it('restores a saved light preference on mount', () => {
+    localStorage.removeItem('ganesh-theme');
     localStorage.setItem('theme', 'light');
-    const { result } = renderTheme();
-    expect(result.current.theme).toBe('light');
-    expect(document.documentElement.classList.contains('light')).toBe(true);
+    const legacy = renderTheme();
+    expect(legacy.result.current.theme).toBe('fresh');
   });
 
-  it('keeps dark when a stored value is not a known light theme', () => {
-    localStorage.setItem('theme', 'garbage');
+  it('ignores unsupported theme selections and invalid stored values', () => {
+    localStorage.setItem('ganesh-theme', 'not-a-theme');
     const { result } = renderTheme();
-    expect(result.current.theme).toBe('dark');
-    expect(document.documentElement.classList.contains('dark')).toBe(true);
+    expect(result.current.theme).toBe('midnight');
+    act(() => result.current.setTheme('not-a-theme'));
+    expect(result.current.theme).toBe('midnight');
   });
 });
 

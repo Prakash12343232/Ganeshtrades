@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useState } from 'react';
 import { FiPackage, FiLogOut, FiUser, FiMenu, FiX, FiTruck } from 'react-icons/fi';
 import logoIcon from '../assets/logo-icon.png';
+import ThemeToggle from '../components/common/ThemeToggle';
 
 export default function WorkerLayout() {
   const { user, logout } = useAuth();
@@ -42,6 +43,7 @@ export default function WorkerLayout() {
         </nav>
 
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-xl">
             <div className="w-7 h-7 bg-purple-600 rounded-lg flex items-center justify-center text-white text-xs font-bold">
               {user?.name?.[0]}
