@@ -1,24 +1,25 @@
-import { useTheme } from '../../context/ThemeContext';
-import { FiSun, FiMoon } from 'react-icons/fi';
+import { useState } from 'react';
+import { FiDroplet } from 'react-icons/fi';
+import ThemeSettings from './ThemeSettings';
 
 export default function ThemeToggle({ className = '' }) {
-  const { theme, toggleTheme } = useTheme();
-  const isDark = theme === 'dark';
-
+  const [open, setOpen] = useState(false);
   return (
-    <button
-      onClick={toggleTheme}
-      className={`p-2 rounded-xl text-slate-300 hover:text-mint-400 hover:bg-navy-800/80 transition-all border border-transparent hover:border-navy-700 focus:outline-none focus:ring-2 focus:ring-mint-400/50 flex items-center justify-center ${className}`}
-      title={isDark ? 'Switch to Light Theme' : 'Switch to Dark Theme'}
-      aria-label={isDark ? 'Switch to Light Theme' : 'Switch to Dark Theme'}
-      type="button"
-      id="theme-toggle-btn"
-    >
-      {isDark ? (
-        <FiSun className="w-5 h-5 text-amber-400 hover:rotate-45 transition-transform" />
-      ) : (
-        <FiMoon className="w-5 h-5 text-mint-600 hover:-rotate-12 transition-transform" />
-      )}
-    </button>
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className={`theme-picker-trigger ${className}`}
+        title="Choose color theme"
+        aria-label="Choose color theme"
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        id="theme-toggle-btn"
+      >
+        <FiDroplet className="w-5 h-5" />
+        <span className="hidden lg:inline">Theme</span>
+      </button>
+      <ThemeSettings open={open} onClose={() => setOpen(false)} />
+    </>
   );
 }

@@ -6,6 +6,7 @@ import { FiHome, FiPackage, FiUsers, FiDollarSign, FiBarChart2, FiBox, FiLogOut,
 import logoIcon from '../assets/logo-icon.png';
 import AiBusinessAssistant from '../components/admin/AiBusinessAssistant';
 import DataImportWizard from '../components/admin/DataImportWizard';
+import ThemeToggle from '../components/common/ThemeToggle';
 
 export default function AdminLayout() {
   const { user, logout } = useAuth();
@@ -104,6 +105,7 @@ export default function AdminLayout() {
               </h2>
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
+              <ThemeToggle />
               <button
                 type="button"
                 onClick={() => {

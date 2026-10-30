@@ -77,8 +77,8 @@ export default function CustomerLayout() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-2 group">
-              <div className="w-11 h-11 rounded-xl flex items-center justify-center ring-2 ring-purple-500 shadow-[0_0_12px_3px_rgba(168,85,247,0.5)] group-hover:shadow-[0_0_18px_5px_rgba(168,85,247,0.7)] transition-all duration-200">
+            <Link to="/" className="flex items-center gap-2 group rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500">
+              <div className="w-11 h-11 rounded-xl flex items-center justify-center">
                 <img
                   src={logoIcon}
                   alt="Ganesh Trades Logo"
