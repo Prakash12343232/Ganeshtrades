@@ -6,6 +6,7 @@ import { getNotifications, markRead, markAllRead } from '../services/api';
 import { FiShoppingCart, FiUser, FiMenu, FiX, FiHome, FiPackage, FiLogOut, FiLogIn, FiClipboard, FiBell, FiCheck } from 'react-icons/fi';
 import { FaWhatsapp } from 'react-icons/fa';
 import ThemeToggle from '../components/common/ThemeToggle';
+import MobileBottomNav from '../components/common/MobileBottomNav';
 import logoImg from '../assets/logo.png';
 import logoIcon from '../assets/logo-icon.png';
 
@@ -71,7 +72,7 @@ export default function CustomerLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-navy-950 text-slate-100 flex flex-col justify-between selection:bg-mint-500 selection:text-navy-950 transition-colors duration-200">
+    <div className="customer-shell min-h-screen bg-navy-950 text-slate-100 flex flex-col justify-between selection:bg-mint-500 selection:text-navy-950 transition-colors duration-200">
       {/* Header */}
       <header className="header-container sticky top-0 z-50 bg-navy-900/90 backdrop-blur-lg border-b border-navy-800 shadow-lg shadow-black/20 transition-all duration-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
@@ -237,13 +238,13 @@ export default function CustomerLayout() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 flex-1 w-full">
+      <main className="customer-main max-w-7xl mx-auto px-4 sm:px-6 py-8 flex-1 w-full">
         <Outlet />
       </main>
 
       {/* WhatsApp Button */}
       <a href="https://wa.me/918010412539?text=Hi%20Ganesh%20Trades!" target="_blank" rel="noopener noreferrer"
-        className="fixed bottom-6 right-6 w-14 h-14 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-2xl hover:bg-emerald-400 hover:scale-110 transition-all z-50 border border-mint-400/40 shadow-mint-500/20" id="whatsapp-button">
+        className="customer-whatsapp fixed bottom-6 right-6 w-14 h-14 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-2xl hover:bg-emerald-400 hover:scale-110 transition-all z-50 border border-mint-400/40 shadow-mint-500/20" id="whatsapp-button">
         <FaWhatsapp className="w-7 h-7" />
       </a>
 
@@ -283,6 +284,7 @@ export default function CustomerLayout() {
           </div>
         </div>
       </footer>
+      <MobileBottomNav />
     </div>
   );
 }

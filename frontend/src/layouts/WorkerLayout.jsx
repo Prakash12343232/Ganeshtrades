@@ -19,7 +19,7 @@ export default function WorkerLayout() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
+    <div className="worker-shell min-h-screen bg-slate-950 text-slate-100 flex flex-col">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -76,12 +76,12 @@ export default function WorkerLayout() {
       )}
 
       {/* Main content */}
-      <main className="flex-1 p-4 sm:p-6 max-w-2xl mx-auto w-full">
+      <main className="worker-main flex-1 p-4 sm:p-6 max-w-2xl mx-auto w-full">
         <Outlet />
       </main>
 
       {/* Bottom navigation for mobile */}
-      <nav className="sm:hidden fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 flex z-40">
+      <nav className="worker-bottom-nav sm:hidden fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 flex z-40">
         {navLinks.map(l => (
           <Link key={l.path} to={l.path}
             className={`flex-1 flex flex-col items-center gap-1 py-2 text-xs font-semibold transition-all ${isActive(l.path) ? 'text-purple-400' : 'text-slate-500 hover:text-slate-300'}`}>

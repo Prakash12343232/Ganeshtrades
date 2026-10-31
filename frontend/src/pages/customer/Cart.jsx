@@ -175,7 +175,7 @@ export default function Cart() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Cart Items */}
-        <div className="lg:col-span-2 space-y-4">
+        <div className="cart-items lg:col-span-2 space-y-4">
           {items.map(item => (
             <div key={item.product} className="bg-white dark:bg-navy-900 rounded-2xl border border-slate-200 dark:border-navy-800 p-4 flex flex-col sm:flex-row sm:items-center gap-4 hover:border-mint-500/30 transition-all shadow-sm">
               <div className="flex items-center gap-3.5 flex-1 min-w-0">
@@ -209,7 +209,7 @@ export default function Cart() {
         </div>
 
         {/* Order Summary & Payment Gateway */}
-        <div className="space-y-4">
+        <div className="cart-summary space-y-4">
           {/* Delivery Option */}
           <div className="bg-white dark:bg-navy-900 rounded-2xl border border-slate-200 dark:border-navy-800 p-5 shadow-sm">
             <h2 className="text-sm font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2"><FiClock className="text-mint-600 dark:text-mint-400" /> Delivery Option</h2>

@@ -31,7 +31,7 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="space-y-12 animate-fadeIn">
+    <div className="mobile-home space-y-12 animate-fadeIn">
       {/* Hero */}
       <section className="hero-section relative overflow-hidden rounded-3xl bg-gradient-to-br from-navy-900 via-navy-850 to-navy-950 text-slate-900 dark:text-white p-8 md:p-12 border border-navy-700/80 shadow-2xl transition-all duration-200">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2260%22%20height%3D%2260%22%20viewBox%3D%220%200%2060%2060%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cg%20fill%3D%22none%22%20fill-rule%3D%22evenodd%22%3E%3Cg%20fill%3D%22%2334d399%22%20fill-opacity%3D%220.05%22%3E%3Cpath%20d%3D%22M36%2034v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6%2034v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6%204V0H4v4H0v2h4v4h2V6h4V4H6z%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-40"></div>
@@ -73,7 +73,7 @@ export default function Home() {
       </section>
 
       {/* Features */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <section className="mobile-feature-grid grid grid-cols-1 md:grid-cols-3 gap-5">
         {[
           { icon: <FiTruck className="w-6 h-6" />, title: 'Fast Delivery', desc: 'Same day delivery for local orders' },
           { icon: <FiShield className="w-6 h-6" />, title: 'Quality Products', desc: 'Only genuine and fresh items' },
@@ -92,11 +92,11 @@ export default function Home() {
       {/* Categories */}
       {categories.length > 0 && (
         <section>
-          <div className="flex items-center justify-between mb-6">
+          <div className="mobile-section-heading flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Shop by Category</h2>
             <Link to="/products" className="text-mint-600 dark:text-mint-400 hover:underline font-semibold text-sm flex items-center gap-1">View All <FiArrowRight /></Link>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          <div className="mobile-category-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {categories.slice(0, 12).map((cat) => (
               <Link key={cat._id} to={`/products?category=${cat._id}`}
                 className="flex flex-col items-center p-4 bg-white dark:bg-navy-900 rounded-2xl border border-slate-200 dark:border-navy-800 shadow-sm hover:shadow-lg hover:border-mint-500/40 hover:shadow-mint-500/10 transition-all group text-center">
@@ -114,7 +114,7 @@ export default function Home() {
       {/* Featured Products */}
       {featuredProducts.length > 0 && (
         <section>
-          <div className="flex items-center justify-between mb-6">
+          <div className="mobile-section-heading flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
               <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Featured Products</h2>
               <span className="px-2.5 py-0.5 bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-300 text-xs font-semibold rounded-full flex items-center gap-1">
@@ -123,9 +123,9 @@ export default function Home() {
             </div>
             <Link to="/products" className="text-mint-600 dark:text-mint-400 hover:underline font-semibold text-sm flex items-center gap-1">See All <FiArrowRight /></Link>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="mobile-product-grid grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {featuredProducts.map(product => (
-              <div key={product._id} className="bg-white dark:bg-navy-900 rounded-2xl border border-slate-200 dark:border-navy-800/80 overflow-hidden shadow-sm hover:shadow-xl hover:border-mint-500/40 hover:shadow-mint-500/10 transition-all group relative flex flex-col justify-between">
+              <div key={product._id} className="product-card bg-white dark:bg-navy-900 rounded-2xl border border-slate-200 dark:border-navy-800/80 overflow-hidden shadow-sm hover:shadow-xl hover:border-mint-500/40 hover:shadow-mint-500/10 transition-all group relative flex flex-col justify-between">
                 {product.isFeatured && (
                   <span className="absolute top-2 left-2 z-10 px-2 py-0.5 bg-mint-500 text-navy-950 text-[10px] font-extrabold rounded-full shadow-md">
                     Featured

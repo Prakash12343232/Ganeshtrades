@@ -119,7 +119,7 @@ export default function Dashboard() {
           <h3 className="font-bold text-white">Recent Orders</h3>
           <Link to="/admin/orders" className="text-mint-400 text-sm font-semibold flex items-center gap-1 hover:text-mint-300">View All <FiArrowRight /></Link>
         </div>
-        <div className="overflow-x-auto">
+        <div className="admin-desktop-table overflow-x-auto">
           <table className="w-full text-sm text-slate-300">
             <thead><tr className="border-b border-navy-800">
               <th className="text-left py-3 px-4 text-slate-400 font-medium">Order</th>
@@ -140,6 +140,20 @@ export default function Dashboard() {
               ))}
             </tbody>
           </table>
+        </div>
+        <div className="admin-mobile-order-cards">
+          {(stats?.recentOrders || []).slice(0, 5).map(order => (
+            <Link key={order._id} to="/admin/orders" className="admin-mobile-order-card">
+              <div>
+                <p className="font-bold text-white">#{order.orderNumber}</p>
+                <p className="text-xs text-slate-400 mt-0.5 truncate">{order.user?.name || 'Walk-in customer'}</p>
+              </div>
+              <div className="text-right">
+                <p className="font-bold text-mint-400">₹{order.finalAmount}</p>
+                <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold capitalize bg-mint-500/10 border border-mint-500/20 text-mint-400">{order.orderStatus?.replace(/_/g, ' ')}</span>
+              </div>
+            </Link>
+          ))}
         </div>
       </div>
 

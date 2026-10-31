@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { FiCheck, FiX } from 'react-icons/fi';
 import { THEMES, useTheme } from '../../context/ThemeContext';
 
@@ -32,7 +33,7 @@ export default function ThemeSettings({ open, onClose }) {
 
   if (!open) return null;
 
-  return (
+  return createPortal((
     <div className="theme-settings-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
       <section className="theme-settings-panel" role="dialog" aria-modal="true" aria-labelledby="theme-settings-title">
         <header className="theme-settings-header">
@@ -70,5 +71,5 @@ export default function ThemeSettings({ open, onClose }) {
         <p className="theme-settings-footnote">Your selection is saved on this device.</p>
       </section>
     </div>
-  );
+  ), document.body);
 }
