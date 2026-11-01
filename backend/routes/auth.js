@@ -161,6 +161,15 @@ router.post('/google', authLimiter, async (req, res) => {
     });
   } catch (error) {
     console.error('❌ /auth/google error:', error);
+    // A Google identity can race with another sign-in, or the email can already
+    // exist in a legacy account with different casing. Do not turn this expected
+    // account-linking condition into an opaque 500 error.
+    if (error?.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: 'This Google account is already associated with a Ganesh Trades account. Sign in with mobile and password, then link Google from your profile if needed.'
+      });
+    }
     const statusCode = error.statusCode || 500;
     res.status(statusCode).json({
       success: false,

@@ -171,6 +171,25 @@ describe('Google Authentication Endpoints', () => {
       expect(updated.role).toBe('customer');
     });
 
+    it('returns an actionable conflict when a concurrent or legacy account causes a duplicate key', async () => {
+      jest.spyOn(googleAuthUtils, 'verifyGoogleToken').mockResolvedValue({
+        sub: 'google-sub-duplicate-race',
+        email: 'duplicate-race@gmail.com',
+        emailVerified: true,
+        name: 'Duplicate Race'
+      });
+      const createSpy = jest.spyOn(User, 'create').mockRejectedValueOnce({ code: 11000 });
+
+      const res = await request(app)
+        .post('/api/auth/google')
+        .send({ credential: 'duplicate-race-token' });
+
+      expect(res.statusCode).toBe(409);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/already associated.*sign in with mobile.*link google/i);
+      createSpy.mockRestore();
+    });
+
     it('BLOCKS unauthorized Google sign-in for admin account without verified linking or env match', async () => {
       await User.create({
         name: 'Shop Admin',
