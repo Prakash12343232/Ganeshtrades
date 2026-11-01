@@ -48,6 +48,7 @@ export default function Products() {
   const [availability, setAvailability] = useState(searchParams.get('availability') || '');
   const [sort, setSort] = useState(searchParams.get('sort') || '-createdAt');
   const fetchRef = useRef(0);
+  const searchInputRef = useRef(null);
 
   const [pagination, setPagination] = useState({ total: 0, page: 1, pages: 1 });
   const { addToCart } = useCart();
@@ -86,6 +87,10 @@ export default function Products() {
     return () => clearTimeout(timer);
   }, [search]);
 
+  useEffect(() => {
+    if (searchParams.get('focus') === 'search') searchInputRef.current?.focus();
+  }, [searchParams]);
+
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     setDebouncedSearch(search);
@@ -117,6 +122,7 @@ export default function Products() {
           <form onSubmit={handleSearchSubmit} className="relative flex-1">
             <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
+              ref={searchInputRef}
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
@@ -255,7 +261,7 @@ export default function Products() {
 
       {/* Products Grid */}
       {loading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="mobile-product-grid grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {[...Array(8)].map((_, i) => (
             <div key={i} data-testid="product-skeleton" className="bg-white dark:bg-navy-900 rounded-2xl border border-slate-200 dark:border-navy-800 overflow-hidden animate-pulse shadow-sm">
               <div className="h-44 bg-slate-100 dark:bg-navy-950"></div>
@@ -278,9 +284,9 @@ export default function Products() {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="mobile-product-grid grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {products.map(product => (
-            <div key={product._id} data-testid="product-card" className="bg-white dark:bg-navy-900 rounded-2xl border border-slate-200 dark:border-navy-800/80 overflow-hidden shadow-sm hover:shadow-xl hover:border-mint-500/40 hover:shadow-mint-500/10 transition-all group relative flex flex-col justify-between">
+            <div key={product._id} data-testid="product-card" className="product-card bg-white dark:bg-navy-900 rounded-2xl border border-slate-200 dark:border-navy-800/80 overflow-hidden shadow-sm hover:shadow-xl hover:border-mint-500/40 hover:shadow-mint-500/10 transition-all group relative flex flex-col justify-between">
               {product.isFeatured && (
                 <span className="absolute top-2 left-2 z-10 px-2 py-0.5 bg-mint-500 text-navy-950 text-[10px] font-extrabold rounded-full shadow-md">
                   Featured

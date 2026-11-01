@@ -53,7 +53,7 @@ export default function AdminLayout() {
   const isActive = (path, exact) => exact ? location.pathname === path : location.pathname.startsWith(path);
 
   return (
-    <div className="min-h-screen bg-navy-950 text-slate-100 flex">
+    <div className="admin-shell min-h-screen bg-navy-950 text-slate-100 flex">
       {/* Sidebar */}
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-gradient-to-b from-navy-900 via-navy-950 to-navy-950 border-r border-navy-800 text-white transform transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:static lg:inset-0 flex flex-col justify-between`}>
         <div>
@@ -145,7 +145,7 @@ export default function AdminLayout() {
           </div>
         </header>
 
-        <main className="flex-1 p-4 sm:p-6 bg-navy-950">
+        <main className="admin-main flex-1 p-4 sm:p-6 bg-navy-950">
           <Suspense fallback={
             <div className="flex items-center justify-center h-64">
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-mint-400"></div>
