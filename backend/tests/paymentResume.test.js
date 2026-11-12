@@ -14,7 +14,10 @@ describe('Online Payment Resume (aborted payment path)', () => {
       name: 'Cust',
       mobile: '9000000011',
       password: 'password123',
-      role: 'customer'
+      role: 'customer',
+      // The order below is created directly, so book its unpaid UPI debt here
+      // to keep the customer ledger consistent with the order.
+      pendingAmount: 200
     });
     token = generateTestToken(customer._id);
     order = await Order.create({
