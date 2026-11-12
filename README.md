@@ -19,35 +19,34 @@ A complete full-stack web application for managing a grocery and wholesale busin
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js 18+
+- Node.js 22+
 - MongoDB (local or Atlas)
 
-### 1. Install everything (root)
+### 1. Install dependencies (root)
 ```bash
-npm run install-all
+npm ci
 ```
 
 ### 2. Configure Environment
-Copy/edit `backend/.env`:
+Copy the template and fill in your own values:
+```bash
+cp .env.example .env
+```
+
+Minimum backend values:
 ```
 PORT=5000
 MONGODB_URI=mongodb://localhost:27017/ganesh_trades
 JWT_SECRET=your_secret_key
 JWT_EXPIRE=7d
 FRONTEND_URL=http://localhost:5173
-
-# SMS (OTP) — optional; falls back to console mock when unset
-FAST2SMS_API_KEY=your_key
-TWILIO_ACCOUNT_SID=your_sid
-TWILIO_AUTH_TOKEN=your_token
-TWILIO_PHONE_NUMBER=+1xxxx
-
-# Optional payment gateway
-RAZORPAY_KEY_ID=your_key
-RAZORPAY_KEY_SECRET=your_secret
+ADMIN_PASSWORD=choose_a_strong_password
 ```
 
-OTP microservice (`otp-server/`):
+Optional SMS / payment gateway values are listed in `.env.example`. Never commit
+your real `.env`.
+
+For the OTP microservice, copy the same template to `otp-server/.env` and set:
 ```
 PORT=5001
 MONGODB_URI=mongodb://localhost:27017/ganesh_trades_otp
@@ -60,12 +59,24 @@ cd backend
 npm run seed
 ```
 
-### 4. Start everything (root)
+### 4. Start the application (root)
 ```bash
 npm run dev
 ```
-- Frontend: `http://localhost:5173`
+- App (frontend + API): `http://localhost:5000`
+
+For hot-reload development, run the backend and Vite dev server separately:
+```bash
+npm start --prefix backend
+npm run dev --prefix frontend
+```
+- Frontend (Vite): `http://localhost:5173`
 - Backend API: `http://localhost:5000`
+
+Start the OTP microservice separately when needed:
+```bash
+npm run start:otp
+```
 - OTP service: `http://localhost:5001`
 
 ## 📁 Project Structure

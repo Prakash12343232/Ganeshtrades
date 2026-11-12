@@ -2,15 +2,22 @@
 process.env.NODE_ENV = 'test';
 
 const mongoose = require('mongoose');
-const { MongoMemoryServer } = require('mongodb-memory-server');
+const { MongoMemoryServer, MongoMemoryReplSet } = require('mongodb-memory-server');
 const jwt = require('jsonwebtoken');
 
 jest.setTimeout(300000); // 300 seconds timeout for in-memory MongoDB download
 
+// Set MONGOMS_REPLICA_SET=true to exercise the real multi-document transaction
+// path. The default single-node server keeps the suite fast and falls back to
+// the non-transactional path.
+const useReplicaSet = process.env.MONGOMS_REPLICA_SET === 'true';
+
 let mongoServer;
 
 beforeAll(async () => {
-  mongoServer = await MongoMemoryServer.create();
+  mongoServer = useReplicaSet
+    ? await MongoMemoryReplSet.create({ replSet: { count: 1 } })
+    : await MongoMemoryServer.create();
   const mongoUri = mongoServer.getUri();
   await mongoose.connect(mongoUri);
 });

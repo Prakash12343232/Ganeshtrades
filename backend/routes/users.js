@@ -71,7 +71,7 @@ router.get('/stats/summary', protect, authorize('admin', 'manager'), async (req,
           _id: '$customerType',
           count: { $sum: 1 },
           totalSpent: { $sum: '$totalSpent' },
-          totalPending: { $sum: '$pendingAmount' }
+          totalPending: { $sum: { $add: ['$pendingAmount', '$creditBalance'] } }
         }
       }
     ]);

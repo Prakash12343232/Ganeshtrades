@@ -24,11 +24,20 @@ router.get('/stats', protect, authorize('admin', 'manager'), async (req, res) =>
     ]);
     const totalRevenue = revenueAgg[0]?.total || 0;
 
-    const pendingPayments = await User.aggregate([
-      { $match: { pendingAmount: { $gt: 0 } } },
-      { $group: { _id: null, total: { $sum: '$pendingAmount' } } }
+    // Total outstanding = unpaid cash/UPI debt + unpaid Khata credit debt.
+    // The two User fields are disjoint by construction (an order books exactly
+    // one of them), so adding them never double-counts.
+    const outstandingAgg = await User.aggregate([
+      {
+        $match: {
+          role: 'customer',
+          $or: [{ pendingAmount: { $gt: 0 } }, { creditBalance: { $gt: 0 } }]
+        }
+      },
+      { $group: { _id: null, total: { $sum: { $add: ['$pendingAmount', '$creditBalance'] } } } }
     ]);
-    const totalPending = pendingPayments[0]?.total || 0;
+    const totalOutstanding = outstandingAgg[0]?.total || 0;
+    const totalPending = totalOutstanding;
 
     // Recent orders
     const recentOrders = await Order.find().populate('user', 'name mobile').sort('-createdAt').limit(10);
@@ -65,7 +74,7 @@ router.get('/stats', protect, authorize('admin', 'manager'), async (req, res) =>
       success: true,
       data: {
         totalOrders, pendingOrders, deliveredOrders, cancelledOrders,
-        totalRevenue, totalPending, totalCustomers, totalProducts, lowStockProducts,
+        totalRevenue, totalPending, totalOutstanding, totalCustomers, totalProducts, lowStockProducts,
         todayOrders, todayRevenue: todayRevenue[0]?.total || 0,
         todayScheduled, upcomingScheduled, lateScheduled,
         recentOrders

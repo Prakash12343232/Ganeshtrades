@@ -3,6 +3,7 @@ const Product = require('../models/Product');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
 const Payment = require('../models/Payment');
+const Settlement = require('../models/Settlement');
 const CreditTransaction = require('../models/CreditTransaction');
 const Delivery = require('../models/Delivery');
 const { createAuditLog } = require('../utils/auditLogger');
@@ -10,6 +11,13 @@ const { generateInvoicePDF } = require('../utils/pdfGenerator');
 const { checkServiceability } = require('../utils/distance');
 const { sanitizeSort, parsePositiveInt, parsePagination } = require('../utils/security');
 const { clientErrorMessage } = require('../utils/errors');
+const { withTransaction } = require('../utils/transaction');
+const {
+  EPSILON,
+  round2,
+  getOrderPaidTotal,
+  getOrderSettledTotal
+} = require('../services/ledgerService');
 
 const TIME_SLOTS = Order.TIME_SLOTS;
 
@@ -69,43 +77,62 @@ function parseSlotStartHour(slot) {
 // manual status path and the customer cancelOrder endpoint share semantics:
 // restore stock, and undo the unpaid portion of the pending/credit balance
 // booked at creation. Money already collected on the order (recorded/verified
-// payments) reduced the customer's ledger when it happened, so only the
-// still-owed remainder is reversed — reversing the full finalAmount would
-// double-decrement and could push creditBalance/pendingAmount negative.
-async function reverseOrderFinancials(order) {
-  for (const item of order.items) {
-    await Product.findByIdAndUpdate(item.product, { $inc: { stock: item.quantity, totalSold: -item.quantity } });
+// payments AND attributed settlements) reduced the customer's ledger when it
+// happened, so only the still-owed remainder is reversed.
+async function reverseOrderFinancials(order, session) {
+  const alreadyPaid = await getOrderPaidTotal(order._id, session);
+  const alreadySettled = await getOrderSettledTotal(order._id, session);
+  const stillOwed = round2(Math.max(0, round2(order.finalAmount) - alreadyPaid - alreadySettled));
+
+  // Validate the ledger BEFORE touching stock so an inconsistent account cannot
+  // leave inventory restored while the cancellation fails.
+  let user = null;
+  let ledgerField = null;
+  let currentBalance = 0;
+  if (stillOwed > EPSILON) {
+    const userQuery = User.findById(order.user);
+    if (session) userQuery.session(session);
+    user = await userQuery;
+    if (!user) {
+      const err = new Error('Customer not found for order');
+      err.status = 404;
+      err.exposed = true;
+      throw err;
+    }
+
+    ledgerField = order.paymentMethod === 'credit' ? 'creditBalance' : 'pendingAmount';
+    currentBalance = round2(user[ledgerField]);
+    if (stillOwed > currentBalance + EPSILON) {
+      const err = new Error(
+        `Ledger inconsistency: cannot reverse ₹${stillOwed} for order #${order.orderNumber}; ${ledgerField} is ₹${currentBalance}. Reconcile the account before cancelling.`
+      );
+      err.status = 409;
+      err.exposed = true;
+      throw err;
+    }
   }
 
-  const paidAgg = await Payment.aggregate([
-    { $match: { order: order._id, paymentStatus: 'completed' } },
-    { $group: { _id: null, total: { $sum: '$amount' } } }
-  ]);
-  const alreadyPaid = paidAgg[0]?.total || 0;
-  const stillOwed = Math.max(0, order.finalAmount - alreadyPaid);
-  if (stillOwed <= 0) return;
+  // Inventory is always restored, even when the order was already fully paid or
+  // fully settled (there is no balance left to reverse, but the goods return).
+  for (const item of order.items) {
+    const stockUpdate = Product.findByIdAndUpdate(item.product, { $inc: { stock: item.quantity, totalSold: -item.quantity } });
+    if (session) stockUpdate.session(session);
+    await stockUpdate;
+  }
 
-  // Khata settlements reduce the user's debt ledger directly (they live in the
-  // Settlement collection, not Payment), so `stillOwed` derived purely from
-  // Payment docs can exceed the balance the user still actually carries. Cap
-  // the reversal at the current ledger balance so a cancellation after a
-  // settlement can never push creditBalance/pendingAmount negative.
-  const user = await User.findById(order.user);
-  const currentBalance = order.paymentMethod === 'credit' ? (user?.creditBalance || 0) : (user?.pendingAmount || 0);
-  const reversalAmount = Math.min(stillOwed, currentBalance);
-  if (reversalAmount <= 0) return;
+  if (stillOwed <= EPSILON) return;
+
+  user[ledgerField] = round2(currentBalance - stillOwed);
+  await user.save(session ? { session } : undefined);
 
   if (order.paymentMethod === 'credit') {
-    await User.findByIdAndUpdate(order.user, { $inc: { creditBalance: -reversalAmount } });
-    await CreditTransaction.create({
+    await CreditTransaction.create([{
       user: order.user,
-      amount: reversalAmount,
+      amount: stillOwed,
       type: 'credit',
       referenceOrder: order._id,
       description: `Cancelled order #${order.orderNumber}`
-    });
-  } else {
-    await User.findByIdAndUpdate(order.user, { $inc: { pendingAmount: -reversalAmount } });
+    }], session ? { session } : {});
   }
 }
 
@@ -322,20 +349,31 @@ exports.getOrders = async (req, res) => {
     // Attach payment progress so admin UIs can prefill/cap manual payments to
     // the order's true outstanding amount (finalAmount - completed payments).
     const paidByOrder = new Map();
+    const settledByOrder = new Map();
     if (orderIds.length) {
       const paidAgg = await Payment.aggregate([
         { $match: { order: { $in: orderIds }, paymentStatus: 'completed' } },
         { $group: { _id: '$order', total: { $sum: '$amount' } } }
       ]);
-      paidAgg.forEach((p) => paidByOrder.set(String(p._id), p.total));
+      paidAgg.forEach((p) => paidByOrder.set(String(p._id), round2(p.total)));
+
+      const settledAgg = await Settlement.aggregate([
+        { $match: { status: 'completed', 'allocations.order': { $in: orderIds } } },
+        { $unwind: '$allocations' },
+        { $match: { 'allocations.order': { $in: orderIds } } },
+        { $group: { _id: '$allocations.order', total: { $sum: '$allocations.amount' } } }
+      ]);
+      settledAgg.forEach((s) => settledByOrder.set(String(s._id), round2(s.total)));
     }
     const data = orders.map((o) => {
       const delivery = deliveryByOrder.get(String(o._id));
       const paidAmount = paidByOrder.get(String(o._id)) || 0;
+      const settledAmount = settledByOrder.get(String(o._id)) || 0;
       return {
         ...o.toObject(),
         paidAmount,
-        outstandingAmount: Math.max(0, (o.finalAmount || 0) - paidAmount),
+        settledAmount,
+        outstandingAmount: round2(Math.max(0, round2(o.finalAmount) - paidAmount - settledAmount)),
         deliveryAssigned: Boolean(delivery),
         deliveryPersonName: delivery?.deliveryPersonName || null,
         deliveryPersonMobile: delivery?.deliveryPersonMobile || null,
@@ -522,25 +560,45 @@ exports.updateOrderStatus = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Order is already cancelled' });
     }
 
-    // Cancelling via the status path must reverse inventory + balances just
-    // like cancelOrder, and is only legal before the order is terminal.
-    if (orderStatus === 'cancelled') {
-      order.cancelReason = note || 'Cancelled';
-      await reverseOrderFinancials(order);
-    }
+    await withTransaction(async (session) => {
+      // Cancelling via the status path must reverse inventory + balances just
+      // like cancelOrder, and is only legal before the order is terminal.
+      if (orderStatus === 'cancelled') {
+        order.cancelReason = note || 'Cancelled';
+        await reverseOrderFinancials(order, session);
+      }
 
-    order.orderStatus = orderStatus;
-    order.statusHistory.push({ status: orderStatus, note: note || '' });
-    if (orderStatus === 'delivered') order.deliveredAt = new Date();
+      order.orderStatus = orderStatus;
+      order.statusHistory.push({ status: orderStatus, note: note || '' });
+      if (orderStatus === 'delivered') order.deliveredAt = new Date();
 
-    // Update estimated delivery time based on status
-    if (orderStatus === 'out_for_delivery') {
-      order.estimatedDeliveryTime = new Date(Date.now() + 30 * 60 * 1000); // 30 min ETA
-    } else if (orderStatus === 'confirmed') {
-      order.estimatedDeliveryTime = new Date(Date.now() + 90 * 60 * 1000); // 1.5 hour ETA
-    } else if (orderStatus === 'processing') {
-      order.estimatedDeliveryTime = new Date(Date.now() + 60 * 60 * 1000); // 1 hour ETA
-    }
+      // Update estimated delivery time based on status
+      if (orderStatus === 'out_for_delivery') {
+        order.estimatedDeliveryTime = new Date(Date.now() + 30 * 60 * 1000); // 30 min ETA
+      } else if (orderStatus === 'confirmed') {
+        order.estimatedDeliveryTime = new Date(Date.now() + 90 * 60 * 1000); // 1.5 hour ETA
+      } else if (orderStatus === 'processing') {
+        order.estimatedDeliveryTime = new Date(Date.now() + 60 * 60 * 1000); // 1 hour ETA
+      }
+
+      await order.save(session ? { session } : undefined);
+
+      // Keep the delivery record in sync when the order reaches a terminal state
+      // via the manual status path (unifies it with the delivery-assignment path).
+      if (orderStatus === 'delivered' || orderStatus === 'cancelled') {
+        const deliveryQuery = Delivery.findOne({ order: order._id });
+        if (session) deliveryQuery.session(session);
+        const delivery = await deliveryQuery;
+        if (delivery && !['delivered', 'failed'].includes(delivery.status)) {
+          delivery.status = orderStatus === 'delivered' ? 'delivered' : 'failed';
+          delivery.history.push({
+            status: delivery.status,
+            note: orderStatus === 'delivered' ? 'Order marked as delivered' : 'Order cancelled'
+          });
+          await delivery.save(session ? { session } : undefined);
+        }
+      }
+    });
 
     // When dispatching a scheduled order, notify customer
     if (orderStatus === 'out_for_delivery') {
@@ -549,22 +607,6 @@ exports.updateOrderStatus = async (req, res) => {
         message: `Your order #${order.orderNumber} is on its way! Expected in about 30 minutes.`,
         type: 'delivery', recipient: order.user, link: `/orders/${order._id}`, priority: 'high'
       });
-    }
-
-    await order.save();
-
-    // Keep the delivery record in sync when the order reaches a terminal state
-    // via the manual status path (unifies it with the delivery-assignment path).
-    if (orderStatus === 'delivered' || orderStatus === 'cancelled') {
-      const delivery = await Delivery.findOne({ order: order._id });
-      if (delivery && !['delivered', 'failed'].includes(delivery.status)) {
-        delivery.status = orderStatus === 'delivered' ? 'delivered' : 'failed';
-        delivery.history.push({
-          status: delivery.status,
-          note: orderStatus === 'delivered' ? 'Order marked as delivered' : 'Order cancelled'
-        });
-        await delivery.save();
-      }
     }
 
     // Status-specific notification labels
@@ -587,19 +629,23 @@ exports.cancelOrder = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Order can no longer be cancelled by customer' });
     }
 
-    order.orderStatus = 'cancelled';
-    order.cancelReason = req.body.reason || 'Cancelled';
-    order.statusHistory.push({ status: 'cancelled', note: order.cancelReason });
-    await order.save();
-    await reverseOrderFinancials(order);
+    await withTransaction(async (session) => {
+      order.orderStatus = 'cancelled';
+      order.cancelReason = req.body.reason || 'Cancelled';
+      order.statusHistory.push({ status: 'cancelled', note: order.cancelReason });
+      await reverseOrderFinancials(order, session);
+      await order.save(session ? { session } : undefined);
 
-    // A cancelled order must not keep an active delivery in the dispatch queues.
-    const delivery = await Delivery.findOne({ order: order._id });
-    if (delivery && !['delivered', 'failed'].includes(delivery.status)) {
-      delivery.status = 'failed';
-      delivery.history.push({ status: 'failed', note: 'Order cancelled' });
-      await delivery.save();
-    }
+      // A cancelled order must not keep an active delivery in the dispatch queues.
+      const deliveryQuery = Delivery.findOne({ order: order._id });
+      if (session) deliveryQuery.session(session);
+      const delivery = await deliveryQuery;
+      if (delivery && !['delivered', 'failed'].includes(delivery.status)) {
+        delivery.status = 'failed';
+        delivery.history.push({ status: 'failed', note: 'Order cancelled' });
+        await delivery.save(session ? { session } : undefined);
+      }
+    });
 
     res.json({ success: true, message: 'Order cancelled', data: order });
   } catch (error) {
