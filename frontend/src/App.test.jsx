@@ -40,6 +40,7 @@ vi.mock('./layouts/AdminLayout', async () => {
 
 vi.mock('./pages/auth/Login', () => ({ __esModule: true, default: marker('Login') }));
 vi.mock('./pages/auth/Register', () => ({ __esModule: true, default: marker('Register') }));
+vi.mock('./pages/auth/CompleteProfile', () => ({ __esModule: true, default: marker('CompleteProfile') }));
 vi.mock('./pages/auth/ForgotPassword', () => ({ __esModule: true, default: marker('ForgotPassword') }));
 vi.mock('./pages/NotFound', () => ({ __esModule: true, default: marker('NotFound') }));
 
@@ -104,6 +105,8 @@ describe('App routing and protected routes', () => {
     expect(await screen.findByTestId('route:Login')).toBeInTheDocument();
     renderAt('/register');
     expect(await screen.findByTestId('route:Register')).toBeInTheDocument();
+    renderAt('/complete-profile');
+    expect(await screen.findByTestId('route:CompleteProfile')).toBeInTheDocument();
     renderAt('/forgot-password');
     expect(await screen.findByTestId('route:ForgotPassword')).toBeInTheDocument();
   });

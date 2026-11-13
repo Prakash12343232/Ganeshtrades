@@ -42,6 +42,7 @@ const userSchema = new mongoose.Schema({
     street: String,
     area: String,
     city: { type: String, default: 'Local' },
+    state: String,
     pincode: String,
     lat: Number,
     lng: Number
@@ -70,6 +71,13 @@ const userSchema = new mongoose.Schema({
   loginAttempts: { type: Number, default: 0 },
   lockUntil: { type: Date },
   isEmailVerified: { type: Boolean, default: false },
+  // Google-only registrations are created with profileCompleted=false and may
+  // only finish onboarding. Local accounts predate this field (undefined) and
+  // are treated as complete by the shared helper.
+  profileCompleted: { type: Boolean },
+  // Mobile numbers supplied during Google onboarding are intentionally NOT
+  // OTP-verified. This flag must never be presented as verified.
+  phoneVerified: { type: Boolean, default: false },
   emailVerificationToken: String,
   emailVerificationExpires: Date,
   passwordResetToken: String,

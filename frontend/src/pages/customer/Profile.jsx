@@ -11,7 +11,8 @@ export default function Profile() {
     name: user?.name || '', email: user?.email || '',
     address: {
       street: user?.address?.street || '', area: user?.address?.area || '',
-      city: user?.address?.city || '', pincode: user?.address?.pincode || '',
+      city: user?.address?.city || '', state: user?.address?.state || '',
+      pincode: user?.address?.pincode || '',
       lat: user?.address?.lat || null, lng: user?.address?.lng || null
     }
   });
@@ -144,6 +145,8 @@ export default function Profile() {
               className="px-4 py-3 bg-navy-950 border border-navy-700 text-slate-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-mint-500 placeholder-slate-500" placeholder="Area" />
             <input type="text" value={form.address.city} onChange={e => setForm({...form, address: {...form.address, city: e.target.value}})}
               className="px-4 py-3 bg-navy-950 border border-navy-700 text-slate-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-mint-500 placeholder-slate-500" placeholder="City" />
+            <input type="text" value={form.address.state} onChange={e => setForm({...form, address: {...form.address, state: e.target.value}})}
+              className="px-4 py-3 bg-navy-950 border border-navy-700 text-slate-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-mint-500 placeholder-slate-500" placeholder="State" />
             <input type="text" value={form.address.pincode} onChange={e => setForm({...form, address: {...form.address, pincode: e.target.value}})}
               className="px-4 py-3 bg-navy-950 border border-navy-700 text-slate-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-mint-500 placeholder-slate-500" placeholder="Pincode" />
           </div>

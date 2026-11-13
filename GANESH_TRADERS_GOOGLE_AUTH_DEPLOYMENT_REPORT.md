@@ -48,8 +48,8 @@ Before modifying the codebase, a complete audit of the authentication and deploy
    - Enforces `payload.email_verified === true`.
 2. **Authentication Route (`POST /api/auth/google`)**:
    - Looks up user by `googleId: payload.sub`.
-   - If not found, looks up by verified email. If an existing account has `role: 'admin'`, automatic linking is blocked unless `ADMIN_GOOGLE_EMAIL` matches or explicit authenticated linking occurred.
-   - If user does not exist, creates a new MongoDB user with `role: 'customer'`, `authProvider: 'google'`, and `isEmailVerified: true`.
+   - If not found, checks whether the verified email already belongs to an existing account and returns `409 Conflict` with recovery instructions. It never auto-links by email, so a Google identity cannot take over a mobile/password account.
+   - If no account exists, creates a new MongoDB user with `role: 'customer'`, `authProvider: 'google'`, and `isEmailVerified: true`.
    - Issues application JWT signed with `JWT_SECRET`.
 3. **Account Linking Route (`POST /api/auth/google/link`)**:
    - Protected endpoint requiring existing JWT Bearer token.
@@ -79,12 +79,12 @@ Before modifying the codebase, a complete audit of the authentication and deploy
 - **31 / 31 test suites passed** (190 total tests, 0 failures).
 - Included dedicated new test suite [`backend/tests/googleAuth.test.js`](file:///d:/ganesh/backend/tests/googleAuth.test.js) (13 tests):
   - Token validation, issuer checking, unverified email rejection.
-  - New customer creation with enforced `customer` role.
-  - Existing user login and email linking.
-  - **Admin privilege escalation block**: unlinked Google accounts cannot claim admin roles.
-  - Admin login via explicit `ADMIN_GOOGLE_EMAIL` match.
-  - Deactivated account rejection.
-  - Authenticated Google account linking and duplicate prevention.
+   - New customer creation with enforced `customer` role.
+   - Existing user login by `googleId`.
+   - **Admin privilege escalation block**: unlinked Google accounts cannot claim admin roles by matching email.
+   - Deactivated account rejection.
+   - Authenticated Google account linking and duplicate prevention.
+   - Duplicate-key conflicts return actionable `409` recovery instructions.
 
 ### B. Automated OTP Server Tests (`npm run test:otp`)
 - **1 / 1 test suite passed** (11 tests, 0 failures).
@@ -148,8 +148,7 @@ To enable live Google Sign-In in production, the Google Cloud OAuth 2.0 Web Appl
 #### In Render Dashboard (`ganeshtrades1`):
 1. Open [Render Dashboard](https://dashboard.render.com) → `ganeshtrades1` → **Environment**.
 2. Add the following variables:
-   - `GOOGLE_CLIENT_ID`: Your Google OAuth Client ID
-   - `ADMIN_GOOGLE_EMAIL`: Your personal Gmail address (e.g. `prakchoudhary777@gmail.com`)
+   - `GOOGLE_CLIENT_ID`: Your Google OAuth Client ID (comma-separated list is supported for multiple web clients)
 3. Click **Save Changes** (Render will trigger a redeploy with the new commit).
 
 #### In Vercel Dashboard (`ganeshtrades`):
@@ -164,3 +163,58 @@ To enable live Google Sign-In in production, the Google Cloud OAuth 2.0 Web Appl
 3. Go to **Profile** → **Security & Accounts**.
 4. Click **Link Google Account** and sign in with your Google account.
 5. Your owner account will now be linked to your Google account. From that point forward, you can sign in with 1-click Google Sign-In and access the `/admin` portal without typing your password!
+
+---
+
+## 8. Google-First Onboarding Update (Profile Completion)
+
+### A. New customer flow
+1. Customer selects **Continue with Google** on `/register` or `/login`.
+2. The backend verifies the Google ID token, then creates or finds the customer.
+3. A brand-new Google customer receives **no application session**. Instead the API returns `requiresProfileCompletion: true` and a short-lived 30-minute `registrationToken` scoped only to `profile-completion`.
+4. The storefront opens `/complete-profile`, showing the verified Google name and read-only email.
+5. The customer enters a mobile number, customer type, and delivery address. **No SMS OTP is sent or required.**
+6. Address entry supports:
+   - **Detect My Location** — browser GPS, reverse-geocoded server-side.
+   - **Enter Manually** — address fields forwarded to the geocoder, then checked against the existing delivery radius.
+7. `POST /api/auth/google/complete-profile` validates everything server-side, enforces the delivery area, stores `profileCompleted: true` and `phoneVerified: false`, and only then returns the normal 7-day session JWT.
+
+### B. Security and account-safety rules
+- Registration tokens are rejected by `protect` as normal sessions (`REGISTRATION_SESSION_EXPIRED`).
+- Incomplete customers are blocked from protected customer APIs with `PROFILE_INCOMPLETE`; only `/api/auth/me`, `/api/auth/profile`, `/api/auth/password`, and `/api/auth/google/link` are allowlisted during onboarding.
+- Existing email → `409 ACCOUNT_LINK_REQUIRED`; existing mobile at completion → `409 MOBILE_IN_USE`.
+- There is still **no automatic account merge** by email or mobile. A customer must sign in to their existing account and link Google explicitly from **Profile → Security & Accounts**.
+- A mobile number entered through Google onboarding is never presented as verified (`phoneVerified` remains `false`).
+- Legacy Google-only accounts without a mobile number are treated as pending on their next Google sign-in.
+- Existing local customers and legacy accounts without the new field remain complete, preserving orders, payments, and credit history.
+
+### C. New endpoints and environment
+- `POST /api/auth/google/complete-profile` — public but requires the scoped registration token.
+- `POST /api/location/reverse-geocode` — rate-limited GPS address lookup.
+- `POST /api/location/geocode` — rate-limited manual address lookup.
+- `GOOGLE_MAPS_API_KEY` is **optional**. When absent, address lookup falls back to OpenStreetMap Nominatim. Google is used first when set.
+
+### D. Existing-data migration (safe, additive)
+Run the backfill only after reviewing the dry run:
+
+```bash
+cd backend
+node scripts/migrate-profile-completion.js            # dry run, no writes
+node scripts/migrate-profile-completion.js --apply    # apply
+```
+
+The script only sets `profileCompleted` for customers. It does not modify roles, passwords, orders, payments, credit records, or Google links.
+
+### E. Verification performed in this update
+- Backend Google/onboarding suite: **22 tests passed**.
+- Backend full suite: **238 tests passed** across **34 suites** (after updating the obsolete register-OTP expectation and adding geocoder unit tests).
+- Frontend suite: **167 tests passed** across **28 files** (includes `CompleteProfile.test.jsx`).
+- Frontend production build: **passed**.
+- Frontend lint: **0 errors** (pre-existing warnings remain).
+- `backend/routes/location.js` added to the API contract mount checks.
+
+### F. Remaining manual deployment steps
+1. Deploy this branch to Render and Vercel (no new required environment variable; `GOOGLE_MAPS_API_KEY` is optional).
+2. Run the migration dry run, then `--apply` if the counts look correct.
+3. Test the live flow with a **new** Google account: `/register` → Google → `/complete-profile` → mobile + address → account created → customer can order.
+4. Confirm a second Google sign-in goes straight to the store and a pending registration cannot call `/api/orders`.

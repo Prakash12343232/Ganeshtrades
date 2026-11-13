@@ -10,6 +10,7 @@ import WorkerLayout from './layouts/WorkerLayout';
 // Auth Pages
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
+import CompleteProfile from './pages/auth/CompleteProfile';
 import ForgotPassword from './pages/auth/ForgotPassword';
 
 // Fallback Page
@@ -82,6 +83,7 @@ function App() {
         {/* Auth Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/complete-profile" element={<CompleteProfile />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
 
         {/* Customer Routes */}

@@ -74,7 +74,7 @@ export default function GoogleSignInButton({
     try {
       const apiCall = mode === 'link' ? googleLink : googleLogin;
       const { data } = await apiCall({ credential: response.credential });
-      if (data?.success && (data?.token || data?.user)) {
+      if (data?.success && (data?.token || data?.user || data?.requiresProfileCompletion)) {
         if (onSuccess) {
           onSuccess(data);
         }
@@ -84,7 +84,7 @@ export default function GoogleSignInButton({
     } catch (err) {
       const msg = err.response?.data?.message || err.message || 'Google sign-in failed. Please try again.';
       toast.error(msg);
-      if (onError) onError(msg);
+      if (onError) onError(msg, err);
     } finally {
       setLoading(false);
     }

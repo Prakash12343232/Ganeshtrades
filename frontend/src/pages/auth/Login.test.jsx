@@ -7,6 +7,8 @@ import * as AuthContext from '../../context/AuthContext';
 
 vi.mock('../../services/api', () => ({
   login: vi.fn(),
+  googleLogin: vi.fn(),
+  googleLink: vi.fn(),
   getGoogleConfig: vi.fn().mockResolvedValue({ data: { configured: true, clientId: 'mock-client-id' } })
 }));
 
