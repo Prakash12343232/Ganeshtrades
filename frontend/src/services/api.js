@@ -38,8 +38,11 @@ API.interceptors.response.use(
 export const login = (data) => API.post('/auth/login', data);
 export const register = (data) => API.post('/auth/register', data);
 export const googleLogin = (data) => API.post('/auth/google', data);
+export const completeGoogleProfile = (data) => API.post('/auth/google/complete-profile', data);
 export const googleLink = (data) => API.post('/auth/google/link', data);
 export const getGoogleConfig = () => API.get('/auth/google/config');
+export const reverseGeocode = (data) => API.post('/location/reverse-geocode', data);
+export const geocodeAddress = (data) => API.post('/location/geocode', data);
 export const sendOtp = (data) => API.post('/auth/send-otp', data);
 export const verifyOtp = (data) => API.post('/auth/verify-otp', data);
 export const getMe = () => API.get('/auth/me');

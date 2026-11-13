@@ -1,5 +1,16 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const { needsProfileCompletion } = require('../utils/profileCompletion');
+
+// Authenticated customers may still reach these endpoints while onboarding so
+// they can inspect their account, finish profile details, link Google, or change
+// a password. Every other protected customer API stays blocked.
+const PROFILE_COMPLETION_ALLOWED_PATHS = new Set([
+  '/api/auth/me',
+  '/api/auth/profile',
+  '/api/auth/password',
+  '/api/auth/google/link'
+]);
 
 // Protect routes - verify JWT
 const protect = async (req, res, next) => {
@@ -23,6 +34,16 @@ const protect = async (req, res, next) => {
       return res.status(401).json({ success: false, message: 'Not authorized, token invalid' });
     }
 
+    // Profile-completion tokens are intentionally short-lived and scoped. They
+    // must never be accepted as a normal application session.
+    if (decoded.scope && decoded.scope !== 'session') {
+      return res.status(401).json({
+        success: false,
+        code: 'REGISTRATION_SESSION_EXPIRED',
+        message: 'Please complete your profile to continue.'
+      });
+    }
+
     req.user = await User.findById(decoded.id).select('-password');
 
     if (!req.user) {
@@ -31,6 +52,18 @@ const protect = async (req, res, next) => {
 
     if (!req.user.isActive) {
       return res.status(403).json({ success: false, message: 'Account is deactivated' });
+    }
+
+    if (needsProfileCompletion(req.user)) {
+      const requestPath = (req.originalUrl || '').split('?')[0].replace(/\/+$/, '');
+      if (!PROFILE_COMPLETION_ALLOWED_PATHS.has(requestPath)) {
+        return res.status(403).json({
+          success: false,
+          code: 'PROFILE_INCOMPLETE',
+          requiresProfileCompletion: true,
+          message: 'Complete your profile before using customer features.'
+        });
+      }
     }
 
     next();

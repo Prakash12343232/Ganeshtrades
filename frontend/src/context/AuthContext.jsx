@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { getMe } from '../services/api';
+import { clearPendingRegistration } from '../utils/profileCompletion';
 
 const AuthContext = createContext();
 
@@ -31,6 +32,7 @@ export const AuthProvider = ({ children }) => {
 
   const loginUser = (userData, token) => {
     clearLegacyAuthStorage();
+    clearPendingRegistration();
     sessionStorage.setItem('gt_token', token);
     sessionStorage.setItem('gt_user', JSON.stringify(userData));
     setUser(userData);
@@ -40,6 +42,7 @@ export const AuthProvider = ({ children }) => {
     sessionStorage.removeItem('gt_token');
     sessionStorage.removeItem('gt_user');
     clearLegacyAuthStorage();
+    clearPendingRegistration();
     setUser(null);
   };
 

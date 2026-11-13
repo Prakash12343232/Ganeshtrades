@@ -3,13 +3,15 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { login } from '../../services/api';
 import GoogleSignInButton from '../../components/GoogleSignInButton';
+import { savePendingRegistration } from '../../utils/profileCompletion';
 import toast from 'react-hot-toast';
-import { FiPhone, FiLock, FiEye, FiEyeOff } from 'react-icons/fi';
+import { FiAlertCircle, FiPhone, FiLock, FiEye, FiEyeOff } from 'react-icons/fi';
 
 export default function Login() {
   const [form, setForm] = useState({ mobile: '', password: '' });
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [linkNotice, setLinkNotice] = useState(false);
 
   const { loginUser } = useAuth();
   const navigate = useNavigate();
@@ -21,9 +23,22 @@ export default function Login() {
   };
 
   const handleGoogleSuccess = (data) => {
+    setLinkNotice(false);
+    if (data.requiresProfileCompletion) {
+      savePendingRegistration(data.registrationToken, data.profile);
+      toast.success('Let’s finish setting up your account.');
+      navigate('/complete-profile');
+      return;
+    }
     loginUser(data.user, data.token);
     toast.success(`Welcome back, ${data.user.name || 'valued customer'}!`);
     navigate(routeForRole(data.user.role));
+  };
+
+  const handleGoogleError = (_message, error) => {
+    if (error?.response?.data?.code === 'ACCOUNT_LINK_REQUIRED') {
+      setLinkNotice(true);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -79,8 +94,28 @@ export default function Login() {
             <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 text-center">
               Instant One-Click Sign In
             </label>
-            <GoogleSignInButton onSuccess={handleGoogleSuccess} text="Continue with Google" />
+            <GoogleSignInButton
+              onSuccess={handleGoogleSuccess}
+              onError={handleGoogleError}
+              text="Continue with Google"
+            />
           </div>
+
+          {linkNotice && (
+            <div className="rounded-2xl border border-amber-400/40 bg-amber-500/10 p-4" role="alert">
+              <div className="flex items-start gap-3">
+                <FiAlertCircle className="mt-0.5 shrink-0 text-amber-300" />
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold text-amber-200">Sign in first to link Google</p>
+                  <p className="text-xs leading-relaxed text-amber-100/80">
+                    This Google email already belongs to an account. For your safety we do not merge
+                    accounts automatically. Use your mobile number and password below, then link Google
+                    from Profile → Security &amp; Accounts.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Divider */}
           <div className="relative">

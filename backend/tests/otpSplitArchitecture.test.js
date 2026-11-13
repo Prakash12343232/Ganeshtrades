@@ -99,7 +99,7 @@ describe('OTP split architecture (OTP_SERVICE_URL configured)', () => {
     expect(loginRes.body.token).toBeDefined();
   });
 
-  it('register still rejected when the microservice did NOT verify the OTP', async () => {
+  it('register no longer requires an OTP and stores the mobile as unverified', async () => {
     process.env.OTP_SERVICE_URL = 'http://otp.local';
     process.env.OTP_SERVICE_API_KEY = 'test-key';
     process.env.NODE_ENV = 'production';
@@ -114,7 +114,15 @@ describe('OTP split architecture (OTP_SERVICE_URL configured)', () => {
         customerType: 'public',
         address: { street: 'Test St', city: 'Pune', lat: SHOP_LAT, lng: SHOP_LNG }
       });
-    expect(regRes.statusCode).toBe(401);
+
+    expect(regRes.statusCode).toBe(201);
+    expect(regRes.body.success).toBe(true);
+    expect(regRes.body.user.phoneVerified).toBe(false);
+    expect(regRes.body.user.profileCompleted).toBe(true);
+
+    const User = require('../models/User');
+    const user = await User.findOne({ mobile: '9876000003' });
+    expect(user.phoneVerified).toBe(false);
   });
 
   it('verifies a password-reset OTP against the local store even in split mode', async () => {

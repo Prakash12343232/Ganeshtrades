@@ -7,13 +7,15 @@ const User = require('../models/User');
 const Otp = require('../models/Otp');
 const OtpClient = require('../utils/otpClient');
 const { sendOtpSms } = require('../utils/sms');
-const { checkServiceability } = require('../utils/distance');
+const { checkServiceability, isValidCoordinates } = require('../utils/distance');
 const { protect } = require('../middleware/auth');
 const { createAuditLog } = require('../utils/auditLogger');
 const connectDB = require('../config/db');
 const { pickFields, normalizeMobile, generateOTP, hashOTP, verifyOTP, validatePasswordStrength, sanitizeUserForResponse } = require('../utils/security');
 const { clientErrorMessage } = require('../utils/errors');
 const googleAuth = require('../utils/googleAuth');
+const { needsProfileCompletion } = require('../utils/profileCompletion');
+const { forwardGeocode } = require('../utils/geocode');
 
 // Rate Limiters
 const authLimiter = rateLimit({
@@ -34,12 +36,71 @@ const otpLimiter = rateLimit({
   message: { success: false, message: 'Too many OTP requests from this IP, please try again after 15 minutes.' }
 });
 
-// Generate JWT
-const generateToken = (id) => {
+const getJwtSecret = () => {
   const jwtSecret = process.env.JWT_SECRET || (process.env.NODE_ENV === 'test' ? 'testsecret' : undefined);
   if (!jwtSecret) throw new Error('Authentication is not configured');
-  return jwt.sign({ id }, jwtSecret, { expiresIn: process.env.JWT_EXPIRE || '7d', algorithm: 'HS256' });
+  return jwtSecret;
 };
+
+// Generate a normal application session JWT
+const generateToken = (id) => {
+  return jwt.sign({ id, scope: 'session' }, getJwtSecret(), {
+    expiresIn: process.env.JWT_EXPIRE || '7d',
+    algorithm: 'HS256'
+  });
+};
+
+// Short-lived token that can ONLY be used to finish Google onboarding.
+const generateRegistrationToken = (id) => {
+  return jwt.sign({ id, scope: 'profile_completion' }, getJwtSecret(), {
+    expiresIn: '30m',
+    algorithm: 'HS256',
+    audience: 'profile-completion'
+  });
+};
+
+const verifyRegistrationToken = (token) => {
+  const decoded = jwt.verify(token, getJwtSecret(), {
+    algorithms: ['HS256'],
+    audience: 'profile-completion'
+  });
+  if (!decoded || decoded.scope !== 'profile_completion' || !decoded.id) {
+    const err = new Error('Invalid registration session. Please sign in with Google again.');
+    err.statusCode = 401;
+    err.exposed = true;
+    throw err;
+  }
+  return decoded;
+};
+
+// Never accept a client-supplied role, verification flag, price, or email.
+const buildUserResponse = (user) => {
+  const safe = sanitizeUserForResponse(user);
+  return { ...safe, id: safe._id };
+};
+
+const sanitizeAddressInput = (address) => {
+  if (!address || typeof address !== 'object' || Array.isArray(address)) return null;
+
+  const fields = { street: 160, area: 160, city: 100, state: 100, pincode: 10 };
+  const sanitized = {};
+  for (const [field, max] of Object.entries(fields)) {
+    if (typeof address[field] === 'string') {
+      sanitized[field] = address[field].trim().replace(/\s+/g, ' ').slice(0, max);
+    }
+  }
+
+  for (const field of ['lat', 'lng']) {
+    if (address[field] !== undefined && address[field] !== null && address[field] !== '') {
+      const value = Number(address[field]);
+      if (Number.isFinite(value)) sanitized[field] = value;
+    }
+  }
+
+  return sanitized;
+};
+
+const CUSTOMER_TYPES = ['public', 'hotel', 'pg_hostel'];
 
 // Check if account is locked
 const checkLock = async (user) => {
@@ -95,7 +156,9 @@ router.post('/google', authLimiter, async (req, res) => {
       if (existingWithEmail) {
         return res.status(409).json({
           success: false,
-          message: 'An account with this email already exists. Sign in with your existing account, then link Google from Settings.'
+          code: 'ACCOUNT_LINK_REQUIRED',
+          linkRequired: true,
+          message: 'An account with this email already exists. Sign in with your existing account using your mobile number and password, then link Google from Profile > Security & Accounts.'
         });
       }
     }
@@ -111,7 +174,9 @@ router.post('/google', authLimiter, async (req, res) => {
         customerType: 'public',
         isEmailVerified: true,
         isActive: true,
-        authProvider: 'google'
+        authProvider: 'google',
+        profileCompleted: false,
+        phoneVerified: false
       });
     }
 
@@ -138,25 +203,37 @@ router.post('/google', authLimiter, async (req, res) => {
       await user.save();
     }
 
+    // New Google customers (and legacy Google-only accounts) must finish their
+    // profile before a normal session token is issued. The short-lived
+    // registration token cannot access any protected API route.
+    if (needsProfileCompletion(user)) {
+      await createAuditLog(user._id, 'user_login', 'user', user._id, { method: 'google_profile_pending', email: user.email }, req);
+
+      return res.json({
+        success: true,
+        message: 'Google account verified. Complete your profile to finish creating your account.',
+        requiresProfileCompletion: true,
+        registrationToken: generateRegistrationToken(user._id),
+        profile: {
+          name: user.name,
+          email: user.email,
+          avatar: user.avatar || '',
+          googleId: user.googleId
+        }
+      });
+    }
+
     await createAuditLog(user._id, 'user_login', 'user', user._id, { method: 'google', email: user.email }, req);
 
     const token = generateToken(user._id);
 
-    const safeUser = sanitizeUserForResponse(user);
     res.json({
       success: true,
       message: 'Google login successful',
       token,
       user: {
-        id: safeUser._id,
-        name: safeUser.name,
-        mobile: safeUser.mobile,
-        email: safeUser.email,
-        customerType: safeUser.customerType,
-        role: safeUser.role,
-        address: safeUser.address,
-        avatar: safeUser.avatar,
-        distanceFromShop: safeUser.distanceFromShop
+        ...buildUserResponse(user),
+        googleId: user.googleId || null
       }
     });
   } catch (error) {
@@ -174,6 +251,210 @@ router.post('/google', authLimiter, async (req, res) => {
     res.status(statusCode).json({
       success: false,
       message: error.exposed ? error.message : clientErrorMessage(error, 'Google authentication failed. Please try again.')
+    });
+  }
+});
+
+// @route   POST /api/auth/google/complete-profile
+// @desc    Finish Google onboarding and create the customer account
+// @access  Public (requires a short-lived profile-completion registration token)
+router.post('/google/complete-profile', authLimiter, async (req, res) => {
+  try {
+    const {
+      registrationToken,
+      name,
+      mobile,
+      customerType,
+      address
+    } = req.body || {};
+
+    if (!registrationToken || typeof registrationToken !== 'string') {
+      return res.status(400).json({
+        success: false,
+        message: 'Registration session is missing. Please sign in with Google again.'
+      });
+    }
+
+    let decoded;
+    try {
+      decoded = verifyRegistrationToken(registrationToken);
+    } catch (tokenError) {
+      return res.status(401).json({
+        success: false,
+        code: 'REGISTRATION_SESSION_EXPIRED',
+        message: 'Your registration session has expired. Please sign in with Google again.'
+      });
+    }
+
+    if (mongoose.connection.readyState !== 1) {
+      await connectDB();
+    }
+
+    const user = await User.findById(decoded.id);
+    if (!user || !user.googleId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Registration session is no longer valid. Please sign in with Google again.'
+      });
+    }
+
+    if (!user.isActive) {
+      return res.status(401).json({
+        success: false,
+        message: 'Account has been deactivated. Please contact support.'
+      });
+    }
+
+    // Idempotent retry: once complete, return a normal session instead of
+    // allowing the registration token to rewrite an established profile.
+    if (user.profileCompleted === true) {
+      return res.json({
+        success: true,
+        message: 'Your Ganesh Trades account is already complete.',
+        alreadyCompleted: true,
+        token: generateToken(user._id),
+        user: buildUserResponse(user)
+      });
+    }
+
+    const normMobile = normalizeMobile(mobile);
+    if (!normMobile) {
+      return res.status(400).json({
+        success: false,
+        code: 'INVALID_MOBILE',
+        message: 'Please enter a valid 10-digit Indian mobile number.'
+      });
+    }
+
+    const cleanName = typeof name === 'string' ? name.trim().slice(0, 100) : '';
+    if (!cleanName) {
+      return res.status(400).json({ success: false, message: 'Full name is required.' });
+    }
+
+    const validCustomerType = CUSTOMER_TYPES.includes(customerType) ? customerType : 'public';
+
+    const sanitizedAddress = sanitizeAddressInput(address);
+    if (!sanitizedAddress) {
+      return res.status(400).json({ success: false, message: 'A complete delivery address is required.' });
+    }
+
+    for (const field of ['street', 'area', 'city', 'state']) {
+      if (!sanitizedAddress[field]) {
+        return res.status(400).json({
+          success: false,
+          message: `Address field '${field}' is required.`
+        });
+      }
+    }
+
+    if (!/^\d{6}$/.test(sanitizedAddress.pincode || '')) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please enter a valid 6-digit pincode.'
+      });
+    }
+
+    // Mobile numbers are unique across local and Google accounts. Never merge
+    // two accounts automatically based on a matching number or email.
+    const mobileOwner = await User.findOne({
+      mobile: normMobile,
+      _id: { $ne: user._id }
+    }).select('_id');
+
+    if (mobileOwner) {
+      return res.status(409).json({
+        success: false,
+        code: 'MOBILE_IN_USE',
+        message: 'This mobile number is already registered. Sign in with your existing account instead.'
+      });
+    }
+
+    // Delivery radius validation uses the existing shop settings. Manual
+    // addresses without coordinates are geocoded server-side; if the address
+    // cannot be resolved we ask the customer to detect their location rather
+    // than inventing delivery eligibility.
+    let lat = Number(sanitizedAddress.lat);
+    let lng = Number(sanitizedAddress.lng);
+
+    if (!isValidCoordinates(lat, lng)) {
+      try {
+        const geocoded = await forwardGeocode(sanitizedAddress);
+        lat = Number(geocoded?.lat);
+        lng = Number(geocoded?.lng);
+      } catch {
+        lat = NaN;
+        lng = NaN;
+      }
+    }
+
+    if (!isValidCoordinates(lat, lng)) {
+      return res.status(422).json({
+        success: false,
+        code: 'LOCATION_UNVERIFIED',
+        message: 'We could not verify delivery for this address. Please use Detect My Location or check your address details.'
+      });
+    }
+
+    const serviceCheck = await checkServiceability(lat, lng);
+    if (!serviceCheck.serviceable) {
+      return res.status(400).json({
+        success: false,
+        code: 'OUTSIDE_DELIVERY_AREA',
+        message: serviceCheck.message,
+        serviceability: {
+          serviceable: false,
+          distance: serviceCheck.distance,
+          radius: serviceCheck.radius,
+          shopLocation: serviceCheck.shopLocation
+        }
+      });
+    }
+
+    user.name = cleanName;
+    user.mobile = normMobile;
+    user.customerType = validCustomerType;
+    user.address = {
+      street: sanitizedAddress.street,
+      area: sanitizedAddress.area,
+      city: sanitizedAddress.city,
+      state: sanitizedAddress.state,
+      pincode: sanitizedAddress.pincode,
+      lat: Math.round(lat * 1e6) / 1e6,
+      lng: Math.round(lng * 1e6) / 1e6
+    };
+    user.distanceFromShop = serviceCheck.distance;
+    user.profileCompleted = true;
+    user.phoneVerified = false;
+    user.isEmailVerified = true;
+
+    await user.save();
+
+    await createAuditLog(user._id, 'user_register', 'user', user._id, {
+      method: 'google_profile_completion',
+      customerType: validCustomerType
+    }, req);
+
+    return res.status(201).json({
+      success: true,
+      message: 'Your Ganesh Trades account is ready.',
+      token: generateToken(user._id),
+      user: buildUserResponse(user)
+    });
+  } catch (error) {
+    console.error('❌ /auth/google/complete-profile error:', error);
+    if (error?.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: 'This mobile number or Google account is already registered. Please sign in with your existing account.'
+      });
+    }
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ success: false, message: error.message });
+    }
+    const statusCode = error.statusCode || 500;
+    return res.status(statusCode).json({
+      success: false,
+      message: error.exposed ? error.message : clientErrorMessage(error, 'Unable to create your account right now. Please try again.')
     });
   }
 });
@@ -234,6 +515,12 @@ router.post('/google/link', protect, async (req, res) => {
     if (!user.avatar && googleProfile.picture) {
       user.avatar = googleProfile.picture;
     }
+    // An already-authenticated local customer has completed the details that
+    // onboarding would collect, so linking Google must not send them back
+    // through profile completion.
+    if (user.mobile) {
+      user.profileCompleted = true;
+    }
 
     await user.save();
 
@@ -242,15 +529,9 @@ router.post('/google/link', protect, async (req, res) => {
     res.json({
       success: true,
       message: 'Google account linked successfully',
-      user: {
-        id: user._id,
-        name: user.name,
-        mobile: user.mobile,
-        email: user.email,
-        role: user.role,
-        googleId: user.googleId,
-        avatar: user.avatar
-      }
+      // Return the same complete, sanitized shape as /auth/me so the client can
+      // update its stored user without dropping profile or account fields.
+      user: buildUserResponse(user)
     });
   } catch (error) {
     console.error('❌ /auth/google/link error:', error);
@@ -434,14 +715,9 @@ router.post('/register', authLimiter, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid mobile number' });
     }
 
-    let verifiedOtp;
-    // Ensure OTP was verified (skip during tests)
-    if (process.env.NODE_ENV !== 'test') {
-      verifiedOtp = await Otp.findOne({ mobile: normMobile, purpose: 'register', verified: true });
-      if (!verifiedOtp) {
-        return res.status(401).json({ success: false, message: 'Mobile number not verified. Please verify OTP first.' });
-      }
-    }
+    // Legacy mobile/password registration is retained for existing API clients.
+    // No OTP service is required or consulted: the supplied number is stored
+    // with phoneVerified=false and is never presented as verified.
 
     // Double check duplicate
     const existingUser = await User.findOne({ mobile: normMobile });
@@ -481,13 +757,11 @@ router.post('/register', authLimiter, async (req, res) => {
     userData.customerType = validCustomerType;
     userData.distanceFromShop = distanceFromShop;
     userData.role = role;
+    userData.profileCompleted = true;
+    userData.phoneVerified = false;
 
     const user = await User.create(userData);
 
-    // Clean up OTP
-    if (verifiedOtp) {
-      await Otp.deleteOne({ _id: verifiedOtp._id });
-    }
     await createAuditLog(user._id, 'user_register', 'user', user._id, { name, mobile: normMobile, customerType: validCustomerType }, req);
 
     const token = generateToken(user._id);
@@ -497,14 +771,8 @@ router.post('/register', authLimiter, async (req, res) => {
       message: 'Registration successful',
       token,
       user: {
-        id: user._id,
-        name: user.name,
-        mobile: user.mobile,
-        email: user.email,
-        customerType: user.customerType,
-        role: user.role,
-        address: user.address,
-        distanceFromShop: user.distanceFromShop
+        ...buildUserResponse(user),
+        googleId: user.googleId || null
       }
     });
   } catch (error) {
@@ -594,14 +862,8 @@ router.post('/login', authLimiter, async (req, res) => {
       message: 'Login successful',
       token,
       user: {
-        id: user._id,
-        name: user.name,
-        mobile: user.mobile,
-        email: user.email,
-        customerType: user.customerType,
-        role: user.role,
-        address: user.address,
-        distanceFromShop: user.distanceFromShop
+        ...buildUserResponse(user),
+        googleId: user.googleId || null
       }
     });
   } catch (error) {
@@ -616,7 +878,7 @@ router.post('/login', authLimiter, async (req, res) => {
 router.get('/me', protect, async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
-    res.json({ success: true, user: sanitizeUserForResponse(user) });
+    res.json({ success: true, user: buildUserResponse(user) });
   } catch (error) {
     console.error('❌ /auth/me route error:', error);
     res.status(500).json({ success: false, message: clientErrorMessage(error) });
@@ -632,8 +894,13 @@ router.put('/profile', protect, async (req, res) => {
     const updateData = pickFields({ name, email }, ['name', 'email']);
 
     if (address) {
-      if (address.lat != null && address.lng != null) {
-        const serviceCheck = await checkServiceability(address.lat, address.lng);
+      const sanitizedAddress = sanitizeAddressInput(address);
+      if (!sanitizedAddress) {
+        return res.status(400).json({ success: false, message: 'Invalid address.' });
+      }
+
+      if (sanitizedAddress.lat != null && sanitizedAddress.lng != null) {
+        const serviceCheck = await checkServiceability(sanitizedAddress.lat, sanitizedAddress.lng);
 
         if (!serviceCheck.serviceable) {
           return res.status(400).json({
@@ -643,12 +910,12 @@ router.put('/profile', protect, async (req, res) => {
           });
         }
 
-        updateData.address = address;
+        updateData.address = sanitizedAddress;
         updateData.distanceFromShop = serviceCheck.distance;
       } else {
         const existingUser = await User.findById(req.user._id);
         if (existingUser.address && existingUser.address.lat && existingUser.address.lng) {
-          updateData.address = { ...address, lat: existingUser.address.lat, lng: existingUser.address.lng };
+          updateData.address = { ...sanitizedAddress, lat: existingUser.address.lat, lng: existingUser.address.lng };
         } else {
           return res.status(400).json({ success: false, message: 'Please detect your location to verify delivery serviceability.' });
         }
@@ -656,7 +923,7 @@ router.put('/profile', protect, async (req, res) => {
     }
 
     const user = await User.findByIdAndUpdate(req.user._id, updateData, { new: true, runValidators: true });
-    res.json({ success: true, message: 'Profile updated', user });
+    res.json({ success: true, message: 'Profile updated', user: buildUserResponse(user) });
   } catch (error) {
     console.error('❌ profile route error:', error);
     if (error.name === 'ValidationError') {
