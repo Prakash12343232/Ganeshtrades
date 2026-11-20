@@ -192,7 +192,7 @@ describe('Google Authentication Endpoints', () => {
       createSpy.mockRestore();
     });
 
-    it('BLOCKS unauthorized Google sign-in for admin account without verified linking or env match', async () => {
+    it('allows a verified Google sign-in for an existing admin account by exact email', async () => {
       await User.create({
         name: 'Shop Admin',
         mobile: '9876543200',
@@ -208,21 +208,19 @@ describe('Google Authentication Endpoints', () => {
         name: 'Unverified Admin Claimant'
       });
 
-      // No ADMIN_GOOGLE_EMAIL set
       const res = await request(app)
         .post('/api/auth/google')
         .send({ credential: 'admin-unlinked-token' });
 
-      expect(res.statusCode).toBe(409);
-      expect(res.body.success).toBe(false);
-      expect(res.body.message).toMatch(/sign in with your existing account.*link google/i);
+      expect(res.statusCode).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.token).toBeDefined();
 
-      // Verify DB was NOT linked
       const checkAdmin = await User.findOne({ email: 'admin@ganeshtrades.com' });
-      expect(checkAdmin.googleId).toBeUndefined();
+      expect(checkAdmin.googleId).toBe('attacker-sub-000');
     });
 
-    it('does not bypass authenticated linking for an admin when ADMIN_GOOGLE_EMAIL matches', async () => {
+    it('allows an existing admin account when the verified Google email matches', async () => {
       process.env.ADMIN_GOOGLE_EMAIL = 'owner.verified@gmail.com';
 
       const adminUser = await User.create({
@@ -244,12 +242,12 @@ describe('Google Authentication Endpoints', () => {
         .post('/api/auth/google')
         .send({ credential: 'owner-token' });
 
-      expect(res.statusCode).toBe(409);
-      expect(res.body.success).toBe(false);
-      expect(res.body.message).toMatch(/sign in with your existing account.*link google/i);
+      expect(res.statusCode).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.token).toBeDefined();
 
       const updated = await User.findById(adminUser._id);
-      expect(updated.googleId).toBeUndefined();
+      expect(updated.googleId).toBe('owner-sub-111');
     });
 
     it('rejects deactivated user account', async () => {

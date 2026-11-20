@@ -87,9 +87,10 @@ router.post('/google', authLimiter, async (req, res) => {
     let user = await User.findOne({ googleId: googleProfile.sub });
 
     // 3. Google has already verified ownership of this email. Existing
-    // customer accounts may therefore be connected on first Google login so
-    // customers are not stranded on the mobile/password login path. Privileged
-    // accounts still require an authenticated link from Profile/Settings.
+    // accounts may therefore be connected on first Google login so users are
+    // not stranded on the mobile/password login path. The token's verified
+    // email must match the existing account exactly; a different Google ID
+    // already linked to that email is still rejected.
     if (!user) {
       const existingWithEmail = await User.findOne({ email: googleProfile.email });
       if (existingWithEmail) {
@@ -100,21 +101,14 @@ router.post('/google', authLimiter, async (req, res) => {
           });
         }
 
-        if (existingWithEmail.role === 'customer') {
-          existingWithEmail.googleId = googleProfile.sub;
-          existingWithEmail.authProvider = 'google';
-          existingWithEmail.isEmailVerified = true;
-          if (!existingWithEmail.avatar && googleProfile.picture) {
-            existingWithEmail.avatar = googleProfile.picture;
-          }
-          await existingWithEmail.save();
-          user = existingWithEmail;
-        } else {
-          return res.status(409).json({
-            success: false,
-            message: 'Please sign in with your existing account using mobile and password, then link Google from your profile.'
-          });
+        existingWithEmail.googleId = googleProfile.sub;
+        existingWithEmail.authProvider = 'google';
+        existingWithEmail.isEmailVerified = true;
+        if (!existingWithEmail.avatar && googleProfile.picture) {
+          existingWithEmail.avatar = googleProfile.picture;
         }
+        await existingWithEmail.save();
+        user = existingWithEmail;
       }
     }
 
