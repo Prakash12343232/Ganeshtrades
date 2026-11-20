@@ -79,6 +79,7 @@ export const googleLink = (data) => API.post('/auth/google/link', data);
 export const getGoogleConfig = () => API.get('/auth/google/config');
 export const refreshSession = () => refreshAccessToken();
 export const logout = () => API.post('/auth/logout');
+export const logoutAll = () => API.post('/auth/logout-all');
 export const sendOtp = (data) => API.post('/auth/send-otp', data);
 export const verifyOtp = (data) => API.post('/auth/verify-otp', data);
 export const getMe = () => API.get('/auth/me');
