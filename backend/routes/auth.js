@@ -57,7 +57,8 @@ router.get('/google/config', (req, res) => {
   res.json({
     success: true,
     configured: Boolean(clientId),
-    clientId: clientId || null
+    clientId: clientId || null,
+    authVersion: 'google-login-v3'
   });
 });
 
