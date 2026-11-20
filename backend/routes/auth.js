@@ -86,17 +86,35 @@ router.post('/google', authLimiter, async (req, res) => {
     // 2. Find existing user by googleId
     let user = await User.findOne({ googleId: googleProfile.sub });
 
-    // 3. Never infer account ownership from an email match.  A Google identity
-    // must be linked by an already authenticated Ganesh Trades user through
-    // /google/link; otherwise an attacker with control of an email inbox could
-    // take over a mobile/password account (including customer order history).
+    // 3. Google has already verified ownership of this email. Existing
+    // customer accounts may therefore be connected on first Google login so
+    // customers are not stranded on the mobile/password login path. Privileged
+    // accounts still require an authenticated link from Profile/Settings.
     if (!user) {
       const existingWithEmail = await User.findOne({ email: googleProfile.email });
       if (existingWithEmail) {
-        return res.status(409).json({
-          success: false,
-          message: 'An account with this email already exists. Sign in with your existing account, then link Google from Settings.'
-        });
+        if (existingWithEmail.googleId && existingWithEmail.googleId !== googleProfile.sub) {
+          return res.status(409).json({
+            success: false,
+            message: 'This email is already linked to another Google account. Please use the linked Google account or sign in with mobile and password.'
+          });
+        }
+
+        if (existingWithEmail.role === 'customer') {
+          existingWithEmail.googleId = googleProfile.sub;
+          existingWithEmail.authProvider = 'google';
+          existingWithEmail.isEmailVerified = true;
+          if (!existingWithEmail.avatar && googleProfile.picture) {
+            existingWithEmail.avatar = googleProfile.picture;
+          }
+          await existingWithEmail.save();
+          user = existingWithEmail;
+        } else {
+          return res.status(409).json({
+            success: false,
+            message: 'Please sign in with your existing account using mobile and password, then link Google from your profile.'
+          });
+        }
       }
     }
 

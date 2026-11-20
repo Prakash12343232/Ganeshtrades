@@ -141,7 +141,7 @@ describe('Google Authentication Endpoints', () => {
       expect(res.body.token).toBeDefined();
     });
 
-    it('does not silently link a Google identity to an existing customer based only on email', async () => {
+    it('links a verified Google identity to an existing customer by email', async () => {
       const existingCustomer = await User.create({
         name: 'Pre-existing Customer',
         mobile: '9876543299',
@@ -162,12 +162,14 @@ describe('Google Authentication Endpoints', () => {
         .post('/api/auth/google')
         .send({ credential: 'link-token' });
 
-      expect(res.statusCode).toBe(409);
-      expect(res.body.success).toBe(false);
-      expect(res.body.message).toMatch(/sign in with your existing account.*link google/i);
+      expect(res.statusCode).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.token).toBeDefined();
+      expect(res.body.user.email).toBe('preexisting@gmail.com');
 
       const updated = await User.findById(existingCustomer._id);
-      expect(updated.googleId).toBeUndefined();
+      expect(updated.googleId).toBe('google-sub-linked-777');
+      expect(updated.authProvider).toBe('google');
       expect(updated.role).toBe('customer');
     });
 
