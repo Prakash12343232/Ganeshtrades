@@ -16,7 +16,13 @@ router.get('/stats', protect, authorize('admin', 'manager'), async (req, res) =>
     const cancelledOrders = await Order.countDocuments({ orderStatus: 'cancelled' });
     const totalCustomers = await User.countDocuments({ role: 'customer' });
     const totalProducts = await Product.countDocuments({ status: { $ne: 'inactive' } });
-    const lowStockProducts = await Product.countDocuments({ $expr: { $lte: ['$stock', '$minStock'] }, status: { $ne: 'inactive' } });
+    const lowStockProducts = await Product.countDocuments({
+      status: { $ne: 'inactive' },
+      $or: [
+        { allowLooseSelling: true, $expr: { $lte: ['$stockGrams', '$minOrderQtyGrams'] } },
+        { allowLooseSelling: { $ne: true }, $expr: { $lte: ['$stock', '$minStock'] } }
+      ]
+    });
 
     const revenueAgg = await Order.aggregate([
       { $match: { orderStatus: { $ne: 'cancelled' } } },
@@ -154,12 +160,18 @@ router.get('/auto-reorder', protect, authorize('admin', 'manager'), async (req, 
   try {
     // Products where stock is less than minStock OR high sales velocity (totalSold > 100 & stock < 50)
     const suggestions = await Product.find({
+      status: { $ne: 'inactive' },
       $or: [
-        { $expr: { $lte: ['$stock', '$minStock'] } },
-        { totalSold: { $gt: 100 }, stock: { $lt: 50 } }
-      ],
-      status: { $ne: 'inactive' }
-    }).select('name stock minStock price totalSold expiryDate');
+        { allowLooseSelling: true, $expr: { $lte: ['$stockGrams', '$minOrderQtyGrams'] } },
+        {
+          allowLooseSelling: { $ne: true },
+          $or: [
+            { $expr: { $lte: ['$stock', '$minStock'] } },
+            { totalSold: { $gt: 100 }, stock: { $lt: 50 } }
+          ]
+        }
+      ]
+    }).select('name stock minStock price stockGrams minOrderQtyGrams pricePerKg allowLooseSelling totalSold totalSoldGrams expiryDate');
 
     res.json({ success: true, data: suggestions });
   } catch (error) {

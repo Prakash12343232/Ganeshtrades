@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getOrders, updateOrderStatus, rescheduleOrder, assignDelivery, createPayment } from '../../services/api';
 import toast from 'react-hot-toast';
-import { FiCheck, FiTruck, FiX, FiCalendar, FiZap, FiEdit3, FiUser, FiDollarSign } from 'react-icons/fi';
+import { FiCheck, FiTruck, FiX, FiCalendar, FiZap, FiEdit3, FiUser, FiDollarSign, FiEye } from 'react-icons/fi';
 import { useTimeSlots } from '../../utils/useTimeSlots';
+import { calculateLoosePrice, formatWeight } from '../../utils/quantity';
 
 const STATUS_COLORS = {
   pending: 'bg-yellow-100 text-yellow-700', confirmed: 'bg-blue-100 text-blue-700',
@@ -40,6 +41,9 @@ export default function AdminOrders() {
   const [payMethod, setPayMethod] = useState('cash');
   const [payNotes, setPayNotes] = useState('');
   const [recording, setRecording] = useState(false);
+
+  // Order items state
+  const [itemsModal, setItemsModal] = useState(null);
 
   // Pagination
   const [page, setPage] = useState(1);
@@ -249,6 +253,9 @@ export default function AdminOrders() {
                     <td className="py-3 px-4 text-xs text-gray-500">{new Date(order.createdAt).toLocaleDateString('en-IN')}</td>
                     <td className="py-3 px-4">
                       <div className="flex gap-1.5 items-center">
+                        {order.items?.length > 0 && (
+                          <button onClick={() => setItemsModal(order)} className="p-1.5 bg-gray-100 text-gray-600 rounded hover:bg-gray-200" title="View Items"><FiEye className="w-4 h-4" /></button>
+                        )}
                         {order.orderStatus === 'pending' && (
                           <button onClick={() => handleStatusUpdate(order._id, 'confirmed')} className="p-1.5 bg-blue-50 text-blue-600 rounded hover:bg-blue-100" title="Confirm"><FiCheck className="w-4 h-4" /></button>
                         )}
@@ -289,6 +296,46 @@ export default function AdminOrders() {
           <button onClick={loadMoreOrders} className="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors">
             Load More Orders
           </button>
+        </div>
+      )}
+
+      {/* Order Items Modal */}
+      {itemsModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-fadeIn">
+            <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+              <h2 className="font-bold text-gray-800 flex items-center gap-2"><FiEye className="text-primary-500" /> Items in Order #{itemsModal.orderNumber}</h2>
+              <button onClick={() => setItemsModal(null)} className="text-gray-400 hover:text-gray-600"><FiX className="w-5 h-5" /></button>
+            </div>
+            <div className="p-4 space-y-2 max-h-[60vh] overflow-y-auto">
+              {(itemsModal.items || []).map((item, index) => {
+                const lineTotal = item.total != null
+                  ? Number(item.total)
+                  : item.isLoose
+                    ? calculateLoosePrice(item.pricePerKg ?? item.price, item.quantityGrams)
+                    : (Number(item.price) || 0) * (Number(item.quantity) || 0);
+                return (
+                  <div key={`${item.product || item.name}-${index}`} className="flex items-center justify-between gap-3 p-3 rounded-xl border border-gray-100 bg-gray-50/60">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-800">
+                        {item.name}
+                        {item.isLoose && <span className="ml-1.5 px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 text-[10px] font-bold uppercase">Loose</span>}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {item.isLoose
+                          ? `₹${Number(item.pricePerKg ?? item.price).toFixed(2)}/kg × ${formatWeight(item.quantityGrams)}`
+                          : `₹${item.price} × ${item.quantity}`}
+                      </p>
+                    </div>
+                    <span className="text-sm font-bold text-primary-600">₹{lineTotal.toFixed(2)}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="p-4 border-t border-gray-100 text-right bg-gray-50">
+              <button onClick={() => setItemsModal(null)} className="px-6 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors">Close</button>
+            </div>
+          </div>
         </div>
       )}
 

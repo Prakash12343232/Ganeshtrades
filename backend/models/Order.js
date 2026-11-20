@@ -23,6 +23,18 @@ const orderItemSchema = new mongoose.Schema({
     required: true,
     min: 1
   },
+  isLoose: {
+    type: Boolean,
+    default: false
+  },
+  quantityGrams: {
+    type: Number,
+    min: 1
+  },
+  pricePerKg: {
+    type: Number,
+    min: 0
+  },
   total: Number
 });
 

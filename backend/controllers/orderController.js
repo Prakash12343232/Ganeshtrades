@@ -13,6 +13,12 @@ const { sanitizeSort, parsePositiveInt, parsePagination } = require('../utils/se
 const { clientErrorMessage } = require('../utils/errors');
 const { withTransaction } = require('../utils/transaction');
 const {
+  roundCurrency,
+  parseWeightToGrams,
+  calculateLoosePrice,
+  formatWeight
+} = require('../utils/weight');
+const {
   EPSILON,
   round2,
   getOrderPaidTotal,
@@ -73,6 +79,29 @@ function parseSlotStartHour(slot) {
   return hour;
 }
 
+function stockIncrementForOrderItem(item) {
+  if (item.isLoose) {
+    const grams = Number(item.quantityGrams || item.quantity || 0);
+    return { stockGrams: grams, totalSoldGrams: -grams };
+  }
+  return { stock: item.quantity, totalSold: -item.quantity };
+}
+
+async function revertAppliedStockUpdate(applied) {
+  const inc = applied.isLoose
+    ? { stockGrams: applied.amount, totalSoldGrams: -applied.amount }
+    : { stock: applied.amount, totalSold: -applied.amount };
+  await Product.findByIdAndUpdate(applied.productId, { $inc: inc });
+}
+
+function resolveLooseRate(product, user) {
+  const wholesaleEligible = user && user.customerType !== 'public' && product.wholesalePrice;
+  const rate = wholesaleEligible
+    ? product.wholesalePrice
+    : (product.pricePerKg != null ? product.pricePerKg : product.price);
+  return Number(rate);
+}
+
 // Reverse the inventory + financial effects of cancelling an order so the
 // manual status path and the customer cancelOrder endpoint share semantics:
 // restore stock, and undo the unpaid portion of the pending/credit balance
@@ -115,7 +144,7 @@ async function reverseOrderFinancials(order, session) {
   // Inventory is always restored, even when the order was already fully paid or
   // fully settled (there is no balance left to reverse, but the goods return).
   for (const item of order.items) {
-    const stockUpdate = Product.findByIdAndUpdate(item.product, { $inc: { stock: item.quantity, totalSold: -item.quantity } });
+    const stockUpdate = Product.findByIdAndUpdate(item.product, { $inc: stockIncrementForOrderItem(item) });
     if (session) stockUpdate.session(session);
     await stockUpdate;
   }
@@ -177,6 +206,71 @@ exports.createOrder = async (req, res) => {
     const stockUpdates = [];
 
     for (const item of items) {
+      const product = await Product.findById(item.product);
+      if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
+      if (product.status === 'inactive') return res.status(400).json({ success: false, message: `${product.name} is no longer available` });
+
+      const wantsLoose = item.isLoose === true
+        || item.quantityGrams !== undefined
+        || item.unit !== undefined;
+
+      if (product.allowLooseSelling) {
+        let grams;
+        try {
+          if (item.quantityGrams !== undefined) {
+            grams = parseWeightToGrams(item.quantityGrams, 'g', { fieldName: `quantity for ${product.name}` });
+          } else if (item.quantity !== undefined && item.unit !== undefined) {
+            grams = parseWeightToGrams(item.quantity, item.unit, { fieldName: `quantity for ${product.name}` });
+          } else {
+            const err = new Error(`Please order ${product.name} by weight (grams or kilograms)`);
+            err.exposed = true;
+            throw err;
+          }
+        } catch (err) {
+          return res.status(400).json({ success: false, message: clientErrorMessage(err, 'Invalid weight') });
+        }
+
+        const minGrams = product.minOrderQtyGrams || 1;
+        if (grams < minGrams) {
+          return res.status(400).json({
+            success: false,
+            message: `Minimum order for ${product.name} is ${formatWeight(minGrams)}`
+          });
+        }
+
+        if (!(product.stockGrams >= grams)) {
+          return res.status(400).json({
+            success: false,
+            message: `Insufficient stock for ${product.name}. Available: ${formatWeight(product.stockGrams || 0)}`
+          });
+        }
+
+        const rate = resolveLooseRate(product, req.user);
+        if (!Number.isFinite(rate) || rate < 0) {
+          return res.status(400).json({ success: false, message: `Loose pricing is not configured for ${product.name}` });
+        }
+
+        const roundedRate = roundCurrency(rate);
+        const lineTotal = calculateLoosePrice(roundedRate, grams);
+        orderItems.push({
+          product: product._id,
+          name: product.name,
+          price: roundedRate,
+          pricePerKg: roundedRate,
+          quantity: grams,
+          quantityGrams: grams,
+          isLoose: true,
+          total: lineTotal
+        });
+        totalAmount += lineTotal;
+        stockUpdates.push({ product, isLoose: true, amount: grams });
+        continue;
+      }
+
+      if (wantsLoose) {
+        return res.status(400).json({ success: false, message: `${product.name} is not available for loose ordering` });
+      }
+
       let quantity;
       try {
         quantity = parsePositiveInt(item.quantity);
@@ -184,16 +278,15 @@ exports.createOrder = async (req, res) => {
         return res.status(400).json({ success: false, message: clientErrorMessage(err, 'Invalid quantity') });
       }
 
-      const product = await Product.findById(item.product);
-      if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
-      if (product.status === 'inactive') return res.status(400).json({ success: false, message: `${product.name} is no longer available` });
       if (product.stock < quantity) return res.status(400).json({ success: false, message: `Insufficient stock for ${product.name}` });
 
       const price = (req.user.customerType !== 'public' && product.wholesalePrice) ? product.wholesalePrice : product.price;
-      orderItems.push({ product: product._id, name: product.name, price, quantity, total: price * quantity });
+      orderItems.push({ product: product._id, name: product.name, price, quantity, isLoose: false, total: price * quantity });
       totalAmount += price * quantity;
-      stockUpdates.push({ product, quantity });
+      stockUpdates.push({ product, isLoose: false, amount: quantity });
     }
+
+    totalAmount = roundCurrency(totalAmount);
 
     // Credit limit check BEFORE any writes
     if (finalPaymentMethod === 'credit') {
@@ -250,20 +343,34 @@ exports.createOrder = async (req, res) => {
     // Apply stock deductions atomically to prevent overselling during concurrent checkouts.
     const appliedStockUpdates = [];
     const lowStockNotifications = [];
-    for (const { product, quantity } of stockUpdates) {
-      const updatedProduct = await Product.findOneAndUpdate(
-        { _id: product._id, status: { $ne: 'inactive' }, stock: { $gte: quantity } },
-        { $inc: { stock: -quantity, totalSold: quantity } },
-        { new: true }
-      );
+    for (const update of stockUpdates) {
+      const { product, isLoose, amount } = update;
+      const filter = isLoose
+        ? { _id: product._id, status: { $ne: 'inactive' }, stockGrams: { $gte: amount } }
+        : { _id: product._id, status: { $ne: 'inactive' }, stock: { $gte: amount } };
+      const increment = isLoose
+        ? { stockGrams: -amount, totalSoldGrams: amount }
+        : { stock: -amount, totalSold: amount };
+
+      const updatedProduct = await Product.findOneAndUpdate(filter, { $inc: increment }, { new: true });
       if (!updatedProduct) {
         for (const applied of appliedStockUpdates) {
-          await Product.findByIdAndUpdate(applied.productId, { $inc: { stock: applied.quantity, totalSold: -applied.quantity } });
+          await revertAppliedStockUpdate(applied);
         }
         return res.status(409).json({ success: false, message: `Insufficient stock for ${product.name}` });
       }
-      appliedStockUpdates.push({ productId: product._id, quantity });
-      if (updatedProduct.stock <= updatedProduct.minStock) {
+      appliedStockUpdates.push({ productId: product._id, isLoose, amount });
+
+      if (isLoose) {
+        if (updatedProduct.stockGrams <= (updatedProduct.minOrderQtyGrams || 0)) {
+          lowStockNotifications.push({
+            title: 'Low Stock',
+            message: `${updatedProduct.name} low: ${formatWeight(updatedProduct.stockGrams)}`,
+            type: 'stock',
+            recipientRole: 'admin'
+          });
+        }
+      } else if (updatedProduct.stock <= updatedProduct.minStock) {
         lowStockNotifications.push({ title: 'Low Stock', message: `${updatedProduct.name} low: ${updatedProduct.stock}`, type: 'stock', recipientRole: 'admin' });
       }
     }
@@ -273,7 +380,7 @@ exports.createOrder = async (req, res) => {
       order = await Order.create(orderData);
     } catch (error) {
       for (const applied of appliedStockUpdates) {
-        await Product.findByIdAndUpdate(applied.productId, { $inc: { stock: applied.quantity, totalSold: -applied.quantity } });
+        await revertAppliedStockUpdate(applied);
       }
       throw error;
     }

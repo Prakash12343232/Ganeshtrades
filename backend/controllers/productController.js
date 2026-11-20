@@ -10,13 +10,16 @@ const {
   parsePositiveInt,
   parseNonNegativeInt,
   parseNonNegativeNumber,
+  parseBoolean,
   parsePagination
 } = require('../utils/security');
 const { clientErrorMessage } = require('../utils/errors');
+const { MAX_STOCK_GRAMS } = require('../utils/weight');
 
 const PRODUCT_FIELDS = [
   'name', 'description', 'category', 'price', 'wholesalePrice', 'unit',
-  'stock', 'minStock', 'status', 'brand', 'sku', 'expiryDate', 'isFeatured'
+  'stock', 'minStock', 'status', 'brand', 'sku', 'expiryDate', 'isFeatured',
+  'allowLooseSelling', 'pricePerKg', 'minOrderQtyGrams', 'stockGrams'
 ];
 
 exports.getProducts = async (req, res) => {
@@ -37,9 +40,17 @@ exports.getProducts = async (req, res) => {
       query.status = { $ne: 'inactive' };
     }
 
-    // Availability filter
+    // Availability filter. Loose products use gram inventory; fixed products
+    // use the legacy unit stock. Conditions are collected under $and so they
+    // can coexist with the search $or.
+    const andConditions = [];
     if (availability === 'in_stock') {
-      query.stock = { $gt: 0 };
+      andConditions.push({
+        $or: [
+          { allowLooseSelling: true, stockGrams: { $gt: 0 } },
+          { allowLooseSelling: { $ne: true }, stock: { $gt: 0 } }
+        ]
+      });
     }
 
     // Rating filter
@@ -52,11 +63,17 @@ exports.getProducts = async (req, res) => {
 
     if (search) {
       const safeSearch = escapeRegex(search);
-      query.$or = [
-        { name: { $regex: safeSearch, $options: 'i' } },
-        { description: { $regex: safeSearch, $options: 'i' } },
-        { brand: { $regex: safeSearch, $options: 'i' } }
-      ];
+      andConditions.push({
+        $or: [
+          { name: { $regex: safeSearch, $options: 'i' } },
+          { description: { $regex: safeSearch, $options: 'i' } },
+          { brand: { $regex: safeSearch, $options: 'i' } }
+        ]
+      });
+    }
+
+    if (andConditions.length > 0) {
+      query.$and = andConditions;
     }
 
     if (minPrice || maxPrice) {
@@ -119,8 +136,11 @@ exports.getCategories = async (req, res) => {
 exports.getLowStockProducts = async (req, res) => {
   try {
     const products = await Product.find({
-      $expr: { $lte: ['$stock', '$minStock'] },
-      status: { $ne: 'inactive' }
+      status: { $ne: 'inactive' },
+      $or: [
+        { allowLooseSelling: true, $expr: { $lte: ['$stockGrams', '$minOrderQtyGrams'] } },
+        { allowLooseSelling: { $ne: true }, $expr: { $lte: ['$stock', '$minStock'] } }
+      ]
     }).sort('stock');
 
     res.json({ success: true, data: products });
@@ -203,6 +223,14 @@ exports.createProduct = async (req, res) => {
     if (productData.wholesalePrice !== undefined) productData.wholesalePrice = parseNonNegativeNumber(productData.wholesalePrice, 'wholesalePrice');
     if (productData.stock !== undefined) productData.stock = parseNonNegativeInt(productData.stock, 'stock');
     if (productData.minStock !== undefined) productData.minStock = parseNonNegativeInt(productData.minStock, 'minStock');
+    if (productData.allowLooseSelling !== undefined) productData.allowLooseSelling = parseBoolean(productData.allowLooseSelling, 'allowLooseSelling');
+    if (productData.pricePerKg !== undefined) productData.pricePerKg = parseNonNegativeNumber(productData.pricePerKg, 'pricePerKg');
+    if (productData.minOrderQtyGrams !== undefined) productData.minOrderQtyGrams = parsePositiveInt(productData.minOrderQtyGrams, 'minOrderQtyGrams');
+    if (productData.stockGrams !== undefined) productData.stockGrams = parseNonNegativeInt(productData.stockGrams, 'stockGrams', MAX_STOCK_GRAMS);
+
+    if (productData.allowLooseSelling === true && productData.pricePerKg === undefined && productData.price !== undefined) {
+      productData.pricePerKg = productData.price;
+    }
 
     const files = req.files || (req.file ? [req.file] : []);
     const uploadedMetas = [];
@@ -247,10 +275,20 @@ exports.updateProduct = async (req, res) => {
     if (updateData.wholesalePrice !== undefined) updateData.wholesalePrice = parseNonNegativeNumber(updateData.wholesalePrice, 'wholesalePrice');
     if (updateData.stock !== undefined) updateData.stock = parseNonNegativeInt(updateData.stock, 'stock');
     if (updateData.minStock !== undefined) updateData.minStock = parseNonNegativeInt(updateData.minStock, 'minStock');
+    if (updateData.allowLooseSelling !== undefined) updateData.allowLooseSelling = parseBoolean(updateData.allowLooseSelling, 'allowLooseSelling');
+    if (updateData.pricePerKg !== undefined) updateData.pricePerKg = parseNonNegativeNumber(updateData.pricePerKg, 'pricePerKg');
+    if (updateData.minOrderQtyGrams !== undefined) updateData.minOrderQtyGrams = parsePositiveInt(updateData.minOrderQtyGrams, 'minOrderQtyGrams');
+    if (updateData.stockGrams !== undefined) updateData.stockGrams = parseNonNegativeInt(updateData.stockGrams, 'stockGrams', MAX_STOCK_GRAMS);
 
     const existingProduct = await Product.findById(req.params.id);
     if (!existingProduct) {
       return res.status(404).json({ success: false, message: 'Product not found' });
+    }
+
+    if (updateData.allowLooseSelling === true && updateData.pricePerKg === undefined) {
+      updateData.pricePerKg = updateData.price !== undefined
+        ? updateData.price
+        : (existingProduct.pricePerKg != null ? existingProduct.pricePerKg : existingProduct.price);
     }
 
     const files = req.files || (req.file ? [req.file] : []);
@@ -288,6 +326,10 @@ exports.updateProduct = async (req, res) => {
       updateData,
       { new: true, runValidators: true }
     );
+
+    // findByIdAndUpdate skips the pre-save hook; persist once so the status
+    // reflects the updated unit or gram stock (and preserve inactive status).
+    await product.save();
 
     await createAuditLog(req.user._id, 'product_update', 'product', product._id, updateData, req);
 
@@ -420,20 +462,37 @@ exports.deleteProductImage = async (req, res) => {
 
 exports.updateStock = async (req, res) => {
   try {
-    const { stock, action = 'set' } = req.body; // action: 'set', 'add', 'subtract'
-    const amount = action === 'set'
-      ? parseNonNegativeInt(stock, 'stock')
-      : parsePositiveInt(stock, 'stock');
+    const { stock, stockGrams, unit, action = 'set' } = req.body; // action: 'set', 'add', 'subtract'
     if (!['set', 'add', 'subtract'].includes(action)) {
       return res.status(400).json({ success: false, message: 'Invalid stock action' });
     }
-    const product = await Product.findById(req.params.id);
 
+    const isGramUpdate = stockGrams !== undefined || unit === 'g';
+    const rawAmount = stockGrams !== undefined ? stockGrams : stock;
+    const fieldName = isGramUpdate ? 'stockGrams' : 'stock';
+    const max = isGramUpdate ? MAX_STOCK_GRAMS : 10000;
+    const amount = parseNonNegativeInt(rawAmount, fieldName, max);
+
+    if (action !== 'set' && amount < 1) {
+      const err = new Error(`Invalid ${fieldName}: must be at least 1`);
+      err.exposed = true;
+      throw err;
+    }
+
+    const product = await Product.findById(req.params.id);
     if (!product) {
       return res.status(404).json({ success: false, message: 'Product not found' });
     }
 
-    if (action === 'add') {
+    if (isGramUpdate) {
+      if (action === 'add') {
+        product.stockGrams += amount;
+      } else if (action === 'subtract') {
+        product.stockGrams = Math.max(0, product.stockGrams - amount);
+      } else {
+        product.stockGrams = amount;
+      }
+    } else if (action === 'add') {
       product.stock += amount;
     } else if (action === 'subtract') {
       product.stock = Math.max(0, product.stock - amount);
@@ -444,7 +503,7 @@ exports.updateStock = async (req, res) => {
     await product.save();
 
     await createAuditLog(req.user._id, 'stock_update', 'product', product._id,
-      { stock: product.stock, action }, req);
+      { stock: product.stock, stockGrams: product.stockGrams, action, unit: isGramUpdate ? 'g' : product.unit }, req);
 
     res.json({ success: true, message: 'Stock updated', data: product });
   } catch (error) {

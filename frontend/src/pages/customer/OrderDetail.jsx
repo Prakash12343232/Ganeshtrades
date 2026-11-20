@@ -6,6 +6,7 @@ import { FiDownload, FiX, FiCheck, FiClock, FiTruck, FiPackage, FiCalendar, FiZa
 import ProductImage from '../../components/common/ProductImage';
 import PaymentGatewayModal from '../../components/common/PaymentGatewayModal';
 import { useTimeSlots } from '../../utils/useTimeSlots';
+import { calculateLoosePrice, formatWeight } from '../../utils/quantity';
 
 const STATUS_STEPS = ['pending', 'confirmed', 'processing', 'out_for_delivery', 'delivered'];
 const STEP_LABELS = {
@@ -240,17 +241,31 @@ export default function OrderDetail() {
         <div className="lg:col-span-2 bg-navy-900 rounded-2xl border border-navy-800 p-6">
           <h2 className="font-bold text-white mb-4">Order Items</h2>
           <div className="space-y-3">
-            {order.items?.map((item, i) => (
-              <div key={i} className="flex items-center justify-between p-3 bg-navy-950 rounded-xl border border-navy-800">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-navy-900 rounded-lg border border-navy-800 overflow-hidden flex-shrink-0">
-                    <ProductImage src={item.product?.image || item.image} alt={item.name} showFallbackLabel={false} />
+            {order.items?.map((item, i) => {
+              const lineTotal = item.total != null
+                ? item.total
+                : item.isLoose
+                  ? calculateLoosePrice(item.pricePerKg ?? item.price, item.quantityGrams)
+                  : (item.price || 0) * (item.quantity || 0);
+              return (
+                <div key={i} className="flex items-center justify-between p-3 bg-navy-950 rounded-xl border border-navy-800">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-navy-900 rounded-lg border border-navy-800 overflow-hidden flex-shrink-0">
+                      <ProductImage src={item.product?.image || item.image} alt={item.name} showFallbackLabel={false} />
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm text-white">{item.name}</p>
+                      {item.isLoose ? (
+                        <p className="text-xs text-slate-400">₹{Number(item.pricePerKg ?? item.price).toFixed(2)}/kg × {formatWeight(item.quantityGrams)}</p>
+                      ) : (
+                        <p className="text-xs text-slate-400">₹{item.price} × {item.quantity}</p>
+                      )}
+                    </div>
                   </div>
-                  <div><p className="font-medium text-sm text-white">{item.name}</p><p className="text-xs text-slate-400">₹{item.price} × {item.quantity}</p></div>
+                  <span className="font-bold text-mint-400">₹{lineTotal.toFixed(2)}</span>
                 </div>
-                <span className="font-bold text-mint-400">₹{item.total?.toFixed(2)}</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <div className="border-t border-navy-800 mt-4 pt-4 space-y-2 text-sm">

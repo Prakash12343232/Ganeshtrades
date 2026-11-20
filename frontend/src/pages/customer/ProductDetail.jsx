@@ -6,6 +6,8 @@ import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 import { FiShoppingCart, FiMinus, FiPlus, FiStar, FiThumbsUp, FiCheckCircle, FiShield, FiTag } from 'react-icons/fi';
 import ProductImage from '../../components/common/ProductImage';
+import LooseOrderControl from '../../components/common/LooseOrderControl';
+import { formatWeight } from '../../utils/quantity';
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -157,6 +159,12 @@ export default function ProductDetail() {
       : [];
 
   const totalReviews = Object.values(ratingDist).reduce((a, b) => a + b, 0);
+  const isLoose = Boolean(product.allowLooseSelling);
+  const soldOut = isLoose ? !(Number(product.stockGrams) > 0) : product.stock === 0;
+  const lowOnStock = isLoose
+    ? Number(product.stockGrams) <= Number(product.minOrderQtyGrams || 0)
+    : product.stock <= product.minStock;
+  const displayRate = isLoose ? (product.pricePerKg ?? product.price) : product.price;
 
   return (
     <div className="animate-fadeIn space-y-8">
@@ -225,12 +233,17 @@ export default function ProductDetail() {
               {/* Price Display */}
               <div className="mt-6 p-4 bg-navy-950/80 rounded-2xl border border-navy-800">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-extrabold text-mint-400">₹{product.price}</span>
-                  <span className="text-slate-400 text-sm">/ {product.unit}</span>
+                  <span className="text-3xl font-extrabold text-mint-400">₹{displayRate}</span>
+                  <span className="text-slate-400 text-sm">/ {isLoose ? 'kg' : product.unit}</span>
                 </div>
                 {product.wholesalePrice && (
                   <p className="text-xs font-semibold text-mint-300 mt-1">
-                    🏷️ Wholesale Price: ₹{product.wholesalePrice} / {product.unit} for bulk buyers
+                    🏷️ Wholesale Price: ₹{product.wholesalePrice} / {isLoose ? 'kg' : product.unit} for bulk buyers
+                  </p>
+                )}
+                {isLoose && (
+                  <p className="text-xs text-slate-400 mt-2">
+                    Minimum order: {formatWeight(product.minOrderQtyGrams)}
                   </p>
                 )}
               </div>
@@ -238,29 +251,37 @@ export default function ProductDetail() {
 
             <div className="mt-8 space-y-4">
               {/* Quantity selector & Add to Cart */}
-              <div className="flex items-center gap-4">
-                <div className="flex items-center border border-navy-700 rounded-xl overflow-hidden bg-navy-950">
-                  <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="p-3 hover:bg-navy-800 text-slate-200"><FiMinus /></button>
-                  <span className="px-5 font-bold text-white text-base">{quantity}</span>
-                  <button onClick={() => setQuantity(Math.min(product.stock, quantity + 1))} className="p-3 hover:bg-navy-800 text-slate-200"><FiPlus /></button>
-                </div>
+              {isLoose ? (
+                <LooseOrderControl product={product} large />
+              ) : (
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center border border-navy-700 rounded-xl overflow-hidden bg-navy-950">
+                    <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="p-3 hover:bg-navy-800 text-slate-200"><FiMinus /></button>
+                    <span className="px-5 font-bold text-white text-base">{quantity}</span>
+                    <button onClick={() => setQuantity(Math.min(product.stock, quantity + 1))} className="p-3 hover:bg-navy-800 text-slate-200"><FiPlus /></button>
+                  </div>
 
-                <button
-                  onClick={() => addToCart(product, quantity)}
-                  disabled={product.stock === 0}
-                  className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-mint-500 text-navy-950 rounded-xl font-extrabold hover:bg-mint-400 transition-all disabled:opacity-40 shadow-lg shadow-mint-500/20"
-                  id="add-to-cart-btn"
-                >
-                  <FiShoppingCart className="w-5 h-5" /> {product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
-                </button>
-              </div>
+                  <button
+                    onClick={() => addToCart(product, quantity)}
+                    disabled={product.stock === 0}
+                    className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-mint-500 text-navy-950 rounded-xl font-extrabold hover:bg-mint-400 transition-all disabled:opacity-40 shadow-lg shadow-mint-500/20"
+                    id="add-to-cart-btn"
+                  >
+                    <FiShoppingCart className="w-5 h-5" /> {product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
+                  </button>
+                </div>
+              )}
 
               {/* Stock availability status */}
               <div className="flex items-center justify-between text-xs text-slate-400 pt-2 border-t border-navy-800">
                 <span>
                   Status:{' '}
-                  <strong className={product.stock > product.minStock ? 'text-mint-400' : product.stock > 0 ? 'text-amber-400' : 'text-rose-400'}>
-                    {product.stock > product.minStock ? `In Stock (${product.stock} ${product.unit} available)` : product.stock > 0 ? `Low Stock (${product.stock} left)` : 'Out of Stock'}
+                  <strong className={!lowOnStock && !soldOut ? 'text-mint-400' : !soldOut ? 'text-amber-400' : 'text-rose-400'}>
+                    {soldOut
+                      ? 'Out of Stock'
+                      : lowOnStock
+                        ? `Low Stock (${isLoose ? formatWeight(product.stockGrams) : `${product.stock} left`})`
+                        : `In Stock (${isLoose ? formatWeight(product.stockGrams) : `${product.stock} ${product.unit}`} available)`}
                   </strong>
                 </span>
                 <span className="flex items-center gap-1 text-slate-400">

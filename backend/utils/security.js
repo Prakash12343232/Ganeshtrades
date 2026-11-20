@@ -117,6 +117,14 @@ function parsePositiveNumber(value, fieldName = 'amount', max = 10000000) {
   return Math.round(num * 100) / 100;
 }
 
+function parseBoolean(value, fieldName = 'value') {
+  if (value === true || value === 'true' || value === 1 || value === '1') return true;
+  if (value === false || value === 'false' || value === 0 || value === '0') return false;
+  const err = new Error(`Invalid ${fieldName}: must be true or false`);
+  err.exposed = true;
+  throw err;
+}
+
 function parseNonNegativeNumber(value, fieldName = 'amount', max = 10000000) {
   const num = Number(value);
   if (!Number.isFinite(num) || num < 0 || num > max) {
@@ -241,6 +249,7 @@ module.exports = {
   parseNonNegativeInt,
   parsePositiveNumber,
   parseNonNegativeNumber,
+  parseBoolean,
   parsePagination,
   safeSpreadsheetCell,
   normalizeMobile,
