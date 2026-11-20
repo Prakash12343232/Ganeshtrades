@@ -1,9 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const mongoose = require('mongoose');
 const rateLimit = require('express-rate-limit');
 const User = require('../models/User');
+const AuthSession = require('../models/AuthSession');
 const Otp = require('../models/Otp');
 const OtpClient = require('../utils/otpClient');
 const { sendOtpSms } = require('../utils/sms');
@@ -34,11 +36,91 @@ const otpLimiter = rateLimit({
   message: { success: false, message: 'Too many OTP requests from this IP, please try again after 15 minutes.' }
 });
 
-// Generate JWT
+const refreshLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many session refresh attempts. Please sign in again.' }
+});
+
+const ACCESS_TOKEN_EXPIRE = process.env.JWT_ACCESS_EXPIRE || '15m';
+const REFRESH_TOKEN_DAYS = Math.max(1, Number(process.env.JWT_REFRESH_DAYS || 30));
+const REFRESH_COOKIE = 'gt_refresh';
+
+const hashRefreshToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
+const getRefreshCookie = (req) => {
+  const header = req.headers.cookie || '';
+  const pair = header.split(';').map((part) => part.trim()).find((part) => part.startsWith(`${REFRESH_COOKIE}=`));
+  return pair ? decodeURIComponent(pair.slice(REFRESH_COOKIE.length + 1)) : null;
+};
+
+// Generate a short-lived access JWT. Refresh state is held server-side.
 const generateToken = (id) => {
   const jwtSecret = process.env.JWT_SECRET || (process.env.NODE_ENV === 'test' ? 'testsecret' : undefined);
   if (!jwtSecret) throw new Error('Authentication is not configured');
-  return jwt.sign({ id }, jwtSecret, { expiresIn: process.env.JWT_EXPIRE || '7d', algorithm: 'HS256' });
+  return jwt.sign({ id, type: 'access', jti: crypto.randomUUID() }, jwtSecret, { expiresIn: ACCESS_TOKEN_EXPIRE, algorithm: 'HS256' });
+};
+
+const refreshCookieOptions = () => ({
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+  path: '/api/auth',
+  maxAge: REFRESH_TOKEN_DAYS * 24 * 60 * 60 * 1000
+});
+
+const issueRefreshSession = async (user, req, res, familyId = crypto.randomUUID()) => {
+  const rawToken = crypto.randomBytes(48).toString('base64url');
+  const session = await AuthSession.create({
+    user: user._id,
+    tokenHash: hashRefreshToken(rawToken),
+    familyId,
+    userAgent: req.get('user-agent') || '',
+    ipAddress: req.ip,
+    expiresAt: new Date(Date.now() + REFRESH_TOKEN_DAYS * 24 * 60 * 60 * 1000)
+  });
+  res.cookie(REFRESH_COOKIE, rawToken, refreshCookieOptions());
+  return session;
+};
+
+const revokeUserSessions = (userId) => AuthSession.updateMany(
+  { user: userId, revokedAt: null },
+  { revokedAt: new Date() }
+);
+
+const revokeRefreshCookie = async (req, res) => {
+  const rawToken = getRefreshCookie(req);
+  if (rawToken) {
+    await AuthSession.findOneAndUpdate(
+      { tokenHash: hashRefreshToken(rawToken), revokedAt: null },
+      { revokedAt: new Date() }
+    );
+  }
+  res.clearCookie(REFRESH_COOKIE, { ...refreshCookieOptions(), maxAge: undefined });
+};
+
+const sendAuthResult = async (user, req, res, statusCode = 200, message = 'Login successful') => {
+  const token = generateToken(user._id);
+  await issueRefreshSession(user, req, res);
+  const safeUser = sanitizeUserForResponse(user);
+  return res.status(statusCode).json({
+    success: true,
+    message,
+    token,
+    expiresIn: ACCESS_TOKEN_EXPIRE,
+    user: {
+      id: safeUser._id,
+      name: safeUser.name,
+      mobile: safeUser.mobile,
+      email: safeUser.email,
+      customerType: safeUser.customerType,
+      role: safeUser.role,
+      address: safeUser.address,
+      avatar: safeUser.avatar,
+      distanceFromShop: safeUser.distanceFromShop
+    }
+  });
 };
 
 // Check if account is locked
@@ -153,25 +235,7 @@ router.post('/google', authLimiter, async (req, res) => {
 
     await createAuditLog(user._id, 'user_login', 'user', user._id, { method: 'google', email: user.email }, req);
 
-    const token = generateToken(user._id);
-
-    const safeUser = sanitizeUserForResponse(user);
-    res.json({
-      success: true,
-      message: 'Google login successful',
-      token,
-      user: {
-        id: safeUser._id,
-        name: safeUser.name,
-        mobile: safeUser.mobile,
-        email: safeUser.email,
-        customerType: safeUser.customerType,
-        role: safeUser.role,
-        address: safeUser.address,
-        avatar: safeUser.avatar,
-        distanceFromShop: safeUser.distanceFromShop
-      }
-    });
+    return sendAuthResult(user, req, res, 200, 'Google login successful');
   } catch (error) {
     console.error('❌ /auth/google error:', error);
     // A Google identity can race with another sign-in, or the email can already
@@ -272,6 +336,84 @@ router.post('/google/link', protect, async (req, res) => {
       success: false,
       message: error.exposed ? error.message : clientErrorMessage(error, 'Failed to link Google account.')
     });
+  }
+});
+
+// @route   POST /api/auth/refresh
+// @desc    Rotate the httpOnly refresh cookie and issue a short-lived access token
+// @access  Public (refresh cookie required)
+router.post('/refresh', refreshLimiter, async (req, res) => {
+  try {
+    const rawToken = getRefreshCookie(req);
+    if (!rawToken) {
+      return res.status(401).json({ success: false, message: 'Session expired. Please sign in again.' });
+    }
+
+    const session = await AuthSession.findOne({ tokenHash: hashRefreshToken(rawToken) }).select('+tokenHash');
+    if (!session) {
+      res.clearCookie(REFRESH_COOKIE, { ...refreshCookieOptions(), maxAge: undefined });
+      return res.status(401).json({ success: false, message: 'Session expired. Please sign in again.' });
+    }
+
+    // Reuse of a rotated token is treated as token theft: revoke the whole family.
+    if (session.revokedAt) {
+      await AuthSession.updateMany({ familyId: session.familyId, revokedAt: null }, { revokedAt: new Date() });
+      res.clearCookie(REFRESH_COOKIE, { ...refreshCookieOptions(), maxAge: undefined });
+      return res.status(401).json({ success: false, message: 'Session security check failed. Please sign in again.' });
+    }
+
+    if (session.expiresAt <= new Date()) {
+      await AuthSession.findByIdAndUpdate(session._id, { revokedAt: new Date() });
+      res.clearCookie(REFRESH_COOKIE, { ...refreshCookieOptions(), maxAge: undefined });
+      return res.status(401).json({ success: false, message: 'Session expired. Please sign in again.' });
+    }
+
+    const user = await User.findById(session.user);
+    if (!user || !user.isActive) {
+      await AuthSession.findByIdAndUpdate(session._id, { revokedAt: new Date() });
+      res.clearCookie(REFRESH_COOKIE, { ...refreshCookieOptions(), maxAge: undefined });
+      return res.status(401).json({ success: false, message: 'Account is not active.' });
+    }
+
+    await AuthSession.findByIdAndUpdate(session._id, { revokedAt: new Date() });
+    const replacement = await issueRefreshSession(user, req, res, session.familyId);
+    await AuthSession.findByIdAndUpdate(session._id, { replacedBy: replacement._id });
+
+    return res.json({
+      success: true,
+      message: 'Session refreshed',
+      token: generateToken(user._id),
+      expiresIn: ACCESS_TOKEN_EXPIRE,
+      user: sanitizeUserForResponse(user)
+    });
+  } catch (error) {
+    console.error('❌ /auth/refresh error:', error);
+    res.clearCookie(REFRESH_COOKIE, { ...refreshCookieOptions(), maxAge: undefined });
+    return res.status(401).json({ success: false, message: 'Session refresh failed. Please sign in again.' });
+  }
+});
+
+// @route   POST /api/auth/logout
+// @desc    Revoke the current refresh session
+// @access  Public (works even when access token has expired)
+router.post('/logout', async (req, res) => {
+  try {
+    await revokeRefreshCookie(req, res);
+    return res.json({ success: true, message: 'Logged out successfully' });
+  } catch (error) {
+    console.error('❌ /auth/logout error:', error);
+    return res.status(500).json({ success: false, message: 'Logout failed. Please try again.' });
+  }
+});
+
+router.post('/logout-all', protect, async (req, res) => {
+  try {
+    await revokeUserSessions(req.user._id);
+    res.clearCookie(REFRESH_COOKIE, { ...refreshCookieOptions(), maxAge: undefined });
+    return res.json({ success: true, message: 'All sessions logged out successfully' });
+  } catch (error) {
+    console.error('❌ /auth/logout-all error:', error);
+    return res.status(500).json({ success: false, message: 'Logout failed. Please try again.' });
   }
 });
 
@@ -503,23 +645,7 @@ router.post('/register', authLimiter, async (req, res) => {
     }
     await createAuditLog(user._id, 'user_register', 'user', user._id, { name, mobile: normMobile, customerType: validCustomerType }, req);
 
-    const token = generateToken(user._id);
-
-    res.status(201).json({
-      success: true,
-      message: 'Registration successful',
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        mobile: user.mobile,
-        email: user.email,
-        customerType: user.customerType,
-        role: user.role,
-        address: user.address,
-        distanceFromShop: user.distanceFromShop
-      }
-    });
+    return sendAuthResult(user, req, res, 201, 'Registration successful');
   } catch (error) {
     console.error('❌ register route error:', error);
     if (error.name === 'ValidationError') {
@@ -600,23 +726,7 @@ router.post('/login', authLimiter, async (req, res) => {
 
     await createAuditLog(user._id, 'user_login', 'user', user._id, { mobile: normMobile, method: useOtp ? 'otp' : 'password' }, req);
 
-    const token = generateToken(user._id);
-
-    res.json({
-      success: true,
-      message: 'Login successful',
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        mobile: user.mobile,
-        email: user.email,
-        customerType: user.customerType,
-        role: user.role,
-        address: user.address,
-        distanceFromShop: user.distanceFromShop
-      }
-    });
+    return sendAuthResult(user, req, res, 200, 'Login successful');
   } catch (error) {
     console.error('❌ login route error:', error);
     res.status(500).json({ success: false, message: clientErrorMessage(error) });
@@ -701,6 +811,7 @@ router.put('/password', protect, async (req, res) => {
 
     user.password = newPassword;
     await user.save();
+    await revokeUserSessions(user._id);
 
     res.json({ success: true, message: 'Password updated successfully' });
   } catch (error) {
@@ -816,6 +927,7 @@ router.post('/reset-password', authLimiter, async (req, res) => {
     user.loginAttempts = 0;
     user.lockUntil = undefined;
     await user.save();
+    await revokeUserSessions(user._id);
 
     // Clean up OTP
     await Otp.deleteMany({ mobile: normMobile, purpose: 'password_reset' });

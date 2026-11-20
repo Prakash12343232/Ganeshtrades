@@ -3,7 +3,7 @@ import axios from 'axios';
 const rawBaseURL = import.meta.env.VITE_API_URL || '/api';
 const baseURL = rawBaseURL.endsWith('/') ? rawBaseURL.slice(0, -1) : rawBaseURL;
 
-const API = axios.create({ baseURL });
+const API = axios.create({ baseURL, withCredentials: true });
 
 const getStoredToken = () => {
   const token = sessionStorage.getItem('gt_token');
@@ -20,15 +20,52 @@ API.interceptors.request.use((config) => {
   return config;
 });
 
+let refreshPromise = null;
+
+const clearClientAuth = () => {
+  sessionStorage.removeItem('gt_token');
+  sessionStorage.removeItem('gt_user');
+  localStorage.removeItem('gt_token');
+  localStorage.removeItem('gt_user');
+};
+
+const isAuthEndpoint = (url = '') => /\/auth\/(login|register|google(?:\/link)?|refresh|logout|send-otp|verify-otp|forgot-password|reset-password)/.test(url);
+
+const refreshAccessToken = async () => {
+  if (!refreshPromise) {
+    refreshPromise = API.post('/auth/refresh')
+      .then(({ data }) => {
+        if (!data?.token) throw new Error('Refresh response did not contain an access token');
+        sessionStorage.setItem('gt_token', data.token);
+        if (data.user) sessionStorage.setItem('gt_user', JSON.stringify(data.user));
+        return data.token;
+      })
+      .finally(() => { refreshPromise = null; });
+  }
+  return refreshPromise;
+};
+
 API.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      sessionStorage.removeItem('gt_token');
-      sessionStorage.removeItem('gt_user');
-      localStorage.removeItem('gt_token');
-      localStorage.removeItem('gt_user');
-      if (window.location.pathname !== '/login') window.location.href = '/login';
+  async (error) => {
+    const original = error.config;
+    if (error.response?.status === 401 && original && !original._retry && !isAuthEndpoint(original.url)) {
+      original._retry = true;
+      try {
+        const token = await refreshAccessToken();
+        original.headers = original.headers || {};
+        original.headers.Authorization = `Bearer ${token}`;
+        return API(original);
+      } catch {
+        clearClientAuth();
+        if (window.location.pathname !== '/login') window.location.href = '/login';
+      }
+    }
+
+    if (error.response?.status === 401 && (!original || isAuthEndpoint(original.url))) {
+      // Login errors remain on the login page; protected API errors clear the
+      // local session after refresh has failed.
+      if (original && !isAuthEndpoint(original.url)) clearClientAuth();
     }
     return Promise.reject(error);
   }
@@ -40,6 +77,8 @@ export const register = (data) => API.post('/auth/register', data);
 export const googleLogin = (data) => API.post('/auth/google', data);
 export const googleLink = (data) => API.post('/auth/google/link', data);
 export const getGoogleConfig = () => API.get('/auth/google/config');
+export const refreshSession = () => refreshAccessToken();
+export const logout = () => API.post('/auth/logout');
 export const sendOtp = (data) => API.post('/auth/send-otp', data);
 export const verifyOtp = (data) => API.post('/auth/verify-otp', data);
 export const getMe = () => API.get('/auth/me');

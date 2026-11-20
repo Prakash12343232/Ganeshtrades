@@ -35,6 +35,34 @@ describe('Auth Endpoints', () => {
     expect(res.body.token).toBeDefined();
   });
 
+  it('rotates an httpOnly refresh session and revokes it on logout', async () => {
+    await User.create({
+      name: 'Refresh User',
+      mobile: '8888888889',
+      password: 'password123'
+    });
+
+    const agent = request.agent(app);
+    const login = await agent.post('/api/auth/login').send({
+      mobile: '8888888889',
+      password: 'password123'
+    });
+    expect(login.statusCode).toBe(200);
+    expect(login.headers['set-cookie']).toEqual(expect.arrayContaining([
+      expect.stringContaining('gt_refresh=')
+    ]));
+
+    const refreshed = await agent.post('/api/auth/refresh');
+    expect(refreshed.statusCode).toBe(200);
+    expect(refreshed.body.token).toBeDefined();
+
+    const logout = await agent.post('/api/auth/logout');
+    expect(logout.statusCode).toBe(200);
+
+    const afterLogout = await agent.post('/api/auth/refresh');
+    expect(afterLogout.statusCode).toBe(401);
+  });
+
   describe('PUT /api/auth/password (change password)', () => {
     const registerAndGetToken = async (mobile) => {
       const reg = await request(app)
