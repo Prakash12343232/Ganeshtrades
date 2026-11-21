@@ -49,6 +49,49 @@ const REFRESH_TOKEN_DAYS = Math.max(1, Number(process.env.JWT_REFRESH_DAYS || 30
 const REFRESH_COOKIE = 'gt_refresh';
 
 const hashRefreshToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
+const diagnosticFingerprint = (value) => value
+  ? crypto.createHash('sha256').update(String(value)).digest('hex').slice(0, 12)
+  : null;
+
+const logGoogleDuplicateDiagnostic = async (error, googleProfile, req) => {
+  const email = googleProfile?.email?.toLowerCase?.().trim() || null;
+  const googleId = googleProfile?.sub || null;
+  const keyPattern = error?.keyPattern && Object.keys(error.keyPattern);
+  const matches = [];
+
+  try {
+    const query = [];
+    if (googleId) query.push({ googleId });
+    if (email) query.push({ email });
+    if (query.length) {
+      const records = await User.find({ $or: query })
+        .select('_id email googleId role authProvider isActive mobile createdAt')
+        .lean();
+      matches.push(...records.map((record) => ({
+        idSuffix: String(record._id).slice(-6),
+        emailFingerprint: diagnosticFingerprint(record.email),
+        googleIdFingerprint: diagnosticFingerprint(record.googleId),
+        role: record.role || null,
+        authProvider: record.authProvider || null,
+        isActive: record.isActive !== false,
+        hasMobile: Boolean(record.mobile),
+        createdAt: record.createdAt || null
+      })));
+    }
+  } catch (lookupError) {
+    console.error('[AUTH_DIAGNOSTIC] Google duplicate lookup failed:', lookupError.message);
+  }
+
+  console.warn('[AUTH_DIAGNOSTIC] Google duplicate-key conflict', {
+    keyFields: keyPattern || [],
+    emailFingerprint: diagnosticFingerprint(email),
+    googleIdFingerprint: diagnosticFingerprint(googleId),
+    matchCount: matches.length,
+    matches,
+    requestId: req.get('x-request-id') || null
+  });
+};
+
 const getRefreshCookie = (req) => {
   const header = req.headers.cookie || '';
   const pair = header.split(';').map((part) => part.trim()).find((part) => part.startsWith(`${REFRESH_COOKIE}=`));
@@ -148,6 +191,7 @@ router.get('/google/config', (req, res) => {
 // @desc    Authenticate or register user with Google Identity Services token
 // @access  Public
 router.post('/google', authLimiter, async (req, res) => {
+  let googleProfile = null;
   try {
     const { credential, idToken } = req.body;
     const tokenToVerify = credential || idToken;
@@ -164,7 +208,7 @@ router.post('/google', authLimiter, async (req, res) => {
     }
 
     // 1. Verify token signature, issuer, audience, and email verification
-    const googleProfile = await googleAuth.verifyGoogleToken(tokenToVerify);
+    googleProfile = await googleAuth.verifyGoogleToken(tokenToVerify);
 
     // 2. Find existing user by googleId
     let user = await User.findOne({ googleId: googleProfile.sub });
@@ -237,16 +281,17 @@ router.post('/google', authLimiter, async (req, res) => {
 
     return sendAuthResult(user, req, res, 200, 'Google login successful');
   } catch (error) {
-    console.error('❌ /auth/google error:', error);
     // A Google identity can race with another sign-in, or the email can already
     // exist in a legacy account with different casing. Do not turn this expected
     // account-linking condition into an opaque 500 error.
     if (error?.code === 11000) {
+      await logGoogleDuplicateDiagnostic(error, googleProfile, req);
       return res.status(409).json({
         success: false,
         message: 'This Google account is already associated with a Ganesh Trades account. Sign in with mobile and password, then link Google from your profile if needed.'
       });
     }
+    console.error('❌ /auth/google error:', error?.message || 'unknown error');
     const statusCode = error.statusCode || 500;
     res.status(statusCode).json({
       success: false,
