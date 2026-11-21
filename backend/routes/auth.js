@@ -57,6 +57,7 @@ const logGoogleDuplicateDiagnostic = async (error, googleProfile, req) => {
   const email = googleProfile?.email?.toLowerCase?.().trim() || null;
   const googleId = googleProfile?.sub || null;
   const keyPattern = error?.keyPattern && Object.keys(error.keyPattern);
+  const keyValueFields = error?.keyValue && Object.keys(error.keyValue);
   const matches = [];
 
   try {
@@ -83,7 +84,7 @@ const logGoogleDuplicateDiagnostic = async (error, googleProfile, req) => {
   }
 
   console.warn('[AUTH_DIAGNOSTIC] Google duplicate-key conflict', {
-    keyFields: keyPattern || [],
+    keyFields: keyPattern || keyValueFields || [],
     emailFingerprint: diagnosticFingerprint(email),
     googleIdFingerprint: diagnosticFingerprint(googleId),
     matchCount: matches.length,
@@ -212,7 +213,7 @@ router.get('/google/config', (req, res) => {
     success: true,
     configured: Boolean(clientId),
     clientId: clientId || null,
-    authVersion: 'google-login-v4-recovery'
+    authVersion: 'google-login-v5-index-repair'
   });
 });
 

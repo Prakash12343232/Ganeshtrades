@@ -30,6 +30,7 @@ const connectDB = async () => {
       });
       dbKind = 'atlas';
       console.log(`✅ MongoDB Atlas Connected: ${conn.connection.host}`);
+      await require('../utils/userIndexes').ensureUserIndexes();
       return;
     } catch (error) {
       console.error(`❌ MongoDB Atlas Connection Error: ${error.message}`);
