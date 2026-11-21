@@ -92,6 +92,35 @@ const logGoogleDuplicateDiagnostic = async (error, googleProfile, req) => {
   });
 };
 
+// A duplicate-key can happen when two Google sign-ins race, or when a legacy
+// email was stored with different casing. Recover the already-created account
+// instead of showing the generic duplicate-account error.
+const recoverGoogleDuplicateUser = async (googleProfile) => {
+  const byGoogleId = await User.findOne({ googleId: googleProfile.sub });
+  if (byGoogleId) return { user: byGoogleId };
+
+  const byEmail = await User.findOne({ email: googleProfile.email })
+    .collation({ locale: 'en', strength: 2 });
+  if (!byEmail) return { user: null };
+
+  if (byEmail.googleId && byEmail.googleId !== googleProfile.sub) {
+    return { user: byEmail, conflict: 'different-google-id' };
+  }
+
+  try {
+    byEmail.googleId = googleProfile.sub;
+    byEmail.authProvider = 'google';
+    byEmail.isEmailVerified = true;
+    if (!byEmail.avatar && googleProfile.picture) byEmail.avatar = googleProfile.picture;
+    await byEmail.save();
+    return { user: byEmail };
+  } catch (saveError) {
+    if (saveError?.code !== 11000) throw saveError;
+    const linked = await User.findOne({ googleId: googleProfile.sub });
+    return { user: linked || null };
+  }
+};
+
 const getRefreshCookie = (req) => {
   const header = req.headers.cookie || '';
   const pair = header.split(';').map((part) => part.trim()).find((part) => part.startsWith(`${REFRESH_COOKIE}=`));
@@ -219,7 +248,8 @@ router.post('/google', authLimiter, async (req, res) => {
     // email must match the existing account exactly; a different Google ID
     // already linked to that email is still rejected.
     if (!user) {
-      const existingWithEmail = await User.findOne({ email: googleProfile.email });
+      const existingWithEmail = await User.findOne({ email: googleProfile.email })
+        .collation({ locale: 'en', strength: 2 });
       if (existingWithEmail) {
         if (existingWithEmail.googleId && existingWithEmail.googleId !== googleProfile.sub) {
           return res.status(409).json({
@@ -285,6 +315,25 @@ router.post('/google', authLimiter, async (req, res) => {
     // exist in a legacy account with different casing. Do not turn this expected
     // account-linking condition into an opaque 500 error.
     if (error?.code === 11000) {
+      try {
+        const recovered = await recoverGoogleDuplicateUser(googleProfile);
+        if (recovered.conflict === 'different-google-id') {
+          await logGoogleDuplicateDiagnostic(error, googleProfile, req);
+          return res.status(409).json({
+            success: false,
+            message: 'This email is already linked to a different Google account. Sign in with that Google account or use mobile and password.'
+          });
+        }
+        if (recovered.user) {
+          if (!recovered.user.isActive) {
+            return res.status(401).json({ success: false, message: 'Account has been deactivated. Please contact support.' });
+          }
+          await createAuditLog(recovered.user._id, 'user_login', 'user', recovered.user._id, { method: 'google', email: recovered.user.email }, req);
+          return sendAuthResult(recovered.user, req, res, 200, 'Google login successful');
+        }
+      } catch (recoveryError) {
+        console.error('[AUTH_DIAGNOSTIC] Google duplicate recovery failed:', recoveryError.message);
+      }
       await logGoogleDuplicateDiagnostic(error, googleProfile, req);
       return res.status(409).json({
         success: false,
