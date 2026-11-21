@@ -212,7 +212,7 @@ router.get('/google/config', (req, res) => {
     success: true,
     configured: Boolean(clientId),
     clientId: clientId || null,
-    authVersion: 'google-login-v3'
+    authVersion: 'google-login-v4-recovery'
   });
 });
 
