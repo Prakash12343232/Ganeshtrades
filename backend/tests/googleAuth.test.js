@@ -34,7 +34,7 @@ describe('Google Authentication Endpoints', () => {
       expect(res.body.success).toBe(true);
       expect(res.body.configured).toBe(true);
       expect(res.body.clientId).toBe('test-client-id.apps.googleusercontent.com');
-      expect(res.body.authVersion).toBe('google-login-v3');
+      expect(res.body.authVersion).toBe('google-login-v4-recovery');
     });
   });
 
