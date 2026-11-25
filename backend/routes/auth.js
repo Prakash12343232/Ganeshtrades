@@ -6,6 +6,7 @@ const mongoose = require('mongoose');
 const rateLimit = require('express-rate-limit');
 const User = require('../models/User');
 const AuthSession = require('../models/AuthSession');
+const Order = require('../models/Order');
 const Otp = require('../models/Otp');
 const OtpClient = require('../utils/otpClient');
 const { sendOtpSms } = require('../utils/sms');
@@ -509,6 +510,75 @@ router.post('/logout-all', protect, async (req, res) => {
   } catch (error) {
     console.error('❌ /auth/logout-all error:', error);
     return res.status(500).json({ success: false, message: 'Logout failed. Please try again.' });
+  }
+});
+
+// @route   DELETE /api/auth/account
+// @desc    Self-service account deletion (DPDP right to erasure). Personal
+//          identifiers are erased; order/invoice records are retained as
+//          required by tax and accounting laws.
+// @access  Private
+router.delete('/account', protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (user.role !== 'customer') {
+      return res.status(403).json({ success: false, message: 'Staff and admin accounts cannot be deleted here. Please contact support.' });
+    }
+
+    if (Number(user.pendingAmount) > 0) {
+      return res.status(400).json({ success: false, message: 'Please clear your pending dues before deleting your account.' });
+    }
+
+    const activeOrder = await Order.findOne({
+      user: user._id,
+      orderStatus: { $in: ['pending', 'confirmed', 'processing', 'out_for_delivery'] }
+    }).select('_id');
+
+    if (activeOrder) {
+      return res.status(400).json({ success: false, message: 'You have an active order. Please wait until it is delivered or cancel it before deleting your account.' });
+    }
+
+    await revokeUserSessions(user._id);
+
+    await User.collection.updateOne(
+      { _id: user._id },
+      {
+        $set: {
+          name: 'Deleted User',
+          isActive: false,
+          deletedAt: new Date()
+        },
+        $unset: {
+          mobile: '',
+          email: '',
+          googleId: '',
+          password: '',
+          avatar: '',
+          address: '',
+          distanceFromShop: '',
+          isEmailVerified: '',
+          emailVerificationToken: '',
+          emailVerificationExpires: '',
+          passwordResetToken: '',
+          passwordResetExpires: '',
+          loginAttempts: '',
+          lockUntil: ''
+        }
+      }
+    );
+
+    res.clearCookie(REFRESH_COOKIE, { ...refreshCookieOptions(), maxAge: undefined });
+    await createAuditLog(user._id, 'account_self_delete', 'user', user._id, { personalDataErased: true }, req);
+
+    return res.json({ success: true, message: 'Account deleted. Your personal data has been erased.' });
+  } catch (error) {
+    console.error('❌ /auth/account delete error:', error);
+    return res.status(500).json({ success: false, message: clientErrorMessage(error, 'Account deletion failed. Please try again later.') });
   }
 });
 

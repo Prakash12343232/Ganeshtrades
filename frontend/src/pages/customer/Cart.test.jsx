@@ -10,7 +10,8 @@ const cartState = { items: [], totalAmount: 200 };
 const authState = { user: null };
 
 vi.mock('react-router-dom', () => ({
-  useNavigate: () => navigateMock
+  useNavigate: () => navigateMock,
+  Link: ({ to, children, ...props }) => <a href={to} {...props}>{children}</a>
 }));
 
 vi.mock('../../services/api', () => ({

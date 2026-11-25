@@ -1,12 +1,14 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { updateProfile, changePassword, checkServiceability } from '../../services/api';
+import { updateProfile, changePassword, checkServiceability, deleteAccount } from '../../services/api';
 import GoogleSignInButton from '../../components/GoogleSignInButton';
 import toast from 'react-hot-toast';
-import { FiMapPin, FiLock, FiSave, FiCrosshair, FiNavigation, FiCheckCircle, FiXCircle } from 'react-icons/fi';
+import { FiMapPin, FiLock, FiSave, FiCrosshair, FiNavigation, FiCheckCircle, FiXCircle, FiAlertTriangle, FiTrash2 } from 'react-icons/fi';
 
 export default function Profile() {
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, logout } = useAuth();
+  const navigate = useNavigate();
   const [form, setForm] = useState({
     name: user?.name || '', email: user?.email || '',
     address: {
@@ -20,6 +22,9 @@ export default function Profile() {
   const [tab, setTab] = useState('profile');
   const [locating, setLocating] = useState(false);
   const [serviceInfo, setServiceInfo] = useState(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleting, setDeleting] = useState(false);
   const [locationStatus, setLocationStatus] = useState(
     user?.address?.lat ? `Location set (${user?.distanceFromShop || 0} KM from shop)` : ''
   );
@@ -88,6 +93,21 @@ export default function Profile() {
       toast.success('Password changed!');
       setPassForm({ currentPassword: '', newPassword: '' });
     } catch (err) { toast.error(err.response?.data?.message || 'Failed'); }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== 'DELETE') return;
+    setDeleting(true);
+    try {
+      await deleteAccount();
+      toast.success('Your account has been deleted.');
+      await logout();
+      navigate('/');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to delete account');
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const TYPE_LABELS = { public: '👤 Public Customer', hotel: '🏨 Hotel Customer', pg_hostel: '🏠 PG/Hostel' };
@@ -274,6 +294,60 @@ export default function Profile() {
               <FiLock /> Change Password
             </button>
           </form>
+
+          <div className="bg-navy-900 rounded-2xl border border-rose-500/30 p-6 space-y-4">
+            <h3 className="text-base font-bold text-rose-400 flex items-center gap-2">
+              <FiAlertTriangle />
+              <span>Danger Zone</span>
+            </h3>
+            <p className="text-xs text-slate-400">
+              Deleting your account permanently removes your name, mobile number, email, Google link,
+              password and address, and signs you out on all devices. Order and invoice records are
+              retained only as required by tax and accounting laws. Pending dues and active orders must be
+              cleared first.
+            </p>
+            {!showDeleteConfirm ? (
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(true)}
+                className="w-full py-3 rounded-xl font-bold border-2 border-rose-500/50 text-rose-400 hover:bg-rose-500/10 flex items-center justify-center gap-2 transition-colors"
+              >
+                <FiTrash2 /> Delete My Account
+              </button>
+            ) : (
+              <div className="space-y-3">
+                <label className="block text-xs font-semibold text-slate-300">
+                  Type DELETE to confirm
+                </label>
+                <input
+                  type="text"
+                  value={deleteConfirmText}
+                  onChange={e => setDeleteConfirmText(e.target.value)}
+                  className="w-full px-4 py-3 bg-navy-950 border border-rose-500/40 text-slate-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500"
+                  placeholder="DELETE"
+                  autoFocus
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleDeleteAccount}
+                    disabled={deleteConfirmText !== 'DELETE' || deleting}
+                    className="flex-1 py-3 rounded-xl font-bold bg-rose-600 text-white hover:bg-rose-500 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
+                  >
+                    <FiTrash2 /> {deleting ? 'Deleting...' : 'Permanently Delete'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(''); }}
+                    disabled={deleting}
+                    className="px-4 py-3 rounded-xl font-bold border border-navy-700 text-slate-300 hover:bg-navy-800 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

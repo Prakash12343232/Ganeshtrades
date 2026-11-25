@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { createOrder, checkServiceability, createPaymentOrder } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -461,6 +461,13 @@ export default function Cart() {
                         ? `Pay ₹${totalAmount.toFixed(2)} Online`
                         : 'Place Order'}
             </button>
+
+            <p className="text-[11px] text-center text-slate-500 dark:text-slate-400 leading-relaxed">
+              By placing this order you agree to our{' '}
+              <Link to="/terms" className="text-mint-600 dark:text-mint-400 font-semibold hover:underline">Terms</Link>,{' '}
+              <Link to="/refund-policy" className="text-mint-600 dark:text-mint-400 font-semibold hover:underline">Refund Policy</Link> and{' '}
+              <Link to="/shipping-policy" className="text-mint-600 dark:text-mint-400 font-semibold hover:underline">Shipping Policy</Link>.
+            </p>
           </div>
         </div>
       </div>

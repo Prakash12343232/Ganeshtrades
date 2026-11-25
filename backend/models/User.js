@@ -61,6 +61,7 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+  deletedAt: Date,
   avatar: String,
   totalOrders: { type: Number, default: 0 },
   totalSpent: { type: Number, default: 0 },
