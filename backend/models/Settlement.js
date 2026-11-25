@@ -23,6 +23,13 @@ const settlementSchema = new mongoose.Schema({
     default: 'completed'
   },
   notes: String,
+  // Per-order attribution so aging and cancellation reversal can tell exactly
+  // which invoice a settlement paid (FIFO, oldest order first).
+  allocations: [{
+    _id: false,
+    order: { type: mongoose.Schema.Types.ObjectId, ref: 'Order' },
+    amount: { type: Number, min: 0 }
+  }],
   processedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'

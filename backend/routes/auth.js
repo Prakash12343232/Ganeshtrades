@@ -1,9 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const mongoose = require('mongoose');
 const rateLimit = require('express-rate-limit');
 const User = require('../models/User');
+const AuthSession = require('../models/AuthSession');
+const Order = require('../models/Order');
 const Otp = require('../models/Otp');
 const OtpClient = require('../utils/otpClient');
 const { sendOtpSms } = require('../utils/sms');
@@ -34,11 +37,164 @@ const otpLimiter = rateLimit({
   message: { success: false, message: 'Too many OTP requests from this IP, please try again after 15 minutes.' }
 });
 
-// Generate JWT
+const refreshLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many session refresh attempts. Please sign in again.' }
+});
+
+const ACCESS_TOKEN_EXPIRE = process.env.JWT_ACCESS_EXPIRE || '15m';
+const REFRESH_TOKEN_DAYS = Math.max(1, Number(process.env.JWT_REFRESH_DAYS || 30));
+const REFRESH_COOKIE = 'gt_refresh';
+
+const hashRefreshToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
+const diagnosticFingerprint = (value) => value
+  ? crypto.createHash('sha256').update(String(value)).digest('hex').slice(0, 12)
+  : null;
+
+const logGoogleDuplicateDiagnostic = async (error, googleProfile, req) => {
+  const email = googleProfile?.email?.toLowerCase?.().trim() || null;
+  const googleId = googleProfile?.sub || null;
+  const keyPattern = error?.keyPattern && Object.keys(error.keyPattern);
+  const keyValueFields = error?.keyValue && Object.keys(error.keyValue);
+  const matches = [];
+
+  try {
+    const query = [];
+    if (googleId) query.push({ googleId });
+    if (email) query.push({ email });
+    if (query.length) {
+      const records = await User.find({ $or: query })
+        .select('_id email googleId role authProvider isActive mobile createdAt')
+        .lean();
+      matches.push(...records.map((record) => ({
+        idSuffix: String(record._id).slice(-6),
+        emailFingerprint: diagnosticFingerprint(record.email),
+        googleIdFingerprint: diagnosticFingerprint(record.googleId),
+        role: record.role || null,
+        authProvider: record.authProvider || null,
+        isActive: record.isActive !== false,
+        hasMobile: Boolean(record.mobile),
+        createdAt: record.createdAt || null
+      })));
+    }
+  } catch (lookupError) {
+    console.error('[AUTH_DIAGNOSTIC] Google duplicate lookup failed:', lookupError.message);
+  }
+
+  console.warn('[AUTH_DIAGNOSTIC] Google duplicate-key conflict', {
+    keyFields: keyPattern || keyValueFields || [],
+    emailFingerprint: diagnosticFingerprint(email),
+    googleIdFingerprint: diagnosticFingerprint(googleId),
+    matchCount: matches.length,
+    matches,
+    requestId: req.get('x-request-id') || null
+  });
+};
+
+// A duplicate-key can happen when two Google sign-ins race, or when a legacy
+// email was stored with different casing. Recover the already-created account
+// instead of showing the generic duplicate-account error.
+const recoverGoogleDuplicateUser = async (googleProfile) => {
+  const byGoogleId = await User.findOne({ googleId: googleProfile.sub });
+  if (byGoogleId) return { user: byGoogleId };
+
+  const byEmail = await User.findOne({ email: googleProfile.email })
+    .collation({ locale: 'en', strength: 2 });
+  if (!byEmail) return { user: null };
+
+  if (byEmail.googleId && byEmail.googleId !== googleProfile.sub) {
+    return { user: byEmail, conflict: 'different-google-id' };
+  }
+
+  try {
+    byEmail.googleId = googleProfile.sub;
+    byEmail.authProvider = 'google';
+    byEmail.isEmailVerified = true;
+    if (!byEmail.avatar && googleProfile.picture) byEmail.avatar = googleProfile.picture;
+    await byEmail.save();
+    return { user: byEmail };
+  } catch (saveError) {
+    if (saveError?.code !== 11000) throw saveError;
+    const linked = await User.findOne({ googleId: googleProfile.sub });
+    return { user: linked || null };
+  }
+};
+
+const getRefreshCookie = (req) => {
+  const header = req.headers.cookie || '';
+  const pair = header.split(';').map((part) => part.trim()).find((part) => part.startsWith(`${REFRESH_COOKIE}=`));
+  return pair ? decodeURIComponent(pair.slice(REFRESH_COOKIE.length + 1)) : null;
+};
+
+// Generate a short-lived access JWT. Refresh state is held server-side.
 const generateToken = (id) => {
   const jwtSecret = process.env.JWT_SECRET || (process.env.NODE_ENV === 'test' ? 'testsecret' : undefined);
   if (!jwtSecret) throw new Error('Authentication is not configured');
-  return jwt.sign({ id }, jwtSecret, { expiresIn: process.env.JWT_EXPIRE || '7d', algorithm: 'HS256' });
+  return jwt.sign({ id, type: 'access', jti: crypto.randomUUID() }, jwtSecret, { expiresIn: ACCESS_TOKEN_EXPIRE, algorithm: 'HS256' });
+};
+
+const refreshCookieOptions = () => ({
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+  path: '/api/auth',
+  maxAge: REFRESH_TOKEN_DAYS * 24 * 60 * 60 * 1000
+});
+
+const issueRefreshSession = async (user, req, res, familyId = crypto.randomUUID()) => {
+  const rawToken = crypto.randomBytes(48).toString('base64url');
+  const session = await AuthSession.create({
+    user: user._id,
+    tokenHash: hashRefreshToken(rawToken),
+    familyId,
+    userAgent: req.get('user-agent') || '',
+    ipAddress: req.ip,
+    expiresAt: new Date(Date.now() + REFRESH_TOKEN_DAYS * 24 * 60 * 60 * 1000)
+  });
+  res.cookie(REFRESH_COOKIE, rawToken, refreshCookieOptions());
+  return session;
+};
+
+const revokeUserSessions = (userId) => AuthSession.updateMany(
+  { user: userId, revokedAt: null },
+  { revokedAt: new Date() }
+);
+
+const revokeRefreshCookie = async (req, res) => {
+  const rawToken = getRefreshCookie(req);
+  if (rawToken) {
+    await AuthSession.findOneAndUpdate(
+      { tokenHash: hashRefreshToken(rawToken), revokedAt: null },
+      { revokedAt: new Date() }
+    );
+  }
+  res.clearCookie(REFRESH_COOKIE, { ...refreshCookieOptions(), maxAge: undefined });
+};
+
+const sendAuthResult = async (user, req, res, statusCode = 200, message = 'Login successful') => {
+  const token = generateToken(user._id);
+  await issueRefreshSession(user, req, res);
+  const safeUser = sanitizeUserForResponse(user);
+  return res.status(statusCode).json({
+    success: true,
+    message,
+    token,
+    expiresIn: ACCESS_TOKEN_EXPIRE,
+    user: {
+      id: safeUser._id,
+      name: safeUser.name,
+      mobile: safeUser.mobile,
+      email: safeUser.email,
+      customerType: safeUser.customerType,
+      role: safeUser.role,
+      address: safeUser.address,
+      avatar: safeUser.avatar,
+      distanceFromShop: safeUser.distanceFromShop
+    }
+  });
 };
 
 // Check if account is locked
@@ -57,7 +213,8 @@ router.get('/google/config', (req, res) => {
   res.json({
     success: true,
     configured: Boolean(clientId),
-    clientId: clientId || null
+    clientId: clientId || null,
+    authVersion: 'google-login-v5-index-repair'
   });
 });
 
@@ -65,6 +222,7 @@ router.get('/google/config', (req, res) => {
 // @desc    Authenticate or register user with Google Identity Services token
 // @access  Public
 router.post('/google', authLimiter, async (req, res) => {
+  let googleProfile = null;
   try {
     const { credential, idToken } = req.body;
     const tokenToVerify = credential || idToken;
@@ -81,22 +239,35 @@ router.post('/google', authLimiter, async (req, res) => {
     }
 
     // 1. Verify token signature, issuer, audience, and email verification
-    const googleProfile = await googleAuth.verifyGoogleToken(tokenToVerify);
+    googleProfile = await googleAuth.verifyGoogleToken(tokenToVerify);
 
     // 2. Find existing user by googleId
     let user = await User.findOne({ googleId: googleProfile.sub });
 
-    // 3. Never infer account ownership from an email match.  A Google identity
-    // must be linked by an already authenticated Ganesh Trades user through
-    // /google/link; otherwise an attacker with control of an email inbox could
-    // take over a mobile/password account (including customer order history).
+    // 3. Google has already verified ownership of this email. Existing
+    // accounts may therefore be connected on first Google login so users are
+    // not stranded on the mobile/password login path. The token's verified
+    // email must match the existing account exactly; a different Google ID
+    // already linked to that email is still rejected.
     if (!user) {
-      const existingWithEmail = await User.findOne({ email: googleProfile.email });
+      const existingWithEmail = await User.findOne({ email: googleProfile.email })
+        .collation({ locale: 'en', strength: 2 });
       if (existingWithEmail) {
-        return res.status(409).json({
-          success: false,
-          message: 'An account with this email already exists. Sign in with your existing account, then link Google from Settings.'
-        });
+        if (existingWithEmail.googleId && existingWithEmail.googleId !== googleProfile.sub) {
+          return res.status(409).json({
+            success: false,
+            message: 'This email is already linked to another Google account. Please use the linked Google account or sign in with mobile and password.'
+          });
+        }
+
+        existingWithEmail.googleId = googleProfile.sub;
+        existingWithEmail.authProvider = 'google';
+        existingWithEmail.isEmailVerified = true;
+        if (!existingWithEmail.avatar && googleProfile.picture) {
+          existingWithEmail.avatar = googleProfile.picture;
+        }
+        await existingWithEmail.save();
+        user = existingWithEmail;
       }
     }
 
@@ -140,36 +311,38 @@ router.post('/google', authLimiter, async (req, res) => {
 
     await createAuditLog(user._id, 'user_login', 'user', user._id, { method: 'google', email: user.email }, req);
 
-    const token = generateToken(user._id);
-
-    const safeUser = sanitizeUserForResponse(user);
-    res.json({
-      success: true,
-      message: 'Google login successful',
-      token,
-      user: {
-        id: safeUser._id,
-        name: safeUser.name,
-        mobile: safeUser.mobile,
-        email: safeUser.email,
-        customerType: safeUser.customerType,
-        role: safeUser.role,
-        address: safeUser.address,
-        avatar: safeUser.avatar,
-        distanceFromShop: safeUser.distanceFromShop
-      }
-    });
+    return sendAuthResult(user, req, res, 200, 'Google login successful');
   } catch (error) {
-    console.error('❌ /auth/google error:', error);
     // A Google identity can race with another sign-in, or the email can already
     // exist in a legacy account with different casing. Do not turn this expected
     // account-linking condition into an opaque 500 error.
     if (error?.code === 11000) {
+      try {
+        const recovered = await recoverGoogleDuplicateUser(googleProfile);
+        if (recovered.conflict === 'different-google-id') {
+          await logGoogleDuplicateDiagnostic(error, googleProfile, req);
+          return res.status(409).json({
+            success: false,
+            message: 'This email is already linked to a different Google account. Sign in with that Google account or use mobile and password.'
+          });
+        }
+        if (recovered.user) {
+          if (!recovered.user.isActive) {
+            return res.status(401).json({ success: false, message: 'Account has been deactivated. Please contact support.' });
+          }
+          await createAuditLog(recovered.user._id, 'user_login', 'user', recovered.user._id, { method: 'google', email: recovered.user.email }, req);
+          return sendAuthResult(recovered.user, req, res, 200, 'Google login successful');
+        }
+      } catch (recoveryError) {
+        console.error('[AUTH_DIAGNOSTIC] Google duplicate recovery failed:', recoveryError.message);
+      }
+      await logGoogleDuplicateDiagnostic(error, googleProfile, req);
       return res.status(409).json({
         success: false,
         message: 'This Google account is already associated with a Ganesh Trades account. Sign in with mobile and password, then link Google from your profile if needed.'
       });
     }
+    console.error('❌ /auth/google error:', error?.message || 'unknown error');
     const statusCode = error.statusCode || 500;
     res.status(statusCode).json({
       success: false,
@@ -259,6 +432,153 @@ router.post('/google/link', protect, async (req, res) => {
       success: false,
       message: error.exposed ? error.message : clientErrorMessage(error, 'Failed to link Google account.')
     });
+  }
+});
+
+// @route   POST /api/auth/refresh
+// @desc    Rotate the httpOnly refresh cookie and issue a short-lived access token
+// @access  Public (refresh cookie required)
+router.post('/refresh', refreshLimiter, async (req, res) => {
+  try {
+    const rawToken = getRefreshCookie(req);
+    if (!rawToken) {
+      return res.status(401).json({ success: false, message: 'Session expired. Please sign in again.' });
+    }
+
+    const session = await AuthSession.findOne({ tokenHash: hashRefreshToken(rawToken) }).select('+tokenHash');
+    if (!session) {
+      res.clearCookie(REFRESH_COOKIE, { ...refreshCookieOptions(), maxAge: undefined });
+      return res.status(401).json({ success: false, message: 'Session expired. Please sign in again.' });
+    }
+
+    // Reuse of a rotated token is treated as token theft: revoke the whole family.
+    if (session.revokedAt) {
+      await AuthSession.updateMany({ familyId: session.familyId, revokedAt: null }, { revokedAt: new Date() });
+      res.clearCookie(REFRESH_COOKIE, { ...refreshCookieOptions(), maxAge: undefined });
+      return res.status(401).json({ success: false, message: 'Session security check failed. Please sign in again.' });
+    }
+
+    if (session.expiresAt <= new Date()) {
+      await AuthSession.findByIdAndUpdate(session._id, { revokedAt: new Date() });
+      res.clearCookie(REFRESH_COOKIE, { ...refreshCookieOptions(), maxAge: undefined });
+      return res.status(401).json({ success: false, message: 'Session expired. Please sign in again.' });
+    }
+
+    const user = await User.findById(session.user);
+    if (!user || !user.isActive) {
+      await AuthSession.findByIdAndUpdate(session._id, { revokedAt: new Date() });
+      res.clearCookie(REFRESH_COOKIE, { ...refreshCookieOptions(), maxAge: undefined });
+      return res.status(401).json({ success: false, message: 'Account is not active.' });
+    }
+
+    await AuthSession.findByIdAndUpdate(session._id, { revokedAt: new Date() });
+    const replacement = await issueRefreshSession(user, req, res, session.familyId);
+    await AuthSession.findByIdAndUpdate(session._id, { replacedBy: replacement._id });
+
+    return res.json({
+      success: true,
+      message: 'Session refreshed',
+      token: generateToken(user._id),
+      expiresIn: ACCESS_TOKEN_EXPIRE,
+      user: sanitizeUserForResponse(user)
+    });
+  } catch (error) {
+    console.error('❌ /auth/refresh error:', error);
+    res.clearCookie(REFRESH_COOKIE, { ...refreshCookieOptions(), maxAge: undefined });
+    return res.status(401).json({ success: false, message: 'Session refresh failed. Please sign in again.' });
+  }
+});
+
+// @route   POST /api/auth/logout
+// @desc    Revoke the current refresh session
+// @access  Public (works even when access token has expired)
+router.post('/logout', async (req, res) => {
+  try {
+    await revokeRefreshCookie(req, res);
+    return res.json({ success: true, message: 'Logged out successfully' });
+  } catch (error) {
+    console.error('❌ /auth/logout error:', error);
+    return res.status(500).json({ success: false, message: 'Logout failed. Please try again.' });
+  }
+});
+
+router.post('/logout-all', protect, async (req, res) => {
+  try {
+    await revokeUserSessions(req.user._id);
+    res.clearCookie(REFRESH_COOKIE, { ...refreshCookieOptions(), maxAge: undefined });
+    return res.json({ success: true, message: 'All sessions logged out successfully' });
+  } catch (error) {
+    console.error('❌ /auth/logout-all error:', error);
+    return res.status(500).json({ success: false, message: 'Logout failed. Please try again.' });
+  }
+});
+
+// @route   DELETE /api/auth/account
+// @desc    Self-service account deletion (DPDP right to erasure). Personal
+//          identifiers are erased; order/invoice records are retained as
+//          required by tax and accounting laws.
+// @access  Private
+router.delete('/account', protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (user.role !== 'customer') {
+      return res.status(403).json({ success: false, message: 'Staff and admin accounts cannot be deleted here. Please contact support.' });
+    }
+
+    if (Number(user.pendingAmount) > 0) {
+      return res.status(400).json({ success: false, message: 'Please clear your pending dues before deleting your account.' });
+    }
+
+    const activeOrder = await Order.findOne({
+      user: user._id,
+      orderStatus: { $in: ['pending', 'confirmed', 'processing', 'out_for_delivery'] }
+    }).select('_id');
+
+    if (activeOrder) {
+      return res.status(400).json({ success: false, message: 'You have an active order. Please wait until it is delivered or cancel it before deleting your account.' });
+    }
+
+    await revokeUserSessions(user._id);
+
+    await User.collection.updateOne(
+      { _id: user._id },
+      {
+        $set: {
+          name: 'Deleted User',
+          isActive: false,
+          deletedAt: new Date()
+        },
+        $unset: {
+          mobile: '',
+          email: '',
+          googleId: '',
+          password: '',
+          avatar: '',
+          address: '',
+          distanceFromShop: '',
+          isEmailVerified: '',
+          emailVerificationToken: '',
+          emailVerificationExpires: '',
+          passwordResetToken: '',
+          passwordResetExpires: '',
+          loginAttempts: '',
+          lockUntil: ''
+        }
+      }
+    );
+
+    res.clearCookie(REFRESH_COOKIE, { ...refreshCookieOptions(), maxAge: undefined });
+    await createAuditLog(user._id, 'account_self_delete', 'user', user._id, { personalDataErased: true }, req);
+
+    return res.json({ success: true, message: 'Account deleted. Your personal data has been erased.' });
+  } catch (error) {
+    console.error('❌ /auth/account delete error:', error);
+    return res.status(500).json({ success: false, message: clientErrorMessage(error, 'Account deletion failed. Please try again later.') });
   }
 });
 
@@ -490,23 +810,7 @@ router.post('/register', authLimiter, async (req, res) => {
     }
     await createAuditLog(user._id, 'user_register', 'user', user._id, { name, mobile: normMobile, customerType: validCustomerType }, req);
 
-    const token = generateToken(user._id);
-
-    res.status(201).json({
-      success: true,
-      message: 'Registration successful',
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        mobile: user.mobile,
-        email: user.email,
-        customerType: user.customerType,
-        role: user.role,
-        address: user.address,
-        distanceFromShop: user.distanceFromShop
-      }
-    });
+    return sendAuthResult(user, req, res, 201, 'Registration successful');
   } catch (error) {
     console.error('❌ register route error:', error);
     if (error.name === 'ValidationError') {
@@ -587,23 +891,7 @@ router.post('/login', authLimiter, async (req, res) => {
 
     await createAuditLog(user._id, 'user_login', 'user', user._id, { mobile: normMobile, method: useOtp ? 'otp' : 'password' }, req);
 
-    const token = generateToken(user._id);
-
-    res.json({
-      success: true,
-      message: 'Login successful',
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        mobile: user.mobile,
-        email: user.email,
-        customerType: user.customerType,
-        role: user.role,
-        address: user.address,
-        distanceFromShop: user.distanceFromShop
-      }
-    });
+    return sendAuthResult(user, req, res, 200, 'Login successful');
   } catch (error) {
     console.error('❌ login route error:', error);
     res.status(500).json({ success: false, message: clientErrorMessage(error) });
@@ -688,6 +976,7 @@ router.put('/password', protect, async (req, res) => {
 
     user.password = newPassword;
     await user.save();
+    await revokeUserSessions(user._id);
 
     res.json({ success: true, message: 'Password updated successfully' });
   } catch (error) {
@@ -803,6 +1092,7 @@ router.post('/reset-password', authLimiter, async (req, res) => {
     user.loginAttempts = 0;
     user.lockUntil = undefined;
     await user.save();
+    await revokeUserSessions(user._id);
 
     // Clean up OTP
     await Otp.deleteMany({ mobile: normMobile, purpose: 'password_reset' });

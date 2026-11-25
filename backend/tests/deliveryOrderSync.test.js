@@ -12,7 +12,9 @@ describe('Order ↔ Delivery lifecycle sync', () => {
   beforeEach(async () => {
     const admin = await User.create({ name: 'Ad', mobile: '9000000030', password: 'password123', role: 'admin' });
     adminToken = generateTestToken(admin._id);
-    const customer = await User.create({ name: 'Cu', mobile: '9000000031', password: 'password123', role: 'customer' });
+    // The order below is created directly, so book its unpaid cash debt here to
+    // keep the customer ledger consistent with the order.
+    const customer = await User.create({ name: 'Cu', mobile: '9000000031', password: 'password123', role: 'customer', pendingAmount: 10 });
     const product = await Product.create({ name: 'P', category: 'snacks', price: 10, stock: 50 });
     const order = await Order.create({
       user: customer._id,

@@ -14,6 +14,7 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
   const [countdown, setCountdown] = useState(0);
+  const [agreed, setAgreed] = useState(false);
 
   const { loginUser } = useAuth();
   const navigate = useNavigate();
@@ -52,6 +53,10 @@ export default function Register() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!agreed) {
+      toast.error('Please accept the Terms of Service and Privacy Policy.');
+      return;
+    }
     if (!form.address.lat || !form.address.lng) {
       toast.error('Please detect your location first to verify delivery radius.');
       return;
@@ -168,6 +173,11 @@ export default function Register() {
               Quick Sign-Up
             </label>
             <GoogleSignInButton onSuccess={handleGoogleSuccess} text="Sign up with Google" />
+            <p className="text-[10px] text-center text-slate-500">
+              By continuing with Google, you agree to our{' '}
+              <Link to="/terms" className="text-mint-400 font-semibold hover:underline">Terms of Service</Link> and{' '}
+              <Link to="/privacy-policy" className="text-mint-400 font-semibold hover:underline">Privacy Policy</Link>.
+            </p>
           </div>
 
           {/* Divider */}
@@ -307,6 +317,20 @@ export default function Register() {
               </div>
             </div>
           )}
+
+          <label className="flex items-start gap-2 text-xs text-slate-400">
+            <input
+              type="checkbox"
+              checked={agreed}
+              onChange={e => setAgreed(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-navy-700 bg-navy-950 text-mint-500 focus:ring-mint-500"
+            />
+            <span>
+              I agree to the{' '}
+              <Link to="/terms" className="text-mint-400 font-semibold hover:underline">Terms of Service</Link> and{' '}
+              <Link to="/privacy-policy" className="text-mint-400 font-semibold hover:underline">Privacy Policy</Link>.
+            </span>
+          </label>
 
           <button type="submit" disabled={loading || isOutOfRange}
             className={`w-full py-3.5 rounded-xl font-extrabold transition-all shadow-lg text-sm mt-4 disabled:opacity-50 flex justify-center items-center gap-2 ${

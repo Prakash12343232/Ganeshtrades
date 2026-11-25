@@ -9,7 +9,7 @@ const auditLogSchema = new mongoose.Schema({
     type: String,
     required: true,
     enum: [
-      'user_login', 'user_register', 'user_update', 'user_delete',
+      'user_login', 'user_register', 'user_update', 'user_delete', 'account_self_delete',
       'product_create', 'product_update', 'product_delete',
       'order_create', 'order_update', 'order_cancel',
       'payment_create', 'payment_update',

@@ -120,4 +120,60 @@ describe('CartContext', () => {
     act(() => result.current.updateQuantity('p1', 25));
     expect(result.current.items[0].quantity).toBe(25);
   });
+
+  const looseProduct = {
+    _id: 'p9',
+    name: 'Loose Rice',
+    price: 120,
+    pricePerKg: 100,
+    stockGrams: 5000,
+    minOrderQtyGrams: 250,
+    allowLooseSelling: true
+  };
+
+  it('adds loose products by grams and prices them per kg', () => {
+    const { result } = renderCart();
+    act(() => result.current.addLooseToCart(looseProduct, 500));
+    expect(result.current.items).toHaveLength(1);
+    expect(result.current.items[0]).toMatchObject({
+      product: 'p9',
+      isLoose: true,
+      quantityGrams: 500,
+      pricePerKg: 100,
+      stockGrams: 5000,
+      minOrderQtyGrams: 250
+    });
+    expect(result.current.totalAmount).toBe(50);
+    expect(result.current.totalItems).toBe(1);
+  });
+
+  it('merges repeated loose additions and clamps them to the gram stock', () => {
+    const { result } = renderCart();
+    act(() => result.current.addLooseToCart(looseProduct, 1000));
+    act(() => result.current.addLooseToCart(looseProduct, 4500));
+    expect(result.current.items).toHaveLength(1);
+    expect(result.current.items[0].quantityGrams).toBe(5000);
+    expect(result.current.totalAmount).toBe(500);
+  });
+
+  it('updates loose quantities within the minimum and available gram stock', () => {
+    const { result } = renderCart();
+    act(() => result.current.addLooseToCart(looseProduct, 500));
+    act(() => result.current.updateLooseQuantity('p9', 750));
+    expect(result.current.items[0].quantityGrams).toBe(750);
+    act(() => result.current.updateLooseQuantity('p9', 100));
+    expect(result.current.items[0].quantityGrams).toBe(750);
+    act(() => result.current.updateLooseQuantity('p9', 9000));
+    expect(result.current.items[0].quantityGrams).toBe(5000);
+  });
+
+  it('keeps fixed and loose lines separate when removing a loose line', () => {
+    const { result } = renderCart();
+    act(() => result.current.addToCart(looseProduct, 1));
+    act(() => result.current.addLooseToCart(looseProduct, 500));
+    expect(result.current.items).toHaveLength(2);
+    act(() => result.current.removeFromCart('p9', true));
+    expect(result.current.items).toHaveLength(1);
+    expect(result.current.items[0].isLoose).toBeFalsy();
+  });
 });

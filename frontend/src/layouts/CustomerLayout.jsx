@@ -251,7 +251,7 @@ export default function CustomerLayout() {
       {/* Footer */}
       <footer className="bg-slate-900 dark:bg-gradient-to-b dark:from-navy-900 dark:via-navy-950 dark:to-navy-950 border-t border-slate-800 dark:border-navy-800/80 text-slate-300 mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             <div>
               <div className="flex items-center gap-3 mb-3">
                 <img
@@ -271,11 +271,32 @@ export default function CustomerLayout() {
               </div>
             </div>
             <div>
+              <h4 className="font-semibold text-mint-400 mb-3 text-sm uppercase tracking-wider">Policies</h4>
+              <div className="space-y-2 text-sm text-slate-400">
+                <Link to="/privacy-policy" className="block hover:text-mint-400 transition-colors">Privacy Policy</Link>
+                <Link to="/terms" className="block hover:text-mint-400 transition-colors">Terms of Service</Link>
+                <Link to="/refund-policy" className="block hover:text-mint-400 transition-colors">Refund &amp; Cancellation</Link>
+                <Link to="/shipping-policy" className="block hover:text-mint-400 transition-colors">Shipping &amp; Delivery</Link>
+                <Link to="/contact" className="block hover:text-mint-400 transition-colors">Contact &amp; Grievance</Link>
+                <button
+                  type="button"
+                  onClick={() => {
+                    try { localStorage.removeItem('gt_cookie_consent_v1'); } catch {}
+                    window.location.reload();
+                  }}
+                  className="block text-left hover:text-mint-400 transition-colors"
+                >
+                  Cookie Preferences
+                </button>
+              </div>
+            </div>
+            <div>
               <h4 className="font-semibold text-mint-400 mb-3 text-sm uppercase tracking-wider">Contact Us</h4>
               <div className="space-y-2 text-sm text-slate-400">
                 <p className="flex items-center gap-2"><span>📞</span> +91 80104 12539</p>
                 <p className="flex items-center gap-2"><span>📧</span> info@ganeshtrades.com</p>
                 <p className="flex items-center gap-2"><span>📍</span> Main Market, Local</p>
+                <p className="text-xs text-slate-500 pt-1">Grievance Officer: info@ganeshtrades.com · Mon–Sat, 10 AM–6 PM</p>
               </div>
             </div>
           </div>

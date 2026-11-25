@@ -71,6 +71,29 @@ const productSchema = new mongoose.Schema({
     type: Number,
     default: 10
   },
+  allowLooseSelling: {
+    type: Boolean,
+    default: false
+  },
+  pricePerKg: {
+    type: Number,
+    min: 0
+  },
+  minOrderQtyGrams: {
+    type: Number,
+    default: 100,
+    min: 1
+  },
+  stockGrams: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  totalSoldGrams: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
   status: {
     type: String,
     enum: ['active', 'inactive', 'out_of_stock'],
@@ -90,11 +113,16 @@ const productSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Auto-update status based on stock
+// Auto-update status based on stock. Loose products are governed by their
+// gram inventory; fixed products keep the legacy unit-based behaviour.
 productSchema.pre('save', function(next) {
-  if (this.stock === 0) {
+  const outOfStock = this.allowLooseSelling
+    ? !(this.stockGrams > 0)
+    : this.stock === 0;
+
+  if (outOfStock) {
     this.status = 'out_of_stock';
-  } else if (this.status === 'out_of_stock' && this.stock > 0) {
+  } else if (this.status === 'out_of_stock') {
     this.status = 'active';
   }
   next();

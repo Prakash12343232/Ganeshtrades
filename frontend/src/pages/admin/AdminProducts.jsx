@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getProducts, createProduct, updateProduct, deleteProduct } from '../../services/api';
 import toast from 'react-hot-toast';
-import { FiPlus, FiEdit2, FiTrash2, FiX, FiImage, FiSearch, FiUploadCloud } from 'react-icons/fi';
+import { FiPlus, FiEdit2, FiTrash2, FiX, FiImage, FiSearch } from 'react-icons/fi';
 import ProductImage from '../../components/common/ProductImage';
 import ProductImageUploader from '../../components/admin/ProductImageUploader';
 import BulkImageManager from '../../components/admin/BulkImageManager';
-import DataImportWizard from '../../components/admin/DataImportWizard';
+import { formatWeight } from '../../utils/quantity';
 
 const CATEGORIES = [
   'rice_grains','dal_pulses','spices','oil_ghee','flour','sugar_jaggery',
@@ -34,7 +34,11 @@ export default function AdminProducts() {
     stock: '',
     minStock: '10',
     unit: 'kg',
-    brand: ''
+    brand: '',
+    allowLooseSelling: false,
+    pricePerKg: '',
+    minOrderQtyGrams: '100',
+    stockGrams: ''
   });
 
   const fetchProducts = useCallback((nextPage = 1) => {
@@ -66,7 +70,11 @@ export default function AdminProducts() {
       stock: '',
       minStock: '10',
       unit: 'kg',
-      brand: ''
+      brand: '',
+      allowLooseSelling: false,
+      pricePerKg: '',
+      minOrderQtyGrams: '100',
+      stockGrams: ''
     });
     setShowModal(true);
   };
@@ -82,19 +90,38 @@ export default function AdminProducts() {
       stock: p.stock,
       minStock: p.minStock,
       unit: p.unit,
-      brand: p.brand || ''
+      brand: p.brand || '',
+      allowLooseSelling: Boolean(p.allowLooseSelling),
+      pricePerKg: p.pricePerKg ?? '',
+      minOrderQtyGrams: p.minOrderQtyGrams ?? '100',
+      stockGrams: p.stockGrams ?? ''
     });
     setShowModal(true);
+  };
+
+  const handleLooseToggle = (checked) => {
+    setForm(prev => ({
+      ...prev,
+      allowLooseSelling: checked,
+      stockGrams: checked && prev.stockGrams === ''
+        ? (prev.unit === 'kg' && prev.stock !== '' ? String(Number(prev.stock) * 1000) : '0')
+        : prev.stockGrams
+    }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const payload = { ...form };
+      ['wholesalePrice', 'pricePerKg', 'stockGrams'].forEach(key => {
+        if (payload[key] === '' || payload[key] == null) delete payload[key];
+      });
+      if (payload.allowLooseSelling && payload.minOrderQtyGrams === '') payload.minOrderQtyGrams = '100';
       if (editing) {
-        await updateProduct(editing._id, form);
+        await updateProduct(editing._id, payload);
         toast.success('Product updated');
       } else {
-        await createProduct(form);
+        await createProduct(payload);
         toast.success('Product created');
       }
       setShowModal(false);
@@ -220,16 +247,31 @@ export default function AdminProducts() {
                         </div>
                       </td>
                       <td className="py-3 px-4">
-                        <div className="font-medium text-gray-900">{p.name}</div>
+                        <div className="font-medium text-gray-900 flex items-center gap-1.5">
+                          {p.name}
+                          {p.allowLooseSelling && (
+                            <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 text-[10px] font-bold uppercase">Loose</span>
+                          )}
+                        </div>
                         {p.brand && <div className="text-xs text-gray-400">{p.brand}</div>}
                       </td>
                       <td className="py-3 px-4 capitalize text-xs text-gray-600">{p.category?.replace(/_/g, ' ')}</td>
-                      <td className="py-3 px-4 font-medium">₹{p.price}/{p.unit}</td>
+                      <td className="py-3 px-4 font-medium">
+                        {p.allowLooseSelling
+                          ? `₹${p.pricePerKg ?? p.price}/kg`
+                          : `₹${p.price}/${p.unit}`}
+                      </td>
                       <td className="py-3 px-4 text-gray-500">{p.wholesalePrice ? `₹${p.wholesalePrice}` : '-'}</td>
                       <td className="py-3 px-4">
-                        <span className={`font-semibold ${p.stock <= p.minStock ? 'text-red-600' : 'text-emerald-600'}`}>
-                          {p.stock}
-                        </span>
+                        {p.allowLooseSelling ? (
+                          <span className={`font-semibold ${Number(p.stockGrams) <= Number(p.minOrderQtyGrams) ? 'text-red-600' : 'text-emerald-600'}`}>
+                            {formatWeight(p.stockGrams || 0)}
+                          </span>
+                        ) : (
+                          <span className={`font-semibold ${p.stock <= p.minStock ? 'text-red-600' : 'text-emerald-600'}`}>
+                            {p.stock}
+                          </span>
+                        )}
                       </td>
                       <td className="py-3 px-4">
                         <span className={`px-2 py-0.5 rounded-full text-xs font-semibold capitalize ${
@@ -424,6 +466,62 @@ export default function AdminProducts() {
                     placeholder="Brand name"
                   />
                 </div>
+              </div>
+
+              <div className="border border-amber-200 bg-amber-50/50 rounded-xl p-3.5 space-y-3">
+                <label className="flex items-start gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(form.allowLooseSelling)}
+                    onChange={e => handleLooseToggle(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-400"
+                  />
+                  <span>
+                    <span className="block text-sm font-semibold text-gray-800">Allow loose / weight-based selling</span>
+                    <span className="block text-[11px] text-gray-500">Customers choose a custom quantity in grams or kilograms. Stock is tracked in grams.</span>
+                  </span>
+                </label>
+
+                {form.allowLooseSelling && (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-600 mb-1">Rate per Kg (₹)</label>
+                      <input
+                        type="number"
+                        value={form.pricePerKg}
+                        onChange={e => setForm({ ...form, pricePerKg: e.target.value })}
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-400 text-sm"
+                        placeholder="Defaults to retail price"
+                        min="0"
+                        step="0.01"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-600 mb-1">Min Order (grams)</label>
+                      <input
+                        type="number"
+                        value={form.minOrderQtyGrams}
+                        onChange={e => setForm({ ...form, minOrderQtyGrams: e.target.value })}
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-400 text-sm"
+                        placeholder="100"
+                        min="1"
+                        required={Boolean(form.allowLooseSelling)}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-600 mb-1">Loose Stock (grams)</label>
+                      <input
+                        type="number"
+                        value={form.stockGrams}
+                        onChange={e => setForm({ ...form, stockGrams: e.target.value })}
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-400 text-sm"
+                        placeholder="e.g. 25000"
+                        min="0"
+                        required={Boolean(form.allowLooseSelling)}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* In-Modal Image Management */}

@@ -1,4 +1,5 @@
 const PDFDocument = require('pdfkit');
+const { formatWeight } = require('./weight');
 
 const generateInvoicePDF = (order, user) => {
   return new Promise((resolve, reject) => {
@@ -57,10 +58,16 @@ const generateInvoicePDF = (order, user) => {
           doc.addPage();
           y = 50;
         }
+        const isLoose = Boolean(item.isLoose && item.quantityGrams != null);
+        const quantityLabel = isLoose ? formatWeight(item.quantityGrams) : String(item.quantity);
+        const priceLabel = isLoose
+          ? `₹${(item.pricePerKg ?? item.price)?.toFixed(2) || '0.00'}/kg`
+          : `₹${item.price?.toFixed(2) || '0.00'}`;
+
         doc.text(String(index + 1), 50, y, { width: 40 });
         doc.text(item.name || 'Product', 90, y, { width: 200 });
-        doc.text(String(item.quantity), 290, y, { width: 60, align: 'center' });
-        doc.text(`₹${item.price?.toFixed(2) || '0.00'}`, 350, y, { width: 80, align: 'right' });
+        doc.text(quantityLabel, 290, y, { width: 60, align: 'center' });
+        doc.text(priceLabel, 350, y, { width: 80, align: 'right' });
         doc.text(`₹${item.total?.toFixed(2) || '0.00'}`, 430, y, { width: 80, align: 'right' });
         y += 20;
       });

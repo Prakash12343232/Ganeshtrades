@@ -23,6 +23,10 @@ const protect = async (req, res, next) => {
       return res.status(401).json({ success: false, message: 'Not authorized, token invalid' });
     }
 
+    if (decoded.type && decoded.type !== 'access') {
+      return res.status(401).json({ success: false, message: 'Not authorized, token invalid' });
+    }
+
     req.user = await User.findById(decoded.id).select('-password');
 
     if (!req.user) {

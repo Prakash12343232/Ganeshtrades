@@ -4,6 +4,8 @@ import { getProducts } from '../../services/api';
 import { useCart } from '../../context/CartContext';
 import { FiSearch, FiShoppingCart, FiFilter, FiStar, FiX } from 'react-icons/fi';
 import ProductImage from '../../components/common/ProductImage';
+import LooseOrderControl from '../../components/common/LooseOrderControl';
+import { formatWeight } from '../../utils/quantity';
 import toast from 'react-hot-toast';
 
 const CATEGORIES = [
@@ -285,61 +287,85 @@ export default function Products() {
         </div>
       ) : (
         <div className="mobile-product-grid grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-          {products.map(product => (
-            <div key={product._id} data-testid="product-card" className="product-card bg-white dark:bg-navy-900 rounded-2xl border border-slate-200 dark:border-navy-800/80 overflow-hidden shadow-sm hover:shadow-xl hover:border-mint-500/40 hover:shadow-mint-500/10 transition-all group relative flex flex-col justify-between">
-              {product.isFeatured && (
-                <span className="absolute top-2 left-2 z-10 px-2 py-0.5 bg-mint-500 text-navy-950 text-[10px] font-extrabold rounded-full shadow-md">
-                  Featured
-                </span>
-              )}
-              <Link to={`/products/${product._id}`}>
-                <div className="h-44 bg-slate-50 dark:bg-navy-950 flex items-center justify-center p-2 relative overflow-hidden border-b border-slate-100 dark:border-navy-800/60 product-img-box">
-                  {product.stock === 0 && (
-                    <div className="absolute inset-0 bg-black/60 z-10 flex items-center justify-center">
-                      <span className="bg-rose-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-md">Out of Stock</span>
+          {products.map(product => {
+            const isLoose = Boolean(product.allowLooseSelling);
+            const outOfStock = isLoose ? !(Number(product.stockGrams) > 0) : product.stock === 0;
+            const lowStock = isLoose
+              ? Number(product.stockGrams) <= Number(product.minOrderQtyGrams || 0)
+              : product.stock <= product.minStock;
+            const rate = isLoose ? (product.pricePerKg ?? product.price) : product.price;
+            return (
+              <div key={product._id} data-testid="product-card" className="product-card bg-white dark:bg-navy-900 rounded-2xl border border-slate-200 dark:border-navy-800/80 overflow-hidden shadow-sm hover:shadow-xl hover:border-mint-500/40 hover:shadow-mint-500/10 transition-all group relative flex flex-col justify-between">
+                {product.isFeatured && (
+                  <span className="absolute top-2 left-2 z-10 px-2 py-0.5 bg-mint-500 text-navy-950 text-[10px] font-extrabold rounded-full shadow-md">
+                    Featured
+                  </span>
+                )}
+                {isLoose && (
+                  <span className="absolute top-2 right-2 z-10 px-2 py-0.5 bg-amber-500 text-navy-950 text-[10px] font-extrabold rounded-full shadow-md">
+                    Loose
+                  </span>
+                )}
+                <Link to={`/products/${product._id}`}>
+                  <div className="h-44 bg-slate-50 dark:bg-navy-950 flex items-center justify-center p-2 relative overflow-hidden border-b border-slate-100 dark:border-navy-800/60 product-img-box">
+                    {outOfStock && (
+                      <div className="absolute inset-0 bg-black/60 z-10 flex items-center justify-center">
+                        <span className="bg-rose-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-md">Out of Stock</span>
+                      </div>
+                    )}
+                    <ProductImage src={product.image} alt={product.name} />
+                  </div>
+                </Link>
+                <div className="p-4 flex-1 flex flex-col justify-between">
+                  <div>
+                    <Link to={`/products/${product._id}`}>
+                      <h3 className="font-semibold text-slate-900 dark:text-slate-100 text-sm line-clamp-1 group-hover:text-mint-600 dark:group-hover:text-mint-400 transition-colors">{product.name}</h3>
+                    </Link>
+                    <div className="flex items-center justify-between mt-1">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 capitalize">{product.category?.replace(/_/g, ' ')}</p>
+                      {product.avgRating > 0 && (
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-500 dark:text-amber-400">
+                          <FiStar className="fill-amber-400 w-3 h-3" /> {product.avgRating}
+                        </span>
+                      )}
                     </div>
-                  )}
-                  <ProductImage src={product.image} alt={product.name} />
-                </div>
-              </Link>
-              <div className="p-4 flex-1 flex flex-col justify-between">
-                <div>
-                  <Link to={`/products/${product._id}`}>
-                    <h3 className="font-semibold text-slate-900 dark:text-slate-100 text-sm line-clamp-1 group-hover:text-mint-600 dark:group-hover:text-mint-400 transition-colors">{product.name}</h3>
-                  </Link>
-                  <div className="flex items-center justify-between mt-1">
-                    <p className="text-xs text-slate-500 dark:text-slate-400 capitalize">{product.category?.replace(/_/g, ' ')}</p>
-                    {product.avgRating > 0 && (
-                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-500 dark:text-amber-400">
-                        <FiStar className="fill-amber-400 w-3 h-3" /> {product.avgRating}
-                      </span>
+                  </div>
+                  <div className="mt-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-lg font-bold text-mint-600 dark:text-mint-400">₹{rate}</span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400 ml-1">/{isLoose ? 'kg' : product.unit}</span>
+                      </div>
+                      {!isLoose && (
+                        <button
+                          onClick={() => addToCart(product)}
+                          disabled={product.stock === 0}
+                          className="p-2 bg-mint-500 text-navy-950 font-bold rounded-lg hover:bg-mint-400 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          <FiShoppingCart className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                    {isLoose ? (
+                      <LooseOrderControl product={product} />
+                    ) : (
+                      <>
+                        {lowStock && product.stock > 0 && (
+                          <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 font-medium">⚠️ Low stock ({product.stock} left)</p>
+                        )}
+                        {product.stock > product.minStock && (
+                          <p className="text-xs text-mint-600 dark:text-mint-400 mt-2 font-medium">✓ In Stock</p>
+                        )}
+                      </>
+                    )}
+                    {isLoose && outOfStock && (
+                      <p className="text-xs text-rose-500 mt-2 font-medium">Out of stock ({formatWeight(product.stockGrams || 0)} available)</p>
                     )}
                   </div>
                 </div>
-                <div className="mt-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-lg font-bold text-mint-600 dark:text-mint-400">₹{product.price}</span>
-                      <span className="text-xs text-slate-500 dark:text-slate-400 ml-1">/{product.unit}</span>
-                    </div>
-                    <button
-                      onClick={() => addToCart(product)}
-                      disabled={product.stock === 0}
-                      className="p-2 bg-mint-500 text-navy-950 font-bold rounded-lg hover:bg-mint-400 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      <FiShoppingCart className="w-4 h-4" />
-                    </button>
-                  </div>
-                  {product.stock <= product.minStock && product.stock > 0 && (
-                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 font-medium">⚠️ Low stock ({product.stock} left)</p>
-                  )}
-                  {product.stock > product.minStock && (
-                    <p className="text-xs text-mint-600 dark:text-mint-400 mt-2 font-medium">✓ In Stock</p>
-                  )}
-                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

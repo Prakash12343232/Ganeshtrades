@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { createOrder, checkServiceability, createPaymentOrder } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -9,9 +9,46 @@ import ProductImage from '../../components/common/ProductImage';
 import PaymentGatewayModal from '../../components/common/PaymentGatewayModal';
 import { SLOT_ICON_MAP, getAvailableSlots } from '../../utils/timeSlots';
 import { useTimeSlots } from '../../utils/useTimeSlots';
+import { calculateLoosePrice, formatWeight } from '../../utils/quantity';
+
+function LooseQuantityEditor({ item, onChange }) {
+  const [value, setValue] = useState(String(item.quantityGrams));
+  const minGrams = Math.max(1, Number(item.minOrderQtyGrams) || 1);
+
+  useEffect(() => {
+    setValue(String(item.quantityGrams));
+  }, [item.quantityGrams]);
+
+  const commit = () => {
+    const grams = Math.round(Number(value));
+    if (!Number.isFinite(grams) || grams < minGrams) {
+      setValue(String(item.quantityGrams));
+      return;
+    }
+    const maxGrams = Number(item.stockGrams);
+    onChange(item.product, Number.isFinite(maxGrams) && maxGrams > 0 ? Math.min(grams, maxGrams) : grams);
+  };
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <input
+        type="number"
+        min="1"
+        step="10"
+        value={value}
+        onChange={e => setValue(e.target.value)}
+        onBlur={commit}
+        onKeyDown={e => { if (e.key === 'Enter') commit(); }}
+        aria-label="Loose quantity in grams"
+        className="w-20 px-2 py-1.5 bg-white dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-lg text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-mint-500"
+      />
+      <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">g</span>
+    </div>
+  );
+}
 
 export default function Cart() {
-  const { items, removeFromCart, updateQuantity, clearCart, totalAmount } = useCart();
+  const { items, removeFromCart, updateQuantity, updateLooseQuantity, clearCart, totalAmount } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -87,7 +124,9 @@ export default function Cart() {
         : paymentMethod;
 
       const orderData = {
-        items: items.map(i => ({ product: i.product, quantity: i.quantity })),
+        items: items.map(i => i.isLoose
+          ? { product: i.product, quantityGrams: i.quantityGrams }
+          : { product: i.product, quantity: i.quantity }),
         paymentMethod: backendPaymentMethod,
         notes,
         deliveryAddress: user?.address,
@@ -177,32 +216,53 @@ export default function Cart() {
         {/* Cart Items */}
         <div className="cart-items lg:col-span-2 space-y-4">
           {items.map(item => (
-            <div key={item.product} className="bg-white dark:bg-navy-900 rounded-2xl border border-slate-200 dark:border-navy-800 p-4 flex flex-col sm:flex-row sm:items-center gap-4 hover:border-mint-500/30 transition-all shadow-sm">
+            <div key={`${item.product}-${item.isLoose ? 'loose' : 'unit'}`} className="bg-white dark:bg-navy-900 rounded-2xl border border-slate-200 dark:border-navy-800 p-4 flex flex-col sm:flex-row sm:items-center gap-4 hover:border-mint-500/30 transition-all shadow-sm">
               <div className="flex items-center gap-3.5 flex-1 min-w-0">
                 <div className="w-16 h-16 bg-slate-100 dark:bg-navy-950 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden border border-slate-200 dark:border-navy-800">
                   <ProductImage src={item.image} alt={item.name} showFallbackLabel={false} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold text-slate-900 dark:text-white text-sm truncate">{item.name}</h3>
-                  <p className="text-mint-600 dark:text-mint-400 font-bold">₹{item.price}</p>
-                  {item.stock != null && item.quantity >= item.stock && item.stock > 0 && (
-                    <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-0.5">Max available stock reached ({item.stock})</p>
+                  {item.isLoose ? (
+                    <p className="text-mint-600 dark:text-mint-400 font-bold">₹{Number(item.pricePerKg ?? item.price).toFixed(2)}<span className="text-xs font-medium">/kg</span></p>
+                  ) : (
+                    <p className="text-mint-600 dark:text-mint-400 font-bold">₹{item.price}</p>
+                  )}
+                  {item.isLoose ? (
+                    <>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                        {formatWeight(item.quantityGrams)} · min {formatWeight(item.minOrderQtyGrams || 1)}
+                      </p>
+                      {item.stockGrams != null && item.quantityGrams >= item.stockGrams && (
+                        <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-0.5">Max available stock reached ({formatWeight(item.stockGrams)})</p>
+                      )}
+                    </>
+                  ) : (
+                    item.stock != null && item.quantity >= item.stock && item.stock > 0 && (
+                      <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-0.5">Max available stock reached ({item.stock})</p>
+                    )
                   )}
                 </div>
               </div>
               <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-navy-800">
-                <div className="flex items-center border border-slate-200 dark:border-navy-700 rounded-lg overflow-hidden bg-slate-50 dark:bg-navy-950">
-                  <button onClick={() => updateQuantity(item.product, item.quantity - 1)} aria-label="Decrease quantity" className="p-2 hover:bg-slate-200 dark:hover:bg-navy-800 text-slate-700 dark:text-slate-300 transition-colors"><FiMinus className="w-3 h-3" /></button>
-                  <span className="px-3 text-sm font-bold text-slate-900 dark:text-white">{item.quantity}</span>
-                  <button
-                    onClick={() => updateQuantity(item.product, item.quantity + 1)}
-                    disabled={item.stock != null && item.quantity >= item.stock}
-                    aria-label="Increase quantity"
-                    className="p-2 hover:bg-slate-200 dark:hover:bg-navy-800 text-slate-700 dark:text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                  ><FiPlus className="w-3 h-3" /></button>
-                </div>
-                <span className="font-bold text-mint-600 dark:text-mint-400 min-w-20 text-right">₹{(item.price * item.quantity).toFixed(2)}</span>
-                <button onClick={() => removeFromCart(item.product)} aria-label="Remove item" className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"><FiTrash2 className="w-4 h-4" /></button>
+                {item.isLoose ? (
+                  <LooseQuantityEditor item={item} onChange={updateLooseQuantity} />
+                ) : (
+                  <div className="flex items-center border border-slate-200 dark:border-navy-700 rounded-lg overflow-hidden bg-slate-50 dark:bg-navy-950">
+                    <button onClick={() => updateQuantity(item.product, item.quantity - 1)} aria-label="Decrease quantity" className="p-2 hover:bg-slate-200 dark:hover:bg-navy-800 text-slate-700 dark:text-slate-300 transition-colors"><FiMinus className="w-3 h-3" /></button>
+                    <span className="px-3 text-sm font-bold text-slate-900 dark:text-white">{item.quantity}</span>
+                    <button
+                      onClick={() => updateQuantity(item.product, item.quantity + 1)}
+                      disabled={item.stock != null && item.quantity >= item.stock}
+                      aria-label="Increase quantity"
+                      className="p-2 hover:bg-slate-200 dark:hover:bg-navy-800 text-slate-700 dark:text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    ><FiPlus className="w-3 h-3" /></button>
+                  </div>
+                )}
+                <span className="font-bold text-mint-600 dark:text-mint-400 min-w-20 text-right">
+                  ₹{(item.isLoose ? calculateLoosePrice(item.pricePerKg ?? item.price, item.quantityGrams) : item.price * item.quantity).toFixed(2)}
+                </span>
+                <button onClick={() => removeFromCart(item.product, item.isLoose || false)} aria-label="Remove item" className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"><FiTrash2 className="w-4 h-4" /></button>
               </div>
             </div>
           ))}
@@ -401,6 +461,13 @@ export default function Cart() {
                         ? `Pay ₹${totalAmount.toFixed(2)} Online`
                         : 'Place Order'}
             </button>
+
+            <p className="text-[11px] text-center text-slate-500 dark:text-slate-400 leading-relaxed">
+              By placing this order you agree to our{' '}
+              <Link to="/terms" className="text-mint-600 dark:text-mint-400 font-semibold hover:underline">Terms</Link>,{' '}
+              <Link to="/refund-policy" className="text-mint-600 dark:text-mint-400 font-semibold hover:underline">Refund Policy</Link> and{' '}
+              <Link to="/shipping-policy" className="text-mint-600 dark:text-mint-400 font-semibold hover:underline">Shipping Policy</Link>.
+            </p>
           </div>
         </div>
       </div>

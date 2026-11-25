@@ -10,7 +10,8 @@ const cartState = { items: [], totalAmount: 200 };
 const authState = { user: null };
 
 vi.mock('react-router-dom', () => ({
-  useNavigate: () => navigateMock
+  useNavigate: () => navigateMock,
+  Link: ({ to, children, ...props }) => <a href={to} {...props}>{children}</a>
 }));
 
 vi.mock('../../services/api', () => ({
@@ -174,5 +175,37 @@ describe('Cart place-order duplicate protection', () => {
     ];
     await renderCart();
     expect(screen.getByTestId('product-image-fallback')).toBeInTheDocument();
+  });
+
+  it('sends loose cart lines as grams and fixed lines as unit quantity', async () => {
+    cartState.items = [
+      ...CART_ITEMS,
+      {
+        product: 'p2',
+        name: 'Loose Rice',
+        isLoose: true,
+        pricePerKg: 100,
+        price: 100,
+        quantityGrams: 500,
+        minOrderQtyGrams: 100,
+        stockGrams: 5000,
+        image: ''
+      }
+    ];
+    cartState.totalAmount = 450;
+
+    render(<Cart />);
+    await screen.findByText('Shopping Cart (2 items)');
+    fireEvent.click(screen.getByRole('radio', { name: /Cash on Delivery/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Place Order' }));
+
+    await waitFor(() => {
+      expect(createOrder).toHaveBeenCalledWith(expect.objectContaining({
+        items: [
+          { product: 'p1', quantity: 2 },
+          { product: 'p2', quantityGrams: 500 }
+        ]
+      }));
+    });
   });
 });

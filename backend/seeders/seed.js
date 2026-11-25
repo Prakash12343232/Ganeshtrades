@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
+require('dotenv').config({ path: require('path').join(__dirname, '..', '..', '.env') });
 
 const User = require('../models/User');
 const Product = require('../models/Product');
@@ -8,6 +8,18 @@ const Settings = require('../models/Settings');
 
 const seedDB = async () => {
   try {
+    const isHosted =
+      process.env.NODE_ENV === 'production' ||
+      process.env.RENDER === 'true' ||
+      Boolean(process.env.RENDER_EXTERNAL_URL) ||
+      Boolean(process.env.VERCEL);
+    if (isHosted) {
+      console.error(
+        '❌ Refusing to seed: this script deletes all users, products, and settings. Never run it against a production or hosted database.'
+      );
+      process.exit(1);
+    }
+
     console.log('Connecting to MongoDB Atlas...');
     const isProduction = process.env.NODE_ENV === 'production';
     try {
@@ -94,9 +106,11 @@ const seedDB = async () => {
     await Product.insertMany(products);
 
     console.log('✅ Database seeded successfully!');
-    console.log(`Admin accounts created for 8010412539 and 8898289887.`);
-    console.log(`Default Password: ${adminPassword}`);
-    console.log(`Please change passwords after first login!`);
+    console.log('Admin accounts created for 8010412539 and 8898289887.');
+    if (!process.env.ADMIN_PASSWORD) {
+      console.warn('⚠️ ADMIN_PASSWORD was not set; the development fallback was used. Set ADMIN_PASSWORD before seeding and change it after first login.');
+    }
+    console.log('Please change passwords after first login!');
     process.exit(0);
   } catch (error) {
     console.error('❌ Seed error:', error.message);

@@ -21,6 +21,21 @@ const { protect, authorize } = require('../middleware/auth');
 const { createAuditLog } = require('../utils/auditLogger');
 const { parsePositiveNumber, parsePagination } = require('../utils/security');
 const { clientErrorMessage } = require('../utils/errors');
+const { withTransaction } = require('../utils/transaction');
+const {
+  EPSILON,
+  round2,
+  getOrderPaidTotal,
+  getOrderSettledTotal,
+  recomputeOrderPaymentStatus
+} = require('../services/ledgerService');
+
+function httpError(status, message) {
+  const err = new Error(message);
+  err.status = status;
+  err.exposed = true;
+  return err;
+}
 
 // All worker routes require authentication AND role=staff
 router.use(protect, authorize('staff'));
@@ -235,7 +250,9 @@ router.put('/deliveries/:id/status', async (req, res) => {
 // - Worker must own the delivery
 // - Amount must not exceed outstanding balance
 // - Idempotency key prevents duplicate submissions
-// - Does NOT mark Khata settled — that remains an admin action
+// - Cash/UPI collected at the door reduces the debt class the order booked
+//   (Khata orders reduce creditBalance, all others reduce pendingAmount)
+// - Full Khata settlement remains an admin action
 // ─────────────────────────────────────────────────────────────────────────────
 router.post('/deliveries/:id/payment', async (req, res) => {
   try {
@@ -261,14 +278,6 @@ router.post('/deliveries/:id/payment', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Order is already fully paid' });
     }
 
-    // Idempotency — prevent double-submission
-    if (idempotencyKey) {
-      const duplicate = await Payment.findOne({ order: order._id, notes: `idem:${idempotencyKey}` });
-      if (duplicate) {
-        return res.status(200).json({ success: true, data: duplicate, idempotent: true });
-      }
-    }
-
     const amount = parsePositiveNumber(rawAmount, 'amount');
 
     // Only cash or UPI allowed at door — credit settlements are admin-only
@@ -277,46 +286,81 @@ router.post('/deliveries/:id/payment', async (req, res) => {
       return res.status(400).json({ success: false, message: `Payment method must be one of: ${allowedMethods.join(', ')}` });
     }
 
-    // Calculate outstanding
-    const paidAgg = await Payment.aggregate([
-      { $match: { order: order._id, paymentStatus: 'completed' } },
-      { $group: { _id: null, total: { $sum: '$amount' } } }
-    ]);
-    const alreadyPaid = paidAgg[0]?.total || 0;
-    const outstanding = Math.max(0, order.finalAmount - alreadyPaid);
-
-    if (amount > outstanding) {
-      return res.status(400).json({ success: false, message: `Payment ₹${amount} exceeds outstanding amount of ₹${outstanding}` });
-    }
-
     const paymentNotes = idempotencyKey ? `idem:${idempotencyKey}` : notes;
 
-    const payment = await Payment.create({
-      user: order.user,
-      order: order._id,
-      amount,
-      paymentMethod,
-      paymentStatus: 'completed',
-      notes: paymentNotes,
-      receivedBy: req.user._id
+    const outcome = await withTransaction(async (session) => {
+      // Idempotency — prevent double-submission
+      if (idempotencyKey) {
+        const duplicateQuery = Payment.findOne({ order: order._id, notes: `idem:${idempotencyKey}` });
+        if (session) duplicateQuery.session(session);
+        const duplicate = await duplicateQuery;
+        if (duplicate) return { duplicate, created: null };
+      }
+
+      const alreadyPaid = await getOrderPaidTotal(order._id, session);
+      const alreadySettled = await getOrderSettledTotal(order._id, session);
+      const outstanding = round2(Math.max(0, round2(order.finalAmount) - alreadyPaid - alreadySettled));
+      if (outstanding <= EPSILON) throw httpError(400, 'Order is already fully paid');
+      if (amount > outstanding + EPSILON) {
+        throw httpError(400, `Payment ₹${amount} exceeds outstanding amount of ₹${outstanding}`);
+      }
+
+      const customerQuery = User.findById(order.user);
+      if (session) customerQuery.session(session);
+      const customer = await customerQuery;
+      if (!customer) throw httpError(404, 'Customer not found');
+
+      // Door cash/UPI always clears the debt class that the order booked:
+      // Khata orders reduce creditBalance, every other method reduces pendingAmount.
+      const ledgerField = order.paymentMethod === 'credit' ? 'creditBalance' : 'pendingAmount';
+      const currentBalance = round2(customer[ledgerField]);
+      if (amount > currentBalance + EPSILON) {
+        throw httpError(
+          409,
+          `Ledger inconsistency: ${ledgerField} is ₹${currentBalance}, but the collected payment is ₹${amount}. Reconcile the account.`
+        );
+      }
+
+      const [created] = await Payment.create([{
+        user: order.user,
+        order: order._id,
+        amount,
+        paymentMethod,
+        paymentStatus: 'completed',
+        notes: paymentNotes,
+        receivedBy: req.user._id
+      }], session ? { session } : {});
+
+      await recomputeOrderPaymentStatus(order, session);
+
+      // Update idempotencyKey on delivery for traceability
+      if (idempotencyKey) {
+        delivery.paymentIdempotencyKey = idempotencyKey;
+        await delivery.save(session ? { session } : undefined);
+      }
+
+      customer[ledgerField] = round2(currentBalance - amount);
+      await customer.save(session ? { session } : undefined);
+
+      if (order.paymentMethod === 'credit') {
+        await CreditTransaction.create([{
+          user: order.user,
+          amount,
+          type: 'credit',
+          referenceOrder: order._id,
+          description: `Door payment for order #${order.orderNumber}`,
+          loggedBy: req.user._id
+        }], session ? { session } : {});
+      }
+
+      return { duplicate: null, created };
     });
 
-    // Update order payment status
-    order.paymentStatus = (alreadyPaid + amount >= order.finalAmount) ? 'paid' : 'partial';
-    await order.save();
-
-    // Update idempotencyKey on delivery for traceability
-    if (idempotencyKey) {
-      delivery.paymentIdempotencyKey = idempotencyKey;
-      await delivery.save();
+    if (outcome.duplicate) {
+      return res.status(200).json({ success: true, data: outcome.duplicate, idempotent: true });
     }
 
-    // Update customer pendingAmount (NOT creditBalance — Khata is admin-only)
-    const customer = await User.findById(order.user);
-    if (customer && order.paymentMethod !== 'credit') {
-      customer.pendingAmount = Math.max(0, customer.pendingAmount - amount);
-      await customer.save();
-    }
+    const payment = outcome.created;
 
     await createAuditLog(req.user._id, 'worker_payment_collect', 'payment', payment._id, {
       orderId: order._id,
